@@ -50,3 +50,4 @@ jobs:
       - name: Build public site
         working-directory: web
         run: npm run build:public
+
