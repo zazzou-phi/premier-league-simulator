@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "2627:2627"
+    volumes:
+      - ./data:/app/data
+    environment:
+      NODE_ENV: production

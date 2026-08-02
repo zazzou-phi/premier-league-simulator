@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+.git
+.github
+specs
+.env
+.env.*
+**/*.log
+.DS_Store
+data/premier-league.db
+data/premier-league.db-wal
+data/premier-league.db-shm
+web/public/data

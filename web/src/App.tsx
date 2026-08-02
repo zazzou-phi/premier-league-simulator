@@ -1,0 +1,484 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { findNextMatchday } from '@shared/engine/schedule.js';
+import type { MatchDistribution, TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
+import type {
+  ActualMatchResult,
+  Fixture,
+  SeasonState,
+  Team,
+} from '@shared/engine/types.js';
+import { api, isPublicMode } from './api/client.js';
+import { loadPublicMeta } from './api/staticClient.js';
+import { ActualResultsView } from './components/ActualResultsView.js';
+import { ConsensusView } from './components/ConsensusView.js';
+import { Header } from './components/Header.js';
+import { MatchDistributionModal } from './components/MatchDistributionModal.js';
+import { MonteCarloModal } from './components/MonteCarloModal.js';
+import { PredictionManagerModal } from './components/PredictionManagerModal.js';
+import { ProjectionsView } from './components/ProjectionsView.js';
+import { TeamRatingsModal } from './components/TeamRatingsModal.js';
+import type { AppView } from './lib/appView.js';
+import { DEFAULT_CONSENSUS_MODE, type ConsensusMode } from './lib/consensusMode.js';
+import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from './lib/seasonForm.js';
+import { DEFAULT_UPSET_VARIANCE } from './lib/upsetVariance.js';
+import type { MonteCarloRunResult, Prediction, PublicMeta } from './types.js';
+
+type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | null;
+
+interface MonteCarloState {
+  running: boolean;
+  progress: { completed: number; total: number } | null;
+  result: MonteCarloRunResult | null;
+  error: string | null;
+}
+
+interface DistributionState {
+  matchNumber: number;
+  data: MatchDistribution | null;
+  loading: boolean;
+  error: string | null;
+}
+
+interface ProjectionState {
+  prediction: Prediction | null;
+  runs: number;
+  teams: TeamSeasonProjection[];
+  consensus: SeasonState | null;
+  error: string | null;
+  loading: boolean;
+}
+
+const EMPTY_PROJECTIONS: ProjectionState = {
+  prediction: null,
+  runs: 0,
+  teams: [],
+  consensus: null,
+  error: null,
+  loading: false,
+};
+
+function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+export function App() {
+  const publicMode = isPublicMode();
+
+  const [loading, setLoading] = useState(true);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const [appView, setAppView] = useState<AppView>('consensus');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [actualResults, setActualResults] = useState<ActualMatchResult[]>([]);
+  const [projections, setProjections] = useState<ProjectionState>(EMPTY_PROJECTIONS);
+  const [publicMeta, setPublicMeta] = useState<PublicMeta | null>(null);
+
+  const [selectedMatchNumber, setSelectedMatchNumber] = useState<number | null>(null);
+  const [editingMatchNumber, setEditingMatchNumber] = useState<number | null>(null);
+
+  const [upsetVariance, setUpsetVariance] = useState(DEFAULT_UPSET_VARIANCE);
+  const [seasonEloDeltaWeight, setSeasonEloDeltaWeight] = useState(
+    DEFAULT_SEASON_ELO_DELTA_WEIGHT,
+  );
+
+  const [savingConsensusMode, setSavingConsensusMode] = useState(false);
+  const [modal, setModal] = useState<ModalKind>(null);
+  const [monteCarlo, setMonteCarlo] = useState<MonteCarloState>({
+    running: false,
+    progress: null,
+    result: null,
+    error: null,
+  });
+  const [distribution, setDistribution] = useState<DistributionState | null>(null);
+
+  const loadProjection = useCallback(async (prediction: Prediction) => {
+    setProjections((prev) => ({ ...prev, prediction, loading: true, error: null }));
+    try {
+      const [projectionData, consensus] = await Promise.all([
+        api.getPredictionProjections(prediction.id),
+        api.getPredictionState(prediction.id).catch(() => null),
+      ]);
+      setProjections({
+        prediction,
+        runs: projectionData.runs,
+        teams: projectionData.teams,
+        consensus,
+        error: null,
+        loading: false,
+      });
+    } catch (err) {
+      setProjections({
+        ...EMPTY_PROJECTIONS,
+        prediction,
+        error: errorMessage(err, 'Failed to load projections'),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [teamList, fixtureList] = await Promise.all([api.listTeams(), api.listFixtures()]);
+        setTeams(teamList);
+        setFixtures(fixtureList);
+        setActualResults(await api.listActualResults().catch(() => []));
+
+        if (publicMode) {
+          const meta = await loadPublicMeta().catch(() => null);
+          setPublicMeta(meta);
+          if (meta?.predictionId != null) {
+            await loadProjection({
+              id: meta.predictionId,
+              name: meta.predictionName ?? 'Season',
+              runs: meta.runs,
+              consensusMode: DEFAULT_CONSENSUS_MODE,
+              asOfMatchday: meta.asOfMatchday ?? null,
+              lockedCount: 0,
+              createdAt: meta.exportedAt,
+              updatedAt: meta.exportedAt,
+            });
+          }
+        } else {
+          const [upset, seasonForm] = await Promise.all([
+            api.getUpsetVariance().catch(() => ({ value: DEFAULT_UPSET_VARIANCE })),
+            api
+              .getSeasonEloDeltaWeight()
+              .catch(() => ({ value: DEFAULT_SEASON_ELO_DELTA_WEIGHT })),
+          ]);
+          setUpsetVariance(upset.value);
+          setSeasonEloDeltaWeight(seasonForm.value);
+
+          const predictionPage = await api.listPredictions(1, 1).catch(() => null);
+          const prediction = predictionPage?.items[0] ?? null;
+          if (prediction) await loadProjection(prediction);
+        }
+      } catch (err) {
+        setFatalError(errorMessage(err, 'Failed to load the simulator'));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [publicMode, loadProjection]);
+
+  const consensusMode = projections.prediction?.consensusMode ?? DEFAULT_CONSENSUS_MODE;
+
+  // Same rule the engine uses for naming projections, so header and CLI never disagree.
+  const nextMatchday = useMemo(
+    () => findNextMatchday(fixtures, new Set(actualResults.map((r) => r.matchNumber))),
+    [fixtures, actualResults],
+  );
+
+  const distributionMatch = useMemo(() => {
+    if (!distribution || !projections.consensus) return null;
+    return (
+      projections.consensus.matches.find(
+        (match) => match.fixture.matchNumber === distribution.matchNumber,
+      ) ?? null
+    );
+  }, [distribution, projections.consensus]);
+
+  const handleSaveActualScore = async (
+    matchNumber: number,
+    goalsHome: number,
+    goalsAway: number,
+  ) => {
+    setError(null);
+    try {
+      await api.setActualResult(matchNumber, goalsHome, goalsAway);
+      setActualResults(await api.listActualResults());
+      setEditingMatchNumber(null);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to save result'));
+    }
+  };
+
+  const handleClearActualScore = async (matchNumber: number) => {
+    setError(null);
+    try {
+      await api.clearActualResult(matchNumber);
+      setActualResults(await api.listActualResults());
+      setEditingMatchNumber(null);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to clear result'));
+    }
+  };
+
+  const switchPrediction = async (id: number) => {
+    setError(null);
+    setModal(null);
+    setSelectedMatchNumber(null);
+    try {
+      const page = await api.listPredictions(1, 200);
+      const prediction = page.items.find((item) => item.id === id);
+      if (!prediction) throw new Error(`Projection #${id} not found`);
+      await loadProjection(prediction);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to open projection'));
+    }
+  };
+
+  const handleRenamePrediction = async (id: number, name: string) => {
+    const updated = await api.renamePrediction(id, name);
+    if (projections.prediction?.id === id) {
+      setProjections((prev) => ({ ...prev, prediction: updated }));
+    }
+  };
+
+  const handleDeletePrediction = async (id: number) => {
+    await api.deletePrediction(id);
+    if (projections.prediction?.id !== id) return;
+    const page = await api.listPredictions(1, 1);
+    const next = page.items[0];
+    if (next) await loadProjection(next);
+    else setProjections(EMPTY_PROJECTIONS);
+  };
+
+  const handleConsensusModeChange = async (mode: ConsensusMode) => {
+    const prediction = projections.prediction;
+    if (!prediction) return;
+    setError(null);
+    setSavingConsensusMode(true);
+    try {
+      const updated = await api.setPredictionConsensusMode(prediction.id, mode);
+      const consensus = await api.getPredictionState(prediction.id).catch(() => null);
+      setProjections((prev) => ({ ...prev, prediction: updated, consensus }));
+      setToast(`Consensus scorelines set to ${mode}`);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to update consensus mode'));
+    } finally {
+      setSavingConsensusMode(false);
+    }
+  };
+
+  const handleUpsetVarianceChange = (value: number) => {
+    setUpsetVariance(value);
+    if (publicMode) return;
+    void api.setUpsetVariance(value).catch((err: unknown) => {
+      setError(errorMessage(err, 'Failed to save upset factor'));
+    });
+  };
+
+  const handleSeasonEloDeltaWeightChange = (value: number) => {
+    setSeasonEloDeltaWeight(value);
+    if (publicMode) return;
+    void api.setSeasonEloDeltaWeight(value).catch((err: unknown) => {
+      setError(errorMessage(err, 'Failed to save season form'));
+    });
+  };
+
+  const handleRunMonteCarlo = async (runs: number, name: string) => {
+    setMonteCarlo({ running: true, progress: { completed: 0, total: runs }, result: null, error: null });
+    try {
+      const result = await api.runMonteCarlo(runs, {
+        upsetVariance,
+        name,
+        onProgress: (completed, total) => {
+          setMonteCarlo((prev) => ({ ...prev, progress: { completed, total } }));
+        },
+      });
+      setMonteCarlo({ running: false, progress: null, result, error: null });
+
+      const page = await api.listPredictions(1, 200).catch(() => null);
+      const prediction = page?.items.find((item) => item.id === result.predictionId) ?? null;
+      if (prediction) await loadProjection(prediction);
+      setToast(`Simulated ${result.runs.toLocaleString()} seasons`);
+    } catch (err) {
+      setMonteCarlo({
+        running: false,
+        progress: null,
+        result: null,
+        error: errorMessage(err, 'Failed to run Monte Carlo simulation'),
+      });
+    }
+  };
+
+  const handleOpenMatchDistribution = async (matchNumber: number) => {
+    const predictionId = projections.prediction?.id;
+    if (predictionId == null) return;
+    setDistribution({ matchNumber, data: null, loading: true, error: null });
+    try {
+      const data = await api.getMatchDistribution(predictionId, matchNumber);
+      setDistribution({ matchNumber, data, loading: false, error: null });
+    } catch (err) {
+      setDistribution({
+        matchNumber,
+        data: null,
+        loading: false,
+        error: errorMessage(err, 'Failed to load match distribution'),
+      });
+    }
+  };
+
+  const switchAppView = (view: AppView) => {
+    if (view === appView) return;
+    setSelectedMatchNumber(null);
+    setEditingMatchNumber(null);
+    setAppView(view);
+  };
+
+  const emptyProjectionMessage = (
+    <div className="view-empty">
+      <p>No projections yet.</p>
+      <p className="muted">Run a Monte Carlo batch to build one.</p>
+    </div>
+  );
+
+  if (loading) {
+    return <div className="app-loading">Loading Premier League Simulator…</div>;
+  }
+
+  if (fatalError) {
+    return (
+      <div className="app-error">
+        <p className="app-error-title">Could not load the simulator</p>
+        <p className="app-error-detail">{fatalError}</p>
+        <button type="button" className="btn" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <Header
+        appView={appView}
+        publicMode={publicMode}
+        activePredictionLabel={
+          projections.prediction
+            ? `${projections.prediction.name} · ${projections.runs.toLocaleString()} runs`
+            : null
+        }
+        recordedResultCount={actualResults.length}
+        nextMatchday={nextMatchday}
+        consensusMode={consensusMode}
+        savingConsensusMode={savingConsensusMode}
+        monteCarloRunning={monteCarlo.running}
+        upsetVariance={upsetVariance}
+        seasonEloDeltaWeight={seasonEloDeltaWeight}
+        onAppViewChange={switchAppView}
+        onUpsetVarianceChange={handleUpsetVarianceChange}
+        onSeasonEloDeltaWeightChange={handleSeasonEloDeltaWeightChange}
+        onConsensusModeChange={(mode) => void handleConsensusModeChange(mode)}
+        onOpenMonteCarlo={() => {
+          setMonteCarlo({ running: false, progress: null, result: null, error: null });
+          setModal('monteCarlo');
+        }}
+        onOpenPredictions={() => setModal('predictions')}
+        onOpenRatings={() => setModal('ratings')}
+      />
+
+      {toast && (
+        <div className="app-toast app-toast-success" onClick={() => setToast(null)}>
+          {toast} (click to dismiss)
+        </div>
+      )}
+
+      {error && (
+        <div className="app-toast" onClick={() => setError(null)}>
+          {error} (click to dismiss)
+        </div>
+      )}
+
+      <main className="app-main">
+        {appView === 'consensus' &&
+          (projections.prediction == null ? (
+            emptyProjectionMessage
+          ) : (
+            <ConsensusView
+              teams={teams}
+              consensusState={projections.consensus}
+              consensusError={projections.error}
+              loading={projections.loading}
+              selectedMatchNumber={selectedMatchNumber}
+              onSelectMatch={setSelectedMatchNumber}
+              onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
+            />
+          ))}
+
+        {appView === 'projections' &&
+          (projections.prediction == null ? (
+            emptyProjectionMessage
+          ) : (
+            <ProjectionsView
+              projections={projections.teams}
+              runs={projections.runs}
+              teams={teams}
+              loading={projections.loading}
+            />
+          ))}
+
+        {appView === 'results' && (
+          <ActualResultsView
+            teams={teams}
+            fixtures={fixtures}
+            actualResults={actualResults}
+            selectedMatchNumber={selectedMatchNumber}
+            editingMatchNumber={editingMatchNumber}
+            readOnly={publicMode}
+            onSelectMatch={setSelectedMatchNumber}
+            onStartEdit={setEditingMatchNumber}
+            onSaveScore={(matchNumber, goalsHome, goalsAway) =>
+              void handleSaveActualScore(matchNumber, goalsHome, goalsAway)
+            }
+            onCancelEdit={() => setEditingMatchNumber(null)}
+            onClearScore={(matchNumber) => void handleClearActualScore(matchNumber)}
+          />
+        )}
+      </main>
+
+      {publicMode && publicMeta && (
+        <footer className="app-footer muted">
+          Data exported {new Date(publicMeta.exportedAt).toLocaleString()}
+        </footer>
+      )}
+
+      {modal === 'predictions' && (
+        <PredictionManagerModal
+          activePredictionId={projections.prediction?.id ?? null}
+          onClose={() => setModal(null)}
+          onSwitch={(id) => void switchPrediction(id)}
+          onRename={handleRenamePrediction}
+          onDelete={handleDeletePrediction}
+        />
+      )}
+
+      {modal === 'ratings' && (
+        <TeamRatingsModal teams={teams} onClose={() => setModal(null)} />
+      )}
+
+      {modal === 'monteCarlo' && (
+        <MonteCarloModal
+          running={monteCarlo.running}
+          progress={monteCarlo.progress}
+          result={monteCarlo.result}
+          error={monteCarlo.error}
+          teams={teams}
+          upsetVariance={upsetVariance}
+          onUpsetVarianceChange={handleUpsetVarianceChange}
+          onClose={() => {
+            if (!monteCarlo.running) setModal(null);
+          }}
+          onRun={(runs, name) => void handleRunMonteCarlo(runs, name)}
+          onOpenProjections={() => {
+            setModal(null);
+            switchAppView('projections');
+          }}
+        />
+      )}
+
+      {distribution && distributionMatch && (
+        <MatchDistributionModal
+          match={distributionMatch}
+          distribution={distribution.data}
+          loading={distribution.loading}
+          error={distribution.error}
+          onClose={() => setDistribution(null)}
+        />
+      )}
+    </div>
+  );
+}

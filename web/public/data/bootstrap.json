@@ -1,0 +1,3227 @@
+{
+  "teams": [
+    {
+      "id": 1,
+      "name": "Arsenal",
+      "shortName": "ARS",
+      "crest": null,
+      "elo": 2063.76,
+      "offensiveRating": 1.7703115724063339,
+      "defensiveRating": 0.520020156221401
+    },
+    {
+      "id": 2,
+      "name": "Manchester City",
+      "shortName": "MCI",
+      "crest": null,
+      "elo": 1970.85,
+      "offensiveRating": 1.4033757169923788,
+      "defensiveRating": 0.6559880503107601
+    },
+    {
+      "id": 3,
+      "name": "Aston Villa",
+      "shortName": "AVL",
+      "crest": null,
+      "elo": 1920.97,
+      "offensiveRating": 1.2388463215621692,
+      "defensiveRating": 0.7431088783332174
+    },
+    {
+      "id": 4,
+      "name": "Manchester United",
+      "shortName": "MUN",
+      "crest": null,
+      "elo": 1915.32,
+      "offensiveRating": 1.2214706220406424,
+      "defensiveRating": 0.7536797724249027
+    },
+    {
+      "id": 5,
+      "name": "Liverpool",
+      "shortName": "LIV",
+      "crest": null,
+      "elo": 1910.8,
+      "offensiveRating": 1.2077456958886827,
+      "defensiveRating": 0.7622446542986039
+    },
+    {
+      "id": 6,
+      "name": "Bournemouth",
+      "shortName": "BOU",
+      "crest": null,
+      "elo": 1871.97,
+      "offensiveRating": 1.0960146560035646,
+      "defensiveRating": 0.8399501734767875
+    },
+    {
+      "id": 7,
+      "name": "Brighton & Hove Albion",
+      "shortName": "BHA",
+      "crest": null,
+      "elo": 1842.01,
+      "offensiveRating": 1.016922145158011,
+      "defensiveRating": 0.9052784471521679
+    },
+    {
+      "id": 8,
+      "name": "Newcastle United",
+      "shortName": "NEW",
+      "crest": null,
+      "elo": 1837.53,
+      "offensiveRating": 1.0055961610373567,
+      "defensiveRating": 0.9154745573945131
+    },
+    {
+      "id": 9,
+      "name": "Brentford",
+      "shortName": "BRE",
+      "crest": null,
+      "elo": 1836.59,
+      "offensiveRating": 1.0032357845875122,
+      "defensiveRating": 0.9176284524398282
+    },
+    {
+      "id": 10,
+      "name": "Chelsea",
+      "shortName": "CHE",
+      "crest": null,
+      "elo": 1831.1,
+      "offensiveRating": 0.9895604352037282,
+      "defensiveRating": 0.9303097291412682
+    },
+    {
+      "id": 11,
+      "name": "Nottingham Forest",
+      "shortName": "NFO",
+      "crest": null,
+      "elo": 1822.17,
+      "offensiveRating": 0.9677132748038675,
+      "defensiveRating": 0.9513124645622734
+    },
+    {
+      "id": 12,
+      "name": "Fulham",
+      "shortName": "FUL",
+      "crest": null,
+      "elo": 1813.1,
+      "offensiveRating": 0.9460172841764305,
+      "defensiveRating": 0.9731298950258989
+    },
+    {
+      "id": 13,
+      "name": "Crystal Palace",
+      "shortName": "CRY",
+      "crest": null,
+      "elo": 1803.82,
+      "offensiveRating": 0.9243223178754546,
+      "defensiveRating": 0.9959704343818939
+    },
+    {
+      "id": 14,
+      "name": "Everton",
+      "shortName": "EVE",
+      "crest": null,
+      "elo": 1803.43,
+      "offensiveRating": 0.9234215428147267,
+      "defensiveRating": 0.9969419791065047
+    },
+    {
+      "id": 15,
+      "name": "Leeds United",
+      "shortName": "LEE",
+      "crest": null,
+      "elo": 1797.39,
+      "offensiveRating": 0.9095826243029732,
+      "defensiveRating": 1.0121100335978424
+    },
+    {
+      "id": 16,
+      "name": "Tottenham Hotspur",
+      "shortName": "TOT",
+      "crest": null,
+      "elo": 1777.31,
+      "offensiveRating": 0.8650487292035973,
+      "defensiveRating": 1.0642148463599725
+    },
+    {
+      "id": 17,
+      "name": "Sunderland",
+      "shortName": "SUN",
+      "crest": null,
+      "elo": 1735.93,
+      "offensiveRating": 0.7800326982860858,
+      "defensiveRating": 1.1802039869175538
+    },
+    {
+      "id": 18,
+      "name": "Coventry City",
+      "shortName": "COV",
+      "crest": null,
+      "elo": 1661.48,
+      "offensiveRating": 0.6475596025998505,
+      "defensiveRating": 1.4216416477297842
+    },
+    {
+      "id": 19,
+      "name": "Ipswich Town",
+      "shortName": "IPS",
+      "crest": null,
+      "elo": 1640,
+      "offensiveRating": 0.6137028416152618,
+      "defensiveRating": 1.500070780217163
+    },
+    {
+      "id": 20,
+      "name": "Hull City",
+      "shortName": "HUL",
+      "crest": null,
+      "elo": 1532.88,
+      "offensiveRating": 0.4695199734413672,
+      "defensiveRating": 1.9607210609076637
+    }
+  ],
+  "fixtures": [
+    {
+      "matchNumber": 1,
+      "matchday": 1,
+      "date": "2026-08-21",
+      "time": "20:00",
+      "teamHomeId": 1,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 2,
+      "matchday": 1,
+      "date": "2026-08-22",
+      "time": "12:30",
+      "teamHomeId": 20,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 3,
+      "matchday": 1,
+      "date": "2026-08-22",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 4,
+      "matchday": 1,
+      "date": "2026-08-22",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 5,
+      "matchday": 1,
+      "date": "2026-08-22",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 6,
+      "matchday": 1,
+      "date": "2026-08-22",
+      "time": "17:30",
+      "teamHomeId": 9,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 7,
+      "matchday": 1,
+      "date": "2026-08-23",
+      "time": "14:00",
+      "teamHomeId": 7,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 8,
+      "matchday": 1,
+      "date": "2026-08-23",
+      "time": "14:00",
+      "teamHomeId": 2,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 9,
+      "matchday": 1,
+      "date": "2026-08-23",
+      "time": "16:30",
+      "teamHomeId": 8,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 10,
+      "matchday": 1,
+      "date": "2026-08-24",
+      "time": "20:00",
+      "teamHomeId": 12,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 11,
+      "matchday": 2,
+      "date": "2026-08-29",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 12,
+      "matchday": 2,
+      "date": "2026-08-31",
+      "time": "20:00",
+      "teamHomeId": 3,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 13,
+      "matchday": 2,
+      "date": "2026-08-30",
+      "time": "14:00",
+      "teamHomeId": 10,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 14,
+      "matchday": 2,
+      "date": "2026-08-29",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 15,
+      "matchday": 2,
+      "date": "2026-08-28",
+      "time": "20:00",
+      "teamHomeId": 13,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 16,
+      "matchday": 2,
+      "date": "2026-08-30",
+      "time": "14:00",
+      "teamHomeId": 15,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 17,
+      "matchday": 2,
+      "date": "2026-08-29",
+      "time": "12:30",
+      "teamHomeId": 5,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 18,
+      "matchday": 2,
+      "date": "2026-08-30",
+      "time": "16:30",
+      "teamHomeId": 4,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 19,
+      "matchday": 2,
+      "date": "2026-08-30",
+      "time": "14:00",
+      "teamHomeId": 17,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 20,
+      "matchday": 2,
+      "date": "2026-08-29",
+      "time": "17:30",
+      "teamHomeId": 16,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 21,
+      "matchday": 3,
+      "date": "2026-09-06",
+      "time": "16:30",
+      "teamHomeId": 1,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 22,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 23,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 24,
+      "matchday": 3,
+      "date": "2026-09-06",
+      "time": "14:00",
+      "teamHomeId": 14,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 25,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 26,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "17:30",
+      "teamHomeId": 20,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 27,
+      "matchday": 3,
+      "date": "2026-09-04",
+      "time": "20:00",
+      "teamHomeId": 19,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 28,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 29,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "12:30",
+      "teamHomeId": 8,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 30,
+      "matchday": 3,
+      "date": "2026-09-05",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 31,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 32,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 33,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 34,
+      "matchday": 4,
+      "date": "2026-09-13",
+      "time": "14:00",
+      "teamHomeId": 18,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 35,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 36,
+      "matchday": 4,
+      "date": "2026-09-14",
+      "time": "20:00",
+      "teamHomeId": 15,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 37,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 38,
+      "matchday": 4,
+      "date": "2026-09-13",
+      "time": "16:30",
+      "teamHomeId": 4,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 39,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "20:00",
+      "teamHomeId": 17,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 40,
+      "matchday": 4,
+      "date": "2026-09-12",
+      "time": "17:30",
+      "teamHomeId": 16,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 41,
+      "matchday": 5,
+      "date": "2026-09-20",
+      "time": "14:00",
+      "teamHomeId": 6,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 42,
+      "matchday": 5,
+      "date": "2026-09-18",
+      "time": "20:00",
+      "teamHomeId": 9,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 43,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 44,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 45,
+      "matchday": 5,
+      "date": "2026-09-20",
+      "time": "16:30",
+      "teamHomeId": 12,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 46,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 47,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 48,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 49,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "17:30",
+      "teamHomeId": 11,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 50,
+      "matchday": 5,
+      "date": "2026-09-19",
+      "time": "12:30",
+      "teamHomeId": 16,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 51,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 52,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 53,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 54,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 55,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 56,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 57,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 58,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 59,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 60,
+      "matchday": 6,
+      "date": "2026-10-10",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 61,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 62,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 63,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 64,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 65,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 66,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 67,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 68,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 69,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 70,
+      "matchday": 7,
+      "date": "2026-10-17",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 71,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 72,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 73,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 74,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 75,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 76,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 77,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 78,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 79,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 80,
+      "matchday": 8,
+      "date": "2026-10-24",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 81,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 82,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 83,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 84,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 85,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 86,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 87,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 88,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 89,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 90,
+      "matchday": 9,
+      "date": "2026-10-31",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 91,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 92,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 93,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 94,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 95,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 96,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 97,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 98,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 99,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 100,
+      "matchday": 10,
+      "date": "2026-11-07",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 101,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 102,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 103,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 104,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 105,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 106,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 107,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 108,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 109,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 110,
+      "matchday": 11,
+      "date": "2026-11-21",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 111,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 112,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 113,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 114,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 115,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 116,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 117,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 118,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 119,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 120,
+      "matchday": 12,
+      "date": "2026-11-28",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 121,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 6,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 122,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 3,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 123,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 9,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 124,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 10,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 125,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 18,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 126,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 20,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 127,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 5,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 128,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 2,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 129,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 8,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 130,
+      "matchday": 13,
+      "date": "2026-12-02",
+      "time": "20:00",
+      "teamHomeId": 16,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 131,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 132,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 133,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 134,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 135,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 136,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 137,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 138,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 139,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 140,
+      "matchday": 14,
+      "date": "2026-12-05",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 141,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 142,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 143,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 144,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 145,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 146,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 147,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 148,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 149,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 150,
+      "matchday": 15,
+      "date": "2026-12-12",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 151,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 152,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 153,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 154,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 155,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 156,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 157,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 158,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 159,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 160,
+      "matchday": 16,
+      "date": "2026-12-19",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 161,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 162,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 163,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 164,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 165,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 166,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 167,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 168,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 169,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 170,
+      "matchday": 17,
+      "date": "2026-12-26",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 171,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 3,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 172,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 18,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 173,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 13,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 174,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 14,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 175,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 12,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 176,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 20,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 177,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 19,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 178,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 4,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 179,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 8,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 180,
+      "matchday": 18,
+      "date": "2026-12-30",
+      "time": "20:00",
+      "teamHomeId": 16,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 181,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 182,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 183,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 184,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 185,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 186,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 187,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 188,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 189,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 190,
+      "matchday": 19,
+      "date": "2027-01-02",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 191,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 1,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 192,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 7,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 193,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 13,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 194,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 14,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 195,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 12,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 196,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 19,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 197,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 15,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 198,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 4,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 199,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 11,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 200,
+      "matchday": 20,
+      "date": "2027-01-06",
+      "time": "20:00",
+      "teamHomeId": 17,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 201,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 202,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 203,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 204,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 205,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 206,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 207,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 208,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 209,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 210,
+      "matchday": 21,
+      "date": "2027-01-16",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 211,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 212,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 213,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 214,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 215,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 216,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 217,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 218,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 219,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 220,
+      "matchday": 22,
+      "date": "2027-01-23",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 221,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 222,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 223,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 224,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 225,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 226,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 227,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 228,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 229,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 230,
+      "matchday": 23,
+      "date": "2027-01-30",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 231,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 232,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 233,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 234,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 235,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 236,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 237,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 238,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 239,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 240,
+      "matchday": 24,
+      "date": "2027-02-06",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 241,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 3,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 242,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 18,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 243,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 13,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 244,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 14,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 245,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 12,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 246,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 20,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 247,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 19,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 248,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 4,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 249,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 8,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 250,
+      "matchday": 25,
+      "date": "2027-02-10",
+      "time": "20:00",
+      "teamHomeId": 16,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 251,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 252,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 253,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 254,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 255,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 256,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 257,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 258,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 259,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 260,
+      "matchday": 26,
+      "date": "2027-02-20",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 261,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 262,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 263,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 264,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 265,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 266,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 267,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 268,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 269,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 270,
+      "matchday": 27,
+      "date": "2027-02-27",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 271,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 6,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 272,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 1,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 273,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 9,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 274,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 7,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 275,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 10,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 276,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 15,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 277,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 5,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 278,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 2,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 279,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 11,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 280,
+      "matchday": 28,
+      "date": "2027-03-03",
+      "time": "20:00",
+      "teamHomeId": 17,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 281,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 282,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 283,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 284,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 285,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 286,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 287,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 288,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 289,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 290,
+      "matchday": 29,
+      "date": "2027-03-13",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 291,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 292,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 293,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 294,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 295,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 296,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 297,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 298,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 299,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 300,
+      "matchday": 30,
+      "date": "2027-03-20",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 301,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 302,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 303,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 304,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 305,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 306,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 307,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 308,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 309,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 310,
+      "matchday": 31,
+      "date": "2027-04-10",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 311,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 312,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 313,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 314,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 315,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 316,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 317,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 318,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 319,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 320,
+      "matchday": 32,
+      "date": "2027-04-17",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 321,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 322,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 323,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 324,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 325,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 326,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 327,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 328,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 329,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 330,
+      "matchday": 33,
+      "date": "2027-04-24",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 331,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 332,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 333,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 334,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 335,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 336,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 337,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 338,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 339,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 340,
+      "matchday": 34,
+      "date": "2027-05-01",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 341,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 342,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 343,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 344,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 345,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 346,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 347,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 348,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 349,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 350,
+      "matchday": 35,
+      "date": "2027-05-08",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 351,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 1,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 352,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 3,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 353,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 10,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 354,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 18,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 355,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 13,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 356,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 20,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 357,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 19,
+      "teamAwayId": 2
+    },
+    {
+      "matchNumber": 358,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 5,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 359,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 4,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 360,
+      "matchday": 36,
+      "date": "2027-05-15",
+      "time": "15:00",
+      "teamHomeId": 17,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 361,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 6,
+      "teamAwayId": 10
+    },
+    {
+      "matchNumber": 362,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 9,
+      "teamAwayId": 20
+    },
+    {
+      "matchNumber": 363,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 7,
+      "teamAwayId": 5
+    },
+    {
+      "matchNumber": 364,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 14,
+      "teamAwayId": 1
+    },
+    {
+      "matchNumber": 365,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 12,
+      "teamAwayId": 18
+    },
+    {
+      "matchNumber": 366,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 15,
+      "teamAwayId": 17
+    },
+    {
+      "matchNumber": 367,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 2,
+      "teamAwayId": 3
+    },
+    {
+      "matchNumber": 368,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 8,
+      "teamAwayId": 13
+    },
+    {
+      "matchNumber": 369,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 11,
+      "teamAwayId": 19
+    },
+    {
+      "matchNumber": 370,
+      "matchday": 37,
+      "date": "2027-05-23",
+      "time": "15:00",
+      "teamHomeId": 16,
+      "teamAwayId": 4
+    },
+    {
+      "matchNumber": 371,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 1,
+      "teamAwayId": 7
+    },
+    {
+      "matchNumber": 372,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 3,
+      "teamAwayId": 16
+    },
+    {
+      "matchNumber": 373,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 10,
+      "teamAwayId": 9
+    },
+    {
+      "matchNumber": 374,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 18,
+      "teamAwayId": 11
+    },
+    {
+      "matchNumber": 375,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 13,
+      "teamAwayId": 15
+    },
+    {
+      "matchNumber": 376,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 20,
+      "teamAwayId": 8
+    },
+    {
+      "matchNumber": 377,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 19,
+      "teamAwayId": 14
+    },
+    {
+      "matchNumber": 378,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 5,
+      "teamAwayId": 6
+    },
+    {
+      "matchNumber": 379,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 4,
+      "teamAwayId": 12
+    },
+    {
+      "matchNumber": 380,
+      "matchday": 38,
+      "date": "2027-05-30",
+      "time": "16:00",
+      "teamHomeId": 17,
+      "teamAwayId": 2
+    }
+  ],
+  "actualResults": []
+}
