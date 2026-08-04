@@ -23,12 +23,15 @@ export interface PublicBootstrap {
   eloHistory: TeamEloSnapshot[];
 }
 
+/**
+ * The actuals-only table is not exported: the web client derives it from
+ * `bootstrap.actualResults` with the same engine code, and no client ever fetched the file.
+ */
 export interface PublicSnapshot {
   meta: PublicMeta;
   bootstrap: PublicBootstrap;
   leagueState: SeasonState | null;
   projections: { runs: number; teams: TeamSeasonProjection[] } | null;
-  actualResultsState: SeasonState;
 }
 
 /**
@@ -112,7 +115,6 @@ export function buildPublicSnapshot(repo: Repository, exportedAt = new Date()): 
     },
     leagueState,
     projections,
-    actualResultsState: redactUnrevealed(repo.buildActualResultsState(), exportedAt),
   };
 }
 
@@ -122,6 +124,5 @@ export function snapshotToFiles(snapshot: PublicSnapshot): Record<string, unknow
     'bootstrap.json': snapshot.bootstrap,
     'league-state.json': snapshot.leagueState,
     'projections.json': snapshot.projections,
-    'actual-results-state.json': snapshot.actualResultsState,
   };
 }

@@ -32,7 +32,9 @@ grade a projection — `getAccuracyHistory` returns an empty series there.
 | `bootstrap.json` | `teams`, `fixtures`, `actualResults`, `eloHistory` |
 | `league-state.json` | Redacted consensus `SeasonState`, or `null` if no prediction |
 | `projections.json` | `{ runs, teams }` or `null` |
-| `actual-results-state.json` | Redacted actuals-only `SeasonState` |
+
+The actuals-only table is deliberately not exported: the web client derives it from
+`bootstrap.actualResults` with the same engine code, and no client ever fetched the file.
 
 Active prediction = most recently updated prediction.
 

@@ -197,59 +197,35 @@ select:focus-visible,
   padding: 0.65rem;
 }
 
-.header-menu-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 0.25rem 0;
-  flex-shrink: 0;
-}
-
 .header-dropdown-panel > .btn {
   width: 100%;
 }
 
-.header-dropdown-panel .upset-factor-compact {
-  width: 100%;
-  max-width: none;
-  padding: 0.25rem 0.35rem;
-}
-
-.header-settings-segment {
+/* Consensus scorelines: a property of the consensus table, set from beside it. */
+.consensus-mode-control {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.15rem 0.25rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
 }
 
-.header-settings-segment-label {
+.consensus-mode-label {
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
-.header-settings-segment-buttons {
+.consensus-mode-buttons {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
-.header-settings-segment-buttons .btn {
-  flex: 1;
-  width: auto;
-  min-width: 0;
-  padding-inline: 0.35rem;
+.consensus-mode-buttons .btn {
+  padding-inline: 0.45rem;
+  font-size: 0.75rem;
 }
 
-.consensus-mode-control .header-settings-segment-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-}
-
-.consensus-mode-control .header-settings-segment-buttons .btn {
-  flex: none;
-  width: 100%;
-}
-
-/* Segmented control. Sized by content so a third public tab (Phase 2) needs no rule change. */
+/* Segmented control. Sized by content, so all three tabs fit in both modes. */
 .view-switcher {
   display: inline-flex;
   flex-shrink: 0;
@@ -362,8 +338,12 @@ select:focus-visible,
   aspect-ratio: 1;
 }
 
-.btn.header-icon-btn.header-options-btn {
-  font-size: 1.4rem;
+.btn.header-options-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .btn-simulate {
@@ -408,7 +388,7 @@ select:focus-visible,
   overflow: hidden;
   /* Size to the full P/W/D/L/GF/GA/GD/Pts column set instead of clipping it, but
      never let the table crowd out the fixture list. */
-  grid-template-columns: fit-content(40rem) minmax(0, 1fr);
+  grid-template-columns: fit-content(46rem) minmax(0, 1fr);
 }
 
 .season-layout-tab-bar {
@@ -487,19 +467,48 @@ select:focus-visible,
   flex-shrink: 0;
 }
 
+/* Projected and actual render the same layout, so the header has to carry the difference. */
+.league-table-header {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--cyan);
+}
+
+.league-table-header-actual {
+  border-left-color: var(--green);
+}
+
 .league-table-title {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
   font-weight: 700;
-  margin-bottom: 0.35rem;
+}
+
+.league-table-heading {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.league-table-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--text-muted);
 }
 
 .league-table-progress {
   color: var(--text-muted);
   font-weight: 400;
   font-size: 0.85em;
+}
+
+.league-table .panel-empty {
+  margin: 0.75rem 0;
+  color: var(--text-muted);
 }
 
 .league-table table {
@@ -530,6 +539,34 @@ select:focus-visible,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Filtering is a button, not a row click: it has to be reachable and visible as an action. */
+.league-table-team-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.league-table-filter-glyph {
+  margin-left: auto;
+  color: var(--cyan);
+  opacity: 0;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.league-table-team-btn:hover .league-table-filter-glyph,
+.league-table-team-btn:focus-visible .league-table-filter-glyph,
+.league-table tbody tr.team-selected .league-table-filter-glyph {
+  opacity: 1;
 }
 
 .league-table td.league-table-position {
@@ -677,6 +714,42 @@ select:focus-visible,
   font-size: 0.8em;
 }
 
+/* 380 rows need a way in. The select doubles as the label for the matchday at the top. */
+.fixture-list-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
+}
+
+.fixture-list-nav-jump {
+  flex: 0 1 12rem;
+  min-width: 0;
+}
+
+.fixture-list-nav-select {
+  width: 100%;
+  padding: 0.2rem 0.35rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.85em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .fixture-list-body {
   flex: 1;
   min-height: 0;
@@ -718,7 +791,7 @@ select:focus-visible,
 
 .fixture-row {
   display: grid;
-  grid-template-columns: 6.75rem minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-columns: 6.75rem minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.4rem;
   align-items: center;
   padding: 0.2rem 0.4rem;
@@ -782,10 +855,6 @@ select:focus-visible,
   justify-self: center;
 }
 
-.fixture-row-actions {
-  min-width: 0;
-}
-
 .score-display {
   background: transparent;
   border: 1px dashed var(--border);
@@ -794,6 +863,30 @@ select:focus-visible,
   border-radius: 4px;
   min-width: 4rem;
   text-align: center;
+}
+
+/* The score is the way into a fixture's distribution, so it has to look like a control. */
+.score-display.score-interactive {
+  cursor: pointer;
+}
+
+.score-display.score-interactive:hover,
+.score-display.score-interactive:focus-visible {
+  border-color: var(--cyan);
+  background: var(--accent-dim);
+}
+
+.score-display-chevron {
+  display: none;
+  margin-left: 0.25rem;
+  color: var(--cyan);
+}
+
+@media (min-width: 640px) {
+  .score-display.score-interactive:hover .score-display-chevron,
+  .score-display.score-interactive:focus-visible .score-display-chevron {
+    display: inline;
+  }
 }
 
 .score-display.unplayed {
@@ -811,10 +904,6 @@ select:focus-visible,
   gap: 0.3rem;
   min-width: 5.5rem;
   padding: 0.1rem 0.35rem;
-}
-
-.score-display.score-with-actual.score-interactive {
-  cursor: pointer;
 }
 
 .score-predicted-home,
@@ -840,27 +929,6 @@ select:focus-visible,
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   white-space: nowrap;
-}
-
-.score-editor {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-}
-
-.score-editor input {
-  width: 2.5rem;
-  background: var(--bg);
-  border: 1px solid var(--cyan);
-  color: var(--text);
-  border-radius: 4px;
-  padding: 0.1rem;
-  text-align: center;
-}
-
-.score-sep {
-  color: var(--text-muted);
 }
 
 .modal-overlay {
@@ -1031,24 +1099,31 @@ select:focus-visible,
   line-height: 1.35;
 }
 
-.upset-factor-compact {
+/* Run parameters live with the Run button: they are read at simulation time, not applied live. */
+.run-parameters {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.run-parameters-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 7rem;
-  max-width: 9rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.upset-factor-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.upset-factor-range {
-  width: 100%;
+.run-parameters-title {
   margin: 0;
-  accent-color: var(--cyan);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.run-parameters .upset-factor-hint:last-child {
+  margin-bottom: 0;
 }
 
 .sim-list {
@@ -1669,12 +1744,6 @@ select:focus-visible,
     gap: 0.15rem;
   }
 
-  .fixture-row-actions .btn-small {
-    min-height: 1.5rem;
-    padding: 0.1rem 0.35rem;
-    font-size: 0.75em;
-  }
-
   .projections-table td.projections-distribution {
     display: none;
   }
@@ -1691,6 +1760,20 @@ select:focus-visible,
 
   .app-main {
     padding: 0.35rem;
+  }
+
+  /* The mode control takes its own line rather than being pushed off the right edge. */
+  .consensus-mode-control {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .consensus-mode-buttons {
+    flex: 1;
+  }
+
+  .consensus-mode-buttons .btn {
+    flex: 1;
   }
 
   .btn {
@@ -1789,12 +1872,6 @@ select:focus-visible,
     align-self: start;
   }
 
-  .score-editor input {
-    width: 3rem;
-    min-height: 2.25rem;
-    font-size: 1em;
-  }
-
   .score-display {
     min-height: 2.25rem;
     min-width: 4.5rem;
@@ -1826,18 +1903,6 @@ select:focus-visible,
 
   .fixture-list .score-display.score-with-actual {
     min-width: 3.25rem;
-  }
-
-  .fixture-list .score-editor input {
-    width: 2rem;
-    min-height: 1.6rem;
-    font-size: 0.85em;
-  }
-
-  .fixture-row-actions .btn-small {
-    min-height: 1.35rem;
-    padding: 0.05rem 0.3rem;
-    font-size: 0.7em;
   }
 
   .fixture-list-body {

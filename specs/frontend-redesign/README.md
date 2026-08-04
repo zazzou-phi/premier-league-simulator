@@ -1,14 +1,13 @@
 # Frontend redesign
 
-Planned work, **not yet implemented**. The rest of `specs/` documents shipped behaviour;
-these three documents describe intended changes. When a phase lands, fold its outcome into
-[../web.md](../web.md) and delete or mark the phase doc as done.
+Phases 1 and 2 have shipped; their outcomes are folded into [../web.md](../web.md), and the phase
+documents are kept as the record of why each change was made. Phase 3 is still a plan.
 
-| Phase | Theme | Doc |
-|-------|-------|-----|
-| 1 | Lead with the forecast; make navigation and focus visible | [phase-1.md](phase-1.md) |
-| 2 | Fix the mental model: run settings, discoverability, empty states | [phase-2.md](phase-2.md) |
-| 3 | Craft: typography, crests, distribution scale, light theme | [phase-3.md](phase-3.md) |
+| Phase | Theme | Doc | Status |
+|-------|-------|-----|--------|
+| 1 | Lead with the forecast; make navigation and focus visible | [phase-1.md](phase-1.md) | **shipped** |
+| 2 | Fix the mental model: run settings, discoverability, empty states | [phase-2.md](phase-2.md) | **shipped** |
+| 3 | Craft: typography, crests, distribution scale, light theme | [phase-3.md](phase-3.md) | planned |
 
 ## Problem statement
 

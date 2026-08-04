@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { zoneForPosition } from '@shared/engine/standings.js';
 import type { StandingRow } from '@shared/engine/types.js';
 import { LEGEND_ZONES, ZONE_LABELS } from '../lib/leagueZones.js';
@@ -20,8 +20,16 @@ type SortKey =
 interface Props {
   standings: StandingRow[];
   title?: string;
+  /** One line stating where the numbers come from. Projected and actual must not be confusable. */
+  subtitle?: string;
+  /** Colours the panel header. `actual` marks a record of what happened, not a forecast. */
+  tone?: 'projected' | 'actual';
   matchesPlayed?: number;
   matchesTotal?: number;
+  /** Controls belonging to this table, rendered in the title row. */
+  titleActions?: ReactNode;
+  /** Rendered instead of the table and legend — an all-zero table is not worth showing. */
+  emptyState?: ReactNode;
   selectedTeamId?: number | null;
   onSelectTeam?: (teamId: number) => void;
 }
@@ -39,8 +47,12 @@ function formatGoalDifference(goalDifference: number): string {
 export function LeagueTable({
   standings,
   title = 'Table',
+  subtitle,
+  tone = 'projected',
   matchesPlayed,
   matchesTotal,
+  titleActions,
+  emptyState,
   selectedTeamId = null,
   onSelectTeam,
 }: Props) {
@@ -68,16 +80,33 @@ export function LeagueTable({
 
   const teamCount = standings.length;
 
-  return (
-    <div className="league-table">
+  const header = (
+    <div className={`league-table-header league-table-header-${tone}`}>
       <div className="league-table-title">
-        <span>{title}</span>
+        <h2 className="league-table-heading">{title}</h2>
         {matchesPlayed != null && matchesTotal != null && (
           <span className="league-table-progress">
-            {matchesPlayed}/{matchesTotal} played
+            {matchesPlayed === 0 ? 'No matches played yet' : `${matchesPlayed}/${matchesTotal} played`}
           </span>
         )}
+        {titleActions}
       </div>
+      {subtitle && <p className="league-table-subtitle">{subtitle}</p>}
+    </div>
+  );
+
+  if (emptyState) {
+    return (
+      <div className="league-table">
+        {header}
+        {emptyState}
+      </div>
+    );
+  }
+
+  return (
+    <div className="league-table">
+      {header}
       <table>
         <thead>
           <tr>
@@ -165,25 +194,47 @@ export function LeagueTable({
         <tbody>
           {sortedItems.map((row) => {
             const zone = zoneForPosition(row.position, teamCount);
+            const selected = row.teamId === selectedTeamId;
             const classes = [
               `zone-${zone}`,
-              row.teamId === selectedTeamId ? 'team-selected' : '',
+              selected ? 'team-selected' : '',
               onSelectTeam ? 'team-selectable' : '',
             ]
               .filter(Boolean)
               .join(' ');
 
+            const teamCell = (
+              <>
+                <span className="league-table-short">{row.team.shortName}</span>
+                {row.team.name}
+              </>
+            );
+
             return (
-              <tr
-                key={row.teamId}
-                className={classes}
-                title={`${row.team.name} · ${ZONE_LABELS[zone]}`}
-                onClick={onSelectTeam ? () => onSelectTeam(row.teamId) : undefined}
-              >
+              <tr key={row.teamId} className={classes} title={`${row.team.name} · ${ZONE_LABELS[zone]}`}>
                 <td className="league-table-position">{row.position}</td>
                 <td className="league-table-team">
-                  <span className="league-table-short">{row.team.shortName}</span>
-                  {row.team.name}
+                  {onSelectTeam ? (
+                    // A button, not a row click handler: filtering has to work from the keyboard.
+                    <button
+                      type="button"
+                      className="league-table-team-btn"
+                      aria-pressed={selected}
+                      title={
+                        selected
+                          ? `Clear the fixture filter for ${row.team.name}`
+                          : `Filter fixtures to ${row.team.name}`
+                      }
+                      onClick={() => onSelectTeam(row.teamId)}
+                    >
+                      {teamCell}
+                      <span className="league-table-filter-glyph" aria-hidden="true">
+                        ⌕
+                      </span>
+                    </button>
+                  ) : (
+                    teamCell
+                  )}
                 </td>
                 <td>{row.played}</td>
                 <td>{row.won}</td>

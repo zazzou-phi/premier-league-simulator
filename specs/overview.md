@@ -36,7 +36,8 @@ Full read/write: settings, actual results, simulations, Monte Carlo, predictions
 
 Static build (`VITE_APP_MODE=public`, `npm run build:public` in `web/`). No API, no SQLite. Reads JSON under `web/public/data/` produced by `npm run export:public` in `engine/`. Deploy base path: `/premier-league-simulator/`.
 
-Mutating operations are unavailable; the Results view is hidden.
+Mutating operations are unavailable. All three views are reachable: Results is a read-only record
+in both modes, rendered from `bootstrap.json` alone.
 
 ## Ports
 

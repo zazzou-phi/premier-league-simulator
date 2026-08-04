@@ -19,13 +19,17 @@ Public mutating calls throw or no-op (`"Not available in public mode"`). Base pa
 |----|-------|---------|--------|
 | `consensus` | Consensus | yes | yes |
 | `projections` | Projections | yes | yes |
-| `results` | Results | yes | **hidden** |
+| `results` | Results | yes | yes |
+
+All three views are visible at once in a keyboard-operable tab bar (`ViewSwitcher`, `role="tablist"`,
+arrow keys, roving `tabIndex`).
 
 ### Consensus
 
 - League table + fixture list for the active prediction (`ConsensusView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
 - Per-match outcome/scoreline distribution modal
-- Consensus mode switch: `scoreline` | `outcome` | `sample`
+- Consensus mode switch: `scoreline` | `outcome` | `sample`, set from the table's own title row
+  (`LeagueTable`'s `titleActions` slot), not from a header menu
 - Prediction manager: list / switch / rename / delete, plus **Accuracy** — grades the
   selected projection against results recorded since it ran (`PredictionAccuracy.tsx`).
   Rows show `from MD<n>` when the batch carries provenance. Public mode never reaches it:
@@ -54,30 +58,40 @@ Public mutating calls throw or no-op (`"Not available in public mode"`). Base pa
 - Position-probability table and distribution bars (`ProjectionsView`, `ProjectionsTable`, `PositionDistributionBar`)
 - Title / CL / European / relegation style probabilities from the active prediction
 
-### Results (private only)
+### Results
 
-- Record and clear actual scores (`ActualResultsView`, `ScoreEditor`)
-- Table reflects only locked actuals
+- **Read-only** record of played matches (`ActualResultsView`), derived client-side from
+  `bootstrap.actualResults` via `computeLeagueStandings`. No UI path writes or clears a result:
+  scores come from the fixturedownload sync (`npm run week`, `npm run fetch:results`), which is
+  authoritative and overwrites local divergence. The `PUT`/`DELETE /api/v1/actual-results/:n`
+  endpoints remain as a `curl` escape hatch with no client.
+- Pre-season the all-zero table is suppressed in favour of the first kickoff date.
 
-## Header controls (private)
+## Header controls
 
-- Upset variance slider (persisted via settings API)
-- Season Elo delta weight control
-- Team ratings modal (view / edit Elo)
-- Monte Carlo modal (NDJSON progress stream)
-- View help
+- View tab bar, Monte Carlo button (private, projection views), `More ▾` menu, view help.
+- The `More` menu holds the same two entries in every view and mode — `Team Ratings` and
+  `Manage Projections` — with unavailable entries disabled and explained rather than hidden.
+- **Run parameters live in the Monte Carlo modal**, not the header: upset factor and season form
+  are read at simulation time (`app.ts`, `runner.ts`, the CLIs) and change nothing on screen.
+  Both persist on change through the settings API; `App.tsx` awaits the in-flight write before
+  issuing a run. `Reset to defaults` restores `DEFAULT_UPSET_VARIANCE` /
+  `DEFAULT_SEASON_ELO_DELTA_WEIGHT`.
 
-Public header is read-only; footer can show export timestamp from `meta.json`.
+Public header omits the Monte Carlo button and the consensus-mode control; the footer can show the
+export timestamp from `meta.json`.
+
+## Fixture list
+
+`FixtureList` opens anchored on the next unplayed matchday (`initialMatchday`, from
+`findNextMatchday`) and carries a prev/next/jump control row above the scroller. The mobile layout
+hides the panel with CSS rather than unmounting it, so the anchor retries on a `ResizeObserver`
+when a zero-height panel gains height.
 
 ## Clients
 
 - `web/src/api/client.ts` — private vs public API façade
 - `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`
-
-`actual-results-state.json` is written by the export but **never fetched** — `staticClient` has no
-loader for it, and `ActualResultsView` derives the actual table client-side from
-`bootstrap.actualResults`. Slated for removal in
-[frontend-redesign/phase-2.md](frontend-redesign/phase-2.md) §2.6.
 
 ## Simulation UI note
 

@@ -36,6 +36,9 @@ Base URL in private web: proxied as `/api` → `http://127.0.0.1:${API_PORT}`.
 | PUT | `/api/v1/actual-results/:matchNumber` | `{ goalsHome, goalsAway }` — locks + propagates |
 | DELETE | `/api/v1/actual-results/:matchNumber` | 204 |
 
+`PUT` and `DELETE` have no client: the web UI is read-only and the sync path calls
+`repo.setActualResult` directly. They remain as a manual escape hatch via `curl`.
+
 ## Simulations
 
 | Method | Path | Notes |

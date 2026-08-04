@@ -1,12 +1,6 @@
 import type { AppView } from '../lib/appView.js';
-import type { ConsensusMode } from '../lib/consensusMode.js';
-import { CONSENSUS_MODE_HINT, CONSENSUS_MODE_OPTIONS } from '../lib/consensusMode.js';
-import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
-import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
 import { MOBILE_QUERY, useMediaQuery } from '../lib/useMediaQuery.js';
 import { HeaderDropdownMenu } from './HeaderDropdownMenu.js';
-import { SeasonFormControl } from './SeasonFormControl.js';
-import { UpsetFactorControl } from './UpsetFactorControl.js';
 import { ViewHelpButton } from './ViewHelpButton.js';
 import { ViewSwitcher } from './ViewSwitcher.js';
 
@@ -17,15 +11,8 @@ interface Props {
   recordedResultCount: number;
   /** Lowest matchday still unplayed, or null once the season is complete. */
   nextMatchday: number | null;
-  consensusMode: ConsensusMode;
-  savingConsensusMode?: boolean;
   monteCarloRunning?: boolean;
-  upsetVariance: number;
-  seasonEloDeltaWeight: number;
   onAppViewChange: (view: AppView) => void;
-  onUpsetVarianceChange: (value: number) => void;
-  onSeasonEloDeltaWeightChange: (value: number) => void;
-  onConsensusModeChange: (mode: ConsensusMode) => void;
   onOpenMonteCarlo: () => void;
   onOpenPredictions: () => void;
   onOpenRatings: () => void;
@@ -37,15 +24,8 @@ export function Header({
   activePredictionLabel,
   recordedResultCount,
   nextMatchday,
-  consensusMode,
-  savingConsensusMode = false,
   monteCarloRunning = false,
-  upsetVariance,
-  seasonEloDeltaWeight,
   onAppViewChange,
-  onUpsetVarianceChange,
-  onSeasonEloDeltaWeightChange,
-  onConsensusModeChange,
   onOpenMonteCarlo,
   onOpenPredictions,
   onOpenRatings,
@@ -82,61 +62,37 @@ export function Header({
     </>
   );
 
-  const showProjectionSettings = isProjectionFamily && !publicMode;
-  const settingsChanged =
-    upsetVariance !== DEFAULT_UPSET_VARIANCE ||
-    seasonEloDeltaWeight !== DEFAULT_SEASON_ELO_DELTA_WEIGHT;
+  // The menu holds navigation only, and holds the same entries everywhere: contents that change
+  // per view break muscle memory. Unavailable entries are disabled with a reason, not hidden.
+  const projectionsUnavailable = publicMode
+    ? 'Projections are fixed in the published snapshot'
+    : isResultsView
+      ? 'Switch to Consensus or Projections to manage batches'
+      : null;
 
   const optionsMenu = (
     <HeaderDropdownMenu
-      buttonLabel="⋮"
-      buttonClassName="btn btn-ghost header-icon-btn header-options-btn"
+      buttonLabel={
+        <>
+          More <span aria-hidden="true">▾</span>
+        </>
+      }
+      buttonClassName="btn btn-ghost header-options-btn"
       menuClassName="header-options-panel"
       ariaLabel="Options"
-      active={showProjectionSettings && settingsChanged}
     >
-      {showProjectionSettings && (
-        <>
-          <UpsetFactorControl
-            id="header-upset-factor"
-            value={upsetVariance}
-            disabled={monteCarloRunning}
-            onChange={onUpsetVarianceChange}
-          />
-          <SeasonFormControl
-            id="header-season-form"
-            value={seasonEloDeltaWeight}
-            disabled={monteCarloRunning}
-            onChange={onSeasonEloDeltaWeightChange}
-          />
-          <div className="header-menu-divider" role="separator" />
-          <div className="header-settings-segment consensus-mode-control" title={CONSENSUS_MODE_HINT}>
-            <span className="header-settings-segment-label">Consensus scorelines</span>
-            <div className="header-settings-segment-buttons">
-              {CONSENSUS_MODE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`btn btn-ghost ${consensusMode === option.value ? 'active' : ''}`}
-                  disabled={savingConsensusMode || consensusMode === option.value}
-                  onClick={() => onConsensusModeChange(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="header-menu-divider" role="separator" />
-        </>
-      )}
       <button type="button" className="btn btn-ghost" onClick={onOpenRatings}>
         Team Ratings
       </button>
-      {!publicMode && isProjectionFamily && (
-        <button type="button" className="btn btn-ghost" onClick={onOpenPredictions}>
-          Manage Projections
-        </button>
-      )}
+      <button
+        type="button"
+        className="btn btn-ghost"
+        disabled={projectionsUnavailable != null}
+        title={projectionsUnavailable ?? undefined}
+        onClick={onOpenPredictions}
+      >
+        Manage Projections
+      </button>
     </HeaderDropdownMenu>
   );
 
@@ -162,12 +118,7 @@ export function Header({
       <header className="header header-mobile">
         {/* The tab bar takes its own row: three tabs plus the title and two icon buttons do not
             fit on one line at 375px. */}
-        <ViewSwitcher
-          appView={appView}
-          publicMode={publicMode}
-          short
-          onAppViewChange={onAppViewChange}
-        />
+        <ViewSwitcher appView={appView} short onAppViewChange={onAppViewChange} />
         <div className="header-row">
           <div className="header-left">
             <h1 className="header-title">PL Sim</h1>
@@ -182,11 +133,7 @@ export function Header({
   return (
     <header className="header">
       <div className="header-left">
-        <ViewSwitcher
-          appView={appView}
-          publicMode={publicMode}
-          onAppViewChange={onAppViewChange}
-        />
+        <ViewSwitcher appView={appView} onAppViewChange={onAppViewChange} />
         <h1 className="header-title">Premier League Simulator</h1>
         {meta}
       </div>

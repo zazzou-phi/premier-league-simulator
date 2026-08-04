@@ -5,7 +5,6 @@ interface Props {
   buttonClassName?: string;
   menuClassName?: string;
   ariaLabel: string;
-  active?: boolean;
   children: ReactNode;
 }
 
@@ -14,7 +13,6 @@ export function HeaderDropdownMenu({
   buttonClassName = 'btn btn-ghost',
   menuClassName = '',
   ariaLabel,
-  active = false,
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -45,7 +43,7 @@ export function HeaderDropdownMenu({
     >
       <button
         type="button"
-        className={`${buttonClassName}${active ? ' active' : ''}`}
+        className={buttonClassName}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={ariaLabel}
