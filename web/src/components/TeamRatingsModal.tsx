@@ -8,6 +8,7 @@ import {
   type TeamEloSeries,
 } from '../lib/eloSeries.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
+import { Modal } from './Modal.js';
 import { SortableTh } from './SortableTh.js';
 import { Sparkline } from './Sparkline.js';
 
@@ -68,82 +69,80 @@ export function TeamRatingsModal({ teams, onClose }: Props) {
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <h2>Team ratings</h2>
-        <p className="muted ratings-modal-hint">
-          Club Elo from clubelo.com. When two teams meet, the Elo gap sets how the match
-          goal budget is split — not separate attack and defence multipliers. Change and
-          trend come from the dated snapshots each weekly sync records.
-        </p>
+    <Modal className="modal modal-wide" titleId="team-ratings-title" onClose={onClose}>
+      <h2 id="team-ratings-title">Team ratings</h2>
+      <p className="muted ratings-modal-hint">
+        Club Elo from clubelo.com. When two teams meet, the Elo gap sets how the match
+        goal budget is split — not separate attack and defence multipliers. Change and
+        trend come from the dated snapshots each weekly sync records.
+      </p>
 
-        <div className="ratings-table-wrap">
-          <table className="ratings-table">
-            <thead>
-              <tr>
-                <SortableTh
-                  label="Code"
-                  sortKey="code"
-                  activeKey={sort.key}
-                  direction={sort.direction}
-                  onSort={toggleSort}
-                />
-                <SortableTh
-                  label="Team"
-                  sortKey="team"
-                  activeKey={sort.key}
-                  direction={sort.direction}
-                  onSort={toggleSort}
-                />
-                <SortableTh
-                  label="Elo"
-                  sortKey="elo"
-                  activeKey={sort.key}
-                  direction={sort.direction}
-                  className="ratings-table-numeric"
-                  onSort={toggleSort}
-                />
-                <SortableTh
-                  label="Change"
-                  sortKey="change"
-                  activeKey={sort.key}
-                  direction={sort.direction}
-                  className="ratings-table-numeric"
-                  onSort={toggleSort}
-                />
-                <th className="ratings-table-numeric">Trend</th>
+      <div className="ratings-table-wrap">
+        <table className="ratings-table">
+          <thead>
+            <tr>
+              <SortableTh
+                label="Code"
+                sortKey="code"
+                activeKey={sort.key}
+                direction={sort.direction}
+                onSort={toggleSort}
+              />
+              <SortableTh
+                label="Team"
+                sortKey="team"
+                activeKey={sort.key}
+                direction={sort.direction}
+                onSort={toggleSort}
+              />
+              <SortableTh
+                label="Elo"
+                sortKey="elo"
+                activeKey={sort.key}
+                direction={sort.direction}
+                className="ratings-table-numeric"
+                onSort={toggleSort}
+              />
+              <SortableTh
+                label="Change"
+                sortKey="change"
+                activeKey={sort.key}
+                direction={sort.direction}
+                className="ratings-table-numeric"
+                onSort={toggleSort}
+              />
+              <th className="ratings-table-numeric">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedItems.map((team) => (
+              <tr key={team.id}>
+                <td>{team.shortName}</td>
+                <td>{team.name}</td>
+                <td className="ratings-table-numeric ratings-active-col">
+                  {Math.round(team.elo)}
+                </td>
+                <td className={`ratings-table-numeric ${deltaClass(series.get(team.id)?.delta)}`}>
+                  {formatEloDelta(series.get(team.id)?.delta ?? null)}
+                </td>
+                <td className="ratings-table-numeric">
+                  <Sparkline
+                    values={series.get(team.id)?.values ?? []}
+                    label={`${team.name} Elo trend`}
+                    latestDirection={deltaDirection(series.get(team.id)?.delta)}
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {sortedItems.map((team) => (
-                <tr key={team.id}>
-                  <td>{team.shortName}</td>
-                  <td>{team.name}</td>
-                  <td className="ratings-table-numeric ratings-active-col">
-                    {Math.round(team.elo)}
-                  </td>
-                  <td className={`ratings-table-numeric ${deltaClass(series.get(team.id)?.delta)}`}>
-                    {formatEloDelta(series.get(team.id)?.delta ?? null)}
-                  </td>
-                  <td className="ratings-table-numeric">
-                    <Sparkline
-                      values={series.get(team.id)?.values ?? []}
-                      label={`${team.name} Elo trend`}
-                      latestDirection={deltaDirection(series.get(team.id)?.delta)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="modal-actions">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      <div className="modal-actions">
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }

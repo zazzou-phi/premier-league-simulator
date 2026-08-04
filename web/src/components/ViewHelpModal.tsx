@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { AppView } from '../lib/appView.js';
 import { getViewHelp, type HelpSection } from '../lib/viewHelpContent.js';
+import { Modal } from './Modal.js';
 
 type Tab = 'about' | 'howTo';
 
@@ -34,51 +35,41 @@ export function ViewHelpModal({ view, publicMode, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('howTo');
   const help = getViewHelp(view, publicMode);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal help-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{help.title} help</h2>
-        <div className="help-modal-tab-bar" role="tablist" aria-label="Help sections">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'howTo'}
-            className={`help-modal-tab${tab === 'howTo' ? ' active' : ''}`}
-            onClick={() => setTab('howTo')}
-          >
-            How to use
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'about'}
-            className={`help-modal-tab${tab === 'about' ? ' active' : ''}`}
-            onClick={() => setTab('about')}
-          >
-            About
-          </button>
-        </div>
-        <div className="help-modal-body" role="tabpanel">
-          {tab === 'howTo' ? (
-            <HelpSections sections={help.howTo} />
-          ) : (
-            <HelpSections sections={help.about} />
-          )}
-        </div>
-        <div className="modal-actions">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
+    <Modal className="modal help-modal" titleId="view-help-title" onClose={onClose}>
+      <h2 id="view-help-title">{help.title} help</h2>
+      <div className="help-modal-tab-bar" role="tablist" aria-label="Help sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'howTo'}
+          className={`help-modal-tab${tab === 'howTo' ? ' active' : ''}`}
+          onClick={() => setTab('howTo')}
+        >
+          How to use
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'about'}
+          className={`help-modal-tab${tab === 'about' ? ' active' : ''}`}
+          onClick={() => setTab('about')}
+        >
+          About
+        </button>
       </div>
-    </div>
+      <div className="help-modal-body" role="tabpanel">
+        {tab === 'howTo' ? (
+          <HelpSections sections={help.howTo} />
+        ) : (
+          <HelpSections sections={help.about} />
+        )}
+      </div>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }

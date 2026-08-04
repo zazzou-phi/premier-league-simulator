@@ -1,69 +1,82 @@
-import { useEffect, useRef, useState } from 'react';
-import { APP_VIEW_LABELS, getAppViews, type AppView } from '../lib/appView.js';
+import { useRef } from 'react';
+import {
+  APP_VIEW_LABELS,
+  APP_VIEW_SHORT_LABELS,
+  getAppViews,
+  type AppView,
+} from '../lib/appView.js';
 
 interface Props {
   appView: AppView;
   publicMode?: boolean;
+  /** Use abbreviated tab text. Full labels stay available to assistive tech. */
+  short?: boolean;
   onAppViewChange: (view: AppView) => void;
 }
 
-export function ViewSwitcher({ appView, publicMode = false, onAppViewChange }: Props) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const otherViews = getAppViews(publicMode).filter((view) => view !== appView);
+export function ViewSwitcher({
+  appView,
+  publicMode = false,
+  short = false,
+  onAppViewChange,
+}: Props) {
+  const views = getAppViews(publicMode);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  const handleSelect = (view: AppView) => {
-    setOpen(false);
+  const focusTab = (index: number) => {
+    const view = views[index];
+    if (!view) return;
+    tabRefs.current[index]?.focus();
     onAppViewChange(view);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        focusTab((index - 1 + views.length) % views.length);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        focusTab((index + 1) % views.length);
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusTab(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        focusTab(views.length - 1);
+        break;
+    }
+  };
+
   return (
-    <div className={`view-switcher ${open ? 'view-switcher-open' : ''}`} ref={rootRef}>
-      <button
-        type="button"
-        className="btn btn-ghost view-switcher-btn"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="view-switcher-label">{APP_VIEW_LABELS[appView]}</span>
-        <span className="view-switcher-chevron" aria-hidden>
-          ▾
-        </span>
-      </button>
-      {open && (
-        <div className="view-switcher-dropdown" role="menu">
-          {otherViews.map((view) => (
-            <button
-              key={view}
-              type="button"
-              className="view-switcher-item"
-              role="menuitem"
-              onClick={() => handleSelect(view)}
-            >
-              {APP_VIEW_LABELS[view]}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="view-switcher" role="tablist" aria-label="View">
+      {views.map((view, index) => {
+        const selected = view === appView;
+        const label = APP_VIEW_LABELS[view];
+        return (
+          <button
+            key={view}
+            ref={(el) => {
+              tabRefs.current[index] = el;
+            }}
+            type="button"
+            role="tab"
+            id={`view-tab-${view}`}
+            className={`view-switcher-tab ${selected ? 'view-switcher-tab-active' : ''}`}
+            aria-selected={selected}
+            aria-label={short ? label : undefined}
+            // Roving tabIndex keeps the whole group to a single tab stop.
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onAppViewChange(view)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          >
+            {short ? APP_VIEW_SHORT_LABELS[view] : label}
+          </button>
+        );
+      })}
     </div>
   );
 }

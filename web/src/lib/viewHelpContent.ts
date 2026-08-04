@@ -21,7 +21,7 @@ function consensusHelp(publicMode: boolean): ViewHelp {
     {
       title: 'What this view shows',
       paragraphs: [
-        'Predictions is a single representative scoreline for every fixture, derived from a Monte Carlo batch of simulated seasons.',
+        'Consensus is a single representative scoreline for every fixture, derived from a Monte Carlo batch of simulated seasons.',
       ],
     },
     {
@@ -117,7 +117,7 @@ function resultsHelp(): ViewHelp {
       {
         title: 'How results affect other views',
         paragraphs: [
-          'Recorded results lock the matching fixtures in Monte Carlo runs, so projections and predictions stay anchored to what has actually happened.',
+          'Recorded results lock the matching fixtures in Monte Carlo runs, so the projections and the consensus season stay anchored to what has actually happened.',
         ],
       },
     ],

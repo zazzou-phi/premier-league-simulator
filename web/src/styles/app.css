@@ -17,6 +17,7 @@
   --zone-champions-league: #58a6ff;
   --zone-europa: #39c5cf;
   --zone-relegation: #f85149;
+  --focus-ring: #f0b429;
   --fixture-row-max-width: 44rem;
   font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
   font-size: 13px;
@@ -37,6 +38,19 @@ body {
 button {
   font: inherit;
   cursor: pointer;
+}
+
+/* Amber reads against both --bg and --bg-elevated, and against every zone colour a focusable
+   row can carry. The offset keeps the ring off the element's own border. */
+:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .app {
@@ -80,10 +94,24 @@ button {
 }
 
 .app-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   background: #3d1f1f;
   color: var(--red);
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--red);
+}
+
+.app-toast-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0.1rem 0.35rem;
   cursor: pointer;
 }
 
@@ -221,61 +249,39 @@ button {
   width: 100%;
 }
 
+/* Segmented control. Sized by content so a third public tab (Phase 2) needs no rule change. */
 .view-switcher {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.view-switcher-open {
-  z-index: 30;
-}
-
-.view-switcher-btn {
   display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 600;
-  color: var(--cyan);
-  border-color: var(--cyan);
-}
-
-.view-switcher-chevron {
-  font-size: 0.75em;
-  opacity: 0.85;
-}
-
-.view-switcher-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 30;
-  min-width: 10rem;
-  max-width: min(18rem, calc(100vw - 1rem));
+  flex-shrink: 0;
+  gap: 0.15rem;
+  padding: 0.15rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  padding: 0.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
 }
 
-.view-switcher-item {
-  display: block;
-  width: 100%;
-  padding: 0.45rem 0.65rem;
+.view-switcher-tab {
+  padding: 0.3rem 0.7rem;
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--text);
+  color: var(--text-muted);
   font: inherit;
-  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.view-switcher-item:hover {
+.view-switcher-tab:hover {
   background: var(--bg-hover);
+  color: var(--text);
+}
+
+.view-switcher-tab-active,
+.view-switcher-tab-active:hover {
+  background: var(--bg);
+  color: var(--cyan);
+  box-shadow: inset 0 0 0 1px var(--cyan);
 }
 
 .header-title {
@@ -1151,12 +1157,33 @@ button {
 }
 
 .sortable-th {
-  cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
 
-.sortable-th:hover {
+/* The button below carries the padding instead, so the cell must give it up. Scoped per table
+   to outrank the `.<name>-table th` padding rules further down the file. */
+.projections-table th.sortable-th,
+.ratings-table th.sortable-th {
+  padding: 0;
+}
+
+/* Fills the cell so the whole header remains a click target, and carries the th's own padding
+   so the hit area does not shrink now that the handler lives on the button. */
+.sortable-th-btn {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sortable-th-btn:hover {
   color: var(--cyan);
 }
 
@@ -1246,6 +1273,175 @@ button {
   border-radius: 6px;
   padding: 0.5rem;
   background: var(--bg-elevated);
+}
+
+/* Headline strip — the answer, above the table that supports it. */
+.projection-headline {
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+}
+
+.projection-headline-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.5rem;
+}
+
+.headline-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg);
+}
+
+.headline-card-heading {
+  margin: 0 0 0.4rem;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.headline-card-title .headline-card-heading {
+  color: var(--zone-champion);
+}
+
+.headline-card-championsLeague .headline-card-heading {
+  color: var(--zone-champions-league);
+}
+
+.headline-card-relegation .headline-card-heading {
+  color: var(--zone-relegation);
+}
+
+.headline-card-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.headline-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.headline-row-lead {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.headline-team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headline-pct {
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.projection-headline-provenance {
+  margin: 0.4rem 0 0;
+  font-size: 0.85em;
+}
+
+/* Mobile substitute for the projections table. Reflows; never scrolls sideways. */
+.projection-cards-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.projection-cards-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.projection-cards-sort select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.projection-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.projection-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.projection-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.projection-card-rank {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.projection-card-team {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projection-card-figures,
+.projection-card-detail {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+
+.projection-card-figure dt {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.projection-card-figure dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.projection-card-figure-danger dd {
+  color: var(--red);
+}
+
+.projection-card-toggle {
+  align-self: flex-start;
+  font-size: 0.85em;
 }
 
 .projections-table-wrap {
@@ -1522,6 +1718,16 @@ button {
 
   .header-mobile .header-left {
     min-width: 0;
+  }
+
+  /* Full-width segmented control on its own row, tabs sharing the space evenly. */
+  .header-mobile .view-switcher {
+    display: flex;
+  }
+
+  .header-mobile .view-switcher-tab {
+    flex: 1;
+    text-align: center;
   }
 
   .header-mobile .header-actions {

@@ -92,7 +92,7 @@ export const predictions = sqliteTable('predictions', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
   runs: integer('runs').notNull(),
-  consensusMode: text('consensus_mode').notNull().$type<ConsensusMode>().default('scoreline'),
+  consensusMode: text('consensus_mode').notNull().$type<ConsensusMode>().default('outcome'),
   upsetVariance: real('upset_variance').notNull(),
   seasonEloDeltaWeight: real('season_elo_delta_weight').notNull(),
   elapsedMs: integer('elapsed_ms').notNull().default(0),

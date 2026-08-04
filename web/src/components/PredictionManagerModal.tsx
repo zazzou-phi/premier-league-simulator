@@ -7,6 +7,7 @@ import {
   PredictionAccuracyPanel,
   PredictionAccuracySummary,
 } from './PredictionAccuracy.js';
+import { Modal } from './Modal.js';
 
 const PAGE_SIZE = 50;
 
@@ -126,220 +127,223 @@ export function PredictionManagerModal({
   const selectedPrediction = predictions.find((prediction) => prediction.id === selectedId);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Projections</h2>
+    <Modal className="modal" titleId="prediction-manager-title" onClose={onClose}>
+      <h2 id="prediction-manager-title">Projections</h2>
 
-        {mode.kind === 'list' && (
-          <>
-            <div className="sim-list">
-              {loading ? (
-                <p className="muted sim-list-status">Loading…</p>
-              ) : error ? (
-                <p className="modal-warning sim-list-status">{error}</p>
-              ) : predictions.length === 0 ? (
-                <p className="muted sim-list-status">
-                  No projections yet — run a Monte Carlo batch from the Simulation view.
-                </p>
-              ) : (
-                predictions.map((prediction) => (
-                  <div
-                    key={prediction.id}
-                    className={`sim-row ${prediction.id === selectedId ? 'selected' : ''} ${
-                      prediction.id === activePredictionId ? 'active' : ''
-                    }`}
-                    onClick={() => setSelectedId(prediction.id)}
-                    onDoubleClick={() => onSwitch(prediction.id)}
-                  >
-                    <span className="sim-id">#{prediction.id}</span>
-                    <span className="sim-name">{prediction.name}</span>
-                    <span className="sim-meta">
-                      {prediction.asOfMatchday != null
-                        ? `from MD${prediction.asOfMatchday}`
-                        : formatConsensusMode(prediction.consensusMode)}
-                    </span>
-                    <span className="sim-meta sim-count">
-                      {prediction.runs.toLocaleString()} runs
-                    </span>
-                    {prediction.id === activePredictionId && <span className="sim-current">*</span>}
-                  </div>
-                ))
-              )}
-            </div>
-            {selectedPrediction && (
-              <PredictionAccuracySummary accuracy={accuracy} loading={accuracyLoading} />
-            )}
-            {total > PAGE_SIZE && (
-              <div className="sim-pagination">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-small"
-                  disabled={loading || page <= 1}
-                  onClick={() => void loadPage(page - 1)}
-                >
-                  Previous
-                </button>
-                <span className="sim-pagination-meta muted">
-                  Page {page} of {totalPages} ({total.toLocaleString()} total)
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-small"
-                  disabled={loading || page >= totalPages}
-                  onClick={() => void loadPage(page + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn"
-                disabled={selectedId == null}
-                onClick={() => selectedId != null && onSwitch(selectedId)}
-              >
-                Open
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={!selectedPrediction || !accuracy}
-                onClick={() => {
-                  if (!selectedPrediction) return;
-                  setMode({
-                    kind: 'accuracy',
-                    id: selectedPrediction.id,
-                    name: selectedPrediction.name,
-                  });
-                }}
-              >
-                Accuracy
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={!selectedPrediction}
-                onClick={() => {
-                  if (!selectedPrediction) return;
-                  setMode({ kind: 'rename', id: selectedPrediction.id });
-                  setNameInput(selectedPrediction.name);
-                }}
-              >
-                Rename
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                disabled={!selectedPrediction}
-                onClick={() => {
-                  if (!selectedPrediction) return;
-                  setMode({
-                    kind: 'delete',
-                    id: selectedPrediction.id,
-                    name: selectedPrediction.name,
-                  });
-                }}
-              >
-                Delete
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={onClose}>
-                Close
-              </button>
-            </div>
-          </>
-        )}
-
-        {mode.kind === 'accuracy' && (
-          <>
-            <p className="accuracy-heading">
-              #{mode.id} {mode.name}
-            </p>
-            {accuracy ? (
-              <>
-                <AccuracyTrend history={accuracyHistory} />
-                <PredictionAccuracyPanel accuracy={accuracy} />
-              </>
+      {mode.kind === 'list' && (
+        <>
+          <div className="sim-list">
+            {loading ? (
+              <p className="muted sim-list-status">Loading…</p>
+            ) : error ? (
+              <p className="modal-warning sim-list-status">{error}</p>
+            ) : predictions.length === 0 ? (
+              <p className="muted sim-list-status">
+                No projections yet — run a Monte Carlo batch from the Simulation view.
+              </p>
             ) : (
-              <p className="muted">Grading…</p>
+              predictions.map((prediction) => (
+                <div
+                  key={prediction.id}
+                  className={`sim-row ${prediction.id === selectedId ? 'selected' : ''} ${
+                    prediction.id === activePredictionId ? 'active' : ''
+                  }`}
+                  onClick={() => setSelectedId(prediction.id)}
+                  onDoubleClick={() => onSwitch(prediction.id)}
+                >
+                  <span className="sim-id">#{prediction.id}</span>
+                  <span className="sim-name">{prediction.name}</span>
+                  <span className="sim-meta">
+                    {prediction.asOfMatchday != null
+                      ? `from MD${prediction.asOfMatchday}`
+                      : formatConsensusMode(prediction.consensusMode)}
+                  </span>
+                  <span className="sim-meta sim-count">
+                    {prediction.runs.toLocaleString()} runs
+                  </span>
+                  {prediction.id === activePredictionId && <span className="sim-current">*</span>}
+                </div>
+              ))
             )}
-            <div className="modal-actions">
+          </div>
+          {selectedPrediction && (
+            <PredictionAccuracySummary accuracy={accuracy} loading={accuracyLoading} />
+          )}
+          {total > PAGE_SIZE && (
+            <div className="sim-pagination">
               <button
                 type="button"
-                className="btn btn-ghost"
-                onClick={() => setMode({ kind: 'list' })}
+                className="btn btn-ghost btn-small"
+                disabled={loading || page <= 1}
+                onClick={() => void loadPage(page - 1)}
               >
-                Back
+                Previous
+              </button>
+              <span className="sim-pagination-meta muted">
+                Page {page} of {totalPages} ({total.toLocaleString()} total)
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-small"
+                disabled={loading || page >= totalPages}
+                onClick={() => void loadPage(page + 1)}
+              >
+                Next
               </button>
             </div>
-          </>
-        )}
-
-        {mode.kind === 'rename' && (
-          <>
-            <label className="modal-label" htmlFor="prediction-name">
-              Rename projection
-            </label>
-            <input
-              id="prediction-name"
-              className="modal-input"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSubmitName();
-                if (e.key === 'Escape') setMode({ kind: 'list' });
+          )}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn"
+              disabled={selectedId == null}
+              onClick={() => selectedId != null && onSwitch(selectedId)}
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={!selectedPrediction || !accuracy}
+              onClick={() => {
+                if (!selectedPrediction) return;
+                setMode({
+                  kind: 'accuracy',
+                  id: selectedPrediction.id,
+                  name: selectedPrediction.name,
+                });
               }}
-              autoFocus
-            />
-            <div className="modal-actions">
-              <button type="button" className="btn" onClick={handleSubmitName}>
-                Save
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setMode({ kind: 'list' })}
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        )}
+            >
+              Accuracy
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={!selectedPrediction}
+              onClick={() => {
+                if (!selectedPrediction) return;
+                setMode({ kind: 'rename', id: selectedPrediction.id });
+                setNameInput(selectedPrediction.name);
+              }}
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={!selectedPrediction}
+              onClick={() => {
+                if (!selectedPrediction) return;
+                setMode({
+                  kind: 'delete',
+                  id: selectedPrediction.id,
+                  name: selectedPrediction.name,
+                });
+              }}
+            >
+              Delete
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </>
+      )}
 
-        {mode.kind === 'delete' && (
-          <>
-            <p className="modal-warning">Delete projection #{mode.id}?</p>
-            <p>{mode.name}</p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      await onDelete(mode.id);
-                      setMode({ kind: 'list' });
-                      await loadPage(predictions.length === 1 && page > 1 ? page - 1 : page);
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : 'Failed to delete projection');
-                      setMode({ kind: 'list' });
-                    }
-                  })();
-                }}
-              >
-                Confirm delete
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setMode({ kind: 'list' })}
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+      {mode.kind === 'accuracy' && (
+        <>
+          <p className="accuracy-heading">
+            #{mode.id} {mode.name}
+          </p>
+          {accuracy ? (
+            <>
+              <AccuracyTrend history={accuracyHistory} />
+              <PredictionAccuracyPanel accuracy={accuracy} />
+            </>
+          ) : (
+            <p className="muted">Grading…</p>
+          )}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setMode({ kind: 'list' })}
+            >
+              Back
+            </button>
+          </div>
+        </>
+      )}
+
+      {mode.kind === 'rename' && (
+        <>
+          <label className="modal-label" htmlFor="prediction-name">
+            Rename projection
+          </label>
+          <input
+            id="prediction-name"
+            className="modal-input"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmitName();
+              if (e.key === 'Escape') {
+                // Back out of renaming only. Without this the dialog's own Escape handler
+                // would see the event and close the whole modal.
+                e.stopPropagation();
+                setMode({ kind: 'list' });
+              }
+            }}
+            autoFocus
+          />
+          <div className="modal-actions">
+            <button type="button" className="btn" onClick={handleSubmitName}>
+              Save
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setMode({ kind: 'list' })}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {mode.kind === 'delete' && (
+        <>
+          <p className="modal-warning">Delete projection #{mode.id}?</p>
+          <p>{mode.name}</p>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => {
+                void (async () => {
+                  try {
+                    await onDelete(mode.id);
+                    setMode({ kind: 'list' });
+                    await loadPage(predictions.length === 1 && page > 1 ? page - 1 : page);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to delete projection');
+                    setMode({ kind: 'list' });
+                  }
+                })();
+              }}
+            >
+              Confirm delete
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setMode({ kind: 'list' })}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

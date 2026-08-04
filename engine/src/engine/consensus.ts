@@ -5,7 +5,7 @@ export type ConsensusMode = 'scoreline' | 'outcome' | 'sample';
 
 export const CONSENSUS_MODES: ConsensusMode[] = ['scoreline', 'outcome', 'sample'];
 
-export const DEFAULT_CONSENSUS_MODE: ConsensusMode = 'scoreline';
+export const DEFAULT_CONSENSUS_MODE: ConsensusMode = 'outcome';
 
 export function parseConsensusMode(value: unknown): ConsensusMode {
   if (typeof value === 'string') {

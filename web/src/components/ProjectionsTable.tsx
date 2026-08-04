@@ -1,32 +1,21 @@
 import { useMemo } from 'react';
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
+import { formatProbability } from '../lib/formatProbability.js';
+import {
+  DEFAULT_PROJECTION_SORT,
+  PROJECTION_COMPARATORS,
+  type ProjectionSortKey,
+} from '../lib/projectionSort.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
 import { PositionDistributionBar } from './PositionDistributionBar.js';
 import { SortableTh } from './SortableTh.js';
-
-type SortKey =
-  | 'team'
-  | 'title'
-  | 'championsLeague'
-  | 'european'
-  | 'relegation'
-  | 'averagePoints'
-  | 'averagePosition'
-  | 'averageGoalsFor'
-  | 'averageGoalsAgainst';
 
 interface Props {
   projections: TeamSeasonProjection[];
   runs: number;
   teams?: Team[];
   showDistribution?: boolean;
-}
-
-function formatProbability(value: number): string {
-  if (value === 0) return '—';
-  if (value < 0.001) return '<0.1%';
-  return `${(value * 100).toFixed(1)}%`;
 }
 
 function probabilityClass(value: number, danger = false): string {
@@ -46,28 +35,10 @@ export function ProjectionsTable({
     [teams],
   );
 
-  const comparators = useMemo<
-    Record<SortKey, (a: TeamSeasonProjection, b: TeamSeasonProjection) => number>
-  >(
-    () => ({
-      team: (a, b) => a.teamName.localeCompare(b.teamName),
-      title: (a, b) => a.titleProbability - b.titleProbability,
-      championsLeague: (a, b) => a.championsLeagueProbability - b.championsLeagueProbability,
-      european: (a, b) => a.europeanProbability - b.europeanProbability,
-      relegation: (a, b) => a.relegationProbability - b.relegationProbability,
-      averagePoints: (a, b) => a.averagePoints - b.averagePoints,
-      averagePosition: (a, b) => a.averagePosition - b.averagePosition,
-      averageGoalsFor: (a, b) => a.averageGoalsFor - b.averageGoalsFor,
-      averageGoalsAgainst: (a, b) => a.averageGoalsAgainst - b.averageGoalsAgainst,
-    }),
-    [],
-  );
-
-  const { sortedItems, sort, toggleSort } = useSortableTable<TeamSeasonProjection, SortKey>(
-    projections,
-    { key: 'averagePosition', direction: 'asc' },
-    comparators,
-  );
+  const { sortedItems, sort, toggleSort } = useSortableTable<
+    TeamSeasonProjection,
+    ProjectionSortKey
+  >(projections, DEFAULT_PROJECTION_SORT, PROJECTION_COMPARATORS);
 
   return (
     <div className="projections-table-wrap">

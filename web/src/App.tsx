@@ -69,7 +69,9 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [appView, setAppView] = useState<AppView>('consensus');
+  // The forecast is the answer the engine exists to compute, so it leads. Bootstrap falls back to
+  // the consensus season when there is no batch to project from.
+  const [appView, setAppView] = useState<AppView>('projections');
   const [teams, setTeams] = useState<Team[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [actualResults, setActualResults] = useState<ActualMatchResult[]>([]);
@@ -129,7 +131,9 @@ export function App() {
         if (publicMode) {
           const meta = await loadPublicMeta().catch(() => null);
           setPublicMeta(meta);
-          if (meta?.predictionId != null) {
+          if (meta?.predictionId == null) {
+            setAppView('consensus');
+          } else {
             await loadProjection({
               id: meta.predictionId,
               name: meta.predictionName ?? 'Season',
@@ -154,6 +158,7 @@ export function App() {
           const predictionPage = await api.listPredictions(1, 1).catch(() => null);
           const prediction = predictionPage?.items[0] ?? null;
           if (prediction) await loadProjection(prediction);
+          else setAppView('consensus');
         }
       } catch (err) {
         setFatalError(errorMessage(err, 'Failed to load the simulator'));
@@ -162,6 +167,13 @@ export function App() {
       }
     })();
   }, [publicMode, loadProjection]);
+
+  // Success toasts are confirmations, so they time out. Errors persist until dismissed.
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const consensusMode = projections.prediction?.consensusMode ?? DEFAULT_CONSENSUS_MODE;
 
@@ -372,14 +384,30 @@ export function App() {
       />
 
       {toast && (
-        <div className="app-toast app-toast-success" onClick={() => setToast(null)}>
-          {toast} (click to dismiss)
+        <div className="app-toast app-toast-success" role="status">
+          <span>{toast}</span>
+          <button
+            type="button"
+            className="app-toast-dismiss"
+            aria-label="Dismiss"
+            onClick={() => setToast(null)}
+          >
+            ×
+          </button>
         </div>
       )}
 
       {error && (
-        <div className="app-toast" onClick={() => setError(null)}>
-          {error} (click to dismiss)
+        <div className="app-toast" role="status">
+          <span>{error}</span>
+          <button
+            type="button"
+            className="app-toast-dismiss"
+            aria-label="Dismiss"
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -407,6 +435,7 @@ export function App() {
               projections={projections.teams}
               runs={projections.runs}
               teams={teams}
+              nextMatchday={nextMatchday}
               loading={projections.loading}
             />
           ))}

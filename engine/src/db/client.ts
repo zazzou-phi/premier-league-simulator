@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { getProjectDataDir } from '../data/teamsCsv.js';
+import { DEFAULT_CONSENSUS_MODE } from '../engine/consensus.js';
 import * as schema from './schema.js';
 
 export type Db = BetterSQLite3Database<typeof schema>;
@@ -77,7 +78,7 @@ export function initSchema(sqlite: Database.Database): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       runs INTEGER NOT NULL,
-      consensus_mode TEXT NOT NULL DEFAULT 'scoreline',
+      consensus_mode TEXT NOT NULL DEFAULT 'outcome',
       upset_variance REAL NOT NULL,
       season_elo_delta_weight REAL NOT NULL,
       elapsed_ms INTEGER NOT NULL DEFAULT 0,
@@ -174,11 +175,34 @@ function migrateDropTeamRatingColumns(sqlite: Database.Database): void {
   }
 }
 
-/** Remap removed floor/rounded consensus modes onto the new default. */
+/**
+ * Schema revisions applied by `migrateConsensusModes`, tracked in `PRAGMA user_version`.
+ * Bump when adding a step below; existing databases run only the steps they have not seen.
+ */
+const CONSENSUS_MODE_SCHEMA_VERSION = 1;
+
+/**
+ * Remap removed floor/rounded consensus modes onto the current default, and — once per database —
+ * move `scoreline` batches onto it too.
+ *
+ * The scoreline backfill is version-guarded rather than unconditional: `scoreline` is still a
+ * mode a user can deliberately choose, so re-running the update on every open would silently
+ * revert that choice on the next restart.
+ */
 function migrateConsensusModes(sqlite: Database.Database): void {
-  sqlite.exec(
-    `UPDATE predictions SET consensus_mode = 'scoreline' WHERE consensus_mode IN ('floor', 'rounded')`,
-  );
+  sqlite
+    .prepare(`UPDATE predictions SET consensus_mode = ? WHERE consensus_mode IN ('floor', 'rounded')`)
+    .run(DEFAULT_CONSENSUS_MODE);
+
+  const version = sqlite.pragma('user_version', { simple: true }) as number;
+  if (version >= CONSENSUS_MODE_SCHEMA_VERSION) return;
+
+  // Pre-redesign batches defaulted to `scoreline`, which collapses most fixtures to 1–1 and
+  // produces a table full of draws. Move them onto the mode the app now defaults to.
+  sqlite
+    .prepare(`UPDATE predictions SET consensus_mode = ? WHERE consensus_mode = 'scoreline'`)
+    .run(DEFAULT_CONSENSUS_MODE);
+  sqlite.pragma(`user_version = ${CONSENSUS_MODE_SCHEMA_VERSION}`);
 }
 
 export function openDatabase(dbPath = getDefaultDbPath()): {

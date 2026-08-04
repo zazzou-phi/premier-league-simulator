@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { computeMeanExpectedGoals, outcomeFromScoreline } from '@shared/engine/consensus.js';
 import type { MatchDistribution, ScorelineCount } from '@shared/simulation/monteCarlo.js';
 import type { ResolvedMatch } from '@shared/engine/types.js';
+import { Modal } from './Modal.js';
 
 const TOP_SCORELINES = 3;
 
@@ -112,14 +113,6 @@ export function MatchDistributionModal({
   error = null,
   onClose,
 }: Props) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const scorelines = distribution?.scorelines ?? [];
   const total = distribution?.outcomes.total ?? 0;
   const expectedGoals = useMemo(
@@ -134,78 +127,76 @@ export function MatchDistributionModal({
       : null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <h2>
-          Match #{match.fixture.matchNumber} · Matchday {match.fixture.matchday}
-        </h2>
-        <p className="match-distribution-teams">
-          {match.teamHome.name} vs {match.teamAway.name}
+    <Modal className="modal modal-wide" titleId="match-distribution-title" onClose={onClose}>
+      <h2 id="match-distribution-title">
+        Match #{match.fixture.matchNumber} · Matchday {match.fixture.matchday}
+      </h2>
+      <p className="match-distribution-teams">
+        {match.teamHome.name} vs {match.teamAway.name}
+      </p>
+      {expectedGoals && (
+        <p className="muted match-distribution-meta">
+          Expected goals: {expectedGoals.goalsHome.toFixed(2)}–
+          {expectedGoals.goalsAway.toFixed(2)}
         </p>
-        {expectedGoals && (
-          <p className="muted match-distribution-meta">
-            Expected goals: {expectedGoals.goalsHome.toFixed(2)}–
-            {expectedGoals.goalsAway.toFixed(2)}
-          </p>
-        )}
-        {actualScoreline ? (
-          <p className="match-distribution-consensus">
-            {match.locked ? 'Recorded result' : 'Consensus'}: {actualScoreline.goalsHome}–
-            {actualScoreline.goalsAway}
-          </p>
-        ) : (
-          <p className="muted match-distribution-consensus">No scoreline yet</p>
-        )}
+      )}
+      {actualScoreline ? (
+        <p className="match-distribution-consensus">
+          {match.locked ? 'Recorded result' : 'Consensus'}: {actualScoreline.goalsHome}–
+          {actualScoreline.goalsAway}
+        </p>
+      ) : (
+        <p className="muted match-distribution-consensus">No scoreline yet</p>
+      )}
 
-        {loading ? (
-          <p className="muted">Loading distribution…</p>
-        ) : error ? (
-          <p className="modal-warning">{error}</p>
-        ) : distribution && total > 0 ? (
-          <div className="outcome-bar-chart">
-            <OutcomeBar
-              label={`${match.teamHome.name} win`}
-              outcome="homeWin"
-              outcomeTotal={distribution.outcomes.homeWin}
-              allTotal={total}
-              scorelines={scorelines}
-              baseColor="var(--green)"
-              actualScoreline={actualScoreline}
-            />
-            <OutcomeBar
-              label="Draw"
-              outcome="draw"
-              outcomeTotal={distribution.outcomes.draw}
-              allTotal={total}
-              scorelines={scorelines}
-              baseColor="var(--yellow)"
-              actualScoreline={actualScoreline}
-            />
-            <OutcomeBar
-              label={`${match.teamAway.name} win`}
-              outcome="awayWin"
-              outcomeTotal={distribution.outcomes.awayWin}
-              allTotal={total}
-              scorelines={scorelines}
-              baseColor="var(--accent)"
-              actualScoreline={actualScoreline}
-            />
-            <p className="muted outcome-bar-total">
-              Top {TOP_SCORELINES} scorelines plus the remainder per outcome ·{' '}
-              {total.toLocaleString()} simulated season{total === 1 ? '' : 's'} · hover a section
-              for details
-            </p>
-          </div>
-        ) : (
-          <p className="muted">No simulation data for this fixture yet.</p>
-        )}
-
-        <div className="modal-actions">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Close
-          </button>
+      {loading ? (
+        <p className="muted">Loading distribution…</p>
+      ) : error ? (
+        <p className="modal-warning">{error}</p>
+      ) : distribution && total > 0 ? (
+        <div className="outcome-bar-chart">
+          <OutcomeBar
+            label={`${match.teamHome.name} win`}
+            outcome="homeWin"
+            outcomeTotal={distribution.outcomes.homeWin}
+            allTotal={total}
+            scorelines={scorelines}
+            baseColor="var(--green)"
+            actualScoreline={actualScoreline}
+          />
+          <OutcomeBar
+            label="Draw"
+            outcome="draw"
+            outcomeTotal={distribution.outcomes.draw}
+            allTotal={total}
+            scorelines={scorelines}
+            baseColor="var(--yellow)"
+            actualScoreline={actualScoreline}
+          />
+          <OutcomeBar
+            label={`${match.teamAway.name} win`}
+            outcome="awayWin"
+            outcomeTotal={distribution.outcomes.awayWin}
+            allTotal={total}
+            scorelines={scorelines}
+            baseColor="var(--accent)"
+            actualScoreline={actualScoreline}
+          />
+          <p className="muted outcome-bar-total">
+            Top {TOP_SCORELINES} scorelines plus the remainder per outcome ·{' '}
+            {total.toLocaleString()} simulated season{total === 1 ? '' : 's'} · hover a section
+            for details
+          </p>
         </div>
+      ) : (
+        <p className="muted">No simulation data for this fixture yet.</p>
+      )}
+
+      <div className="modal-actions">
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          Close
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }
