@@ -15,4 +15,7 @@ Engineering specifications for the Premier League season simulator. These descri
 | [invariants.md](invariants.md) | Rules that must not break |
 | [cli.md](cli.md) | Engine npm scripts and CLI flags |
 
+Planned work lives separately: [frontend-redesign/](frontend-redesign/README.md) describes a
+three-phase UI redesign that is **not yet implemented**.
+
 Related: [../README.md](../README.md) (user-facing), [../AGENTS.md](../AGENTS.md) (agent working notes).

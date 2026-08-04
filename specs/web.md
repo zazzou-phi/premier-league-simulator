@@ -17,11 +17,11 @@ Public mutating calls throw or no-op (`"Not available in public mode"`). Base pa
 
 | Id | Label | Private | Public |
 |----|-------|---------|--------|
-| `consensus` | Predictions | yes | yes |
+| `consensus` | Consensus | yes | yes |
 | `projections` | Projections | yes | yes |
 | `results` | Results | yes | **hidden** |
 
-### Predictions (consensus)
+### Consensus
 
 - League table + fixture list for the active prediction (`ConsensusView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
 - Per-match outcome/scoreline distribution modal
@@ -72,7 +72,12 @@ Public header is read-only; footer can show export timestamp from `meta.json`.
 ## Clients
 
 - `web/src/api/client.ts` — private vs public API façade
-- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`, `actual-results-state.json`
+- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`
+
+`actual-results-state.json` is written by the export but **never fetched** — `staticClient` has no
+loader for it, and `ActualResultsView` derives the actual table client-side from
+`bootstrap.actualResults`. Slated for removal in
+[frontend-redesign/phase-2.md](frontend-redesign/phase-2.md) §2.6.
 
 ## Simulation UI note
 
