@@ -7,7 +7,14 @@ export function getAppViews(publicMode: boolean): AppView[] {
 }
 
 export const APP_VIEW_LABELS: Record<AppView, string> = {
-  consensus: 'Predictions',
+  consensus: 'Consensus',
   projections: 'Projections',
+  results: 'Results',
+};
+
+/** Narrow-viewport tab text. Full labels do not fit at 375px beside the title and actions. */
+export const APP_VIEW_SHORT_LABELS: Record<AppView, string> = {
+  consensus: 'Season',
+  projections: 'Odds',
   results: 'Results',
 };

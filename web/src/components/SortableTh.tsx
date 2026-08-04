@@ -28,13 +28,16 @@ export function SortableTh<K extends string>({
     <th
       className={classes}
       title={title}
-      onClick={() => onSort(sortKey)}
       aria-sort={active ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
     >
-      <span className="sortable-th-label">{label}</span>
-      <span className="sortable-th-indicator" aria-hidden>
-        {active ? (direction === 'asc' ? '▲' : '▼') : '⇅'}
-      </span>
+      {/* The button fills the cell so the whole header stays clickable, and sorting becomes
+          reachable by keyboard. `aria-sort` belongs on the th and stays there. */}
+      <button type="button" className="sortable-th-btn" onClick={() => onSort(sortKey)}>
+        <span className="sortable-th-label">{label}</span>
+        <span className="sortable-th-indicator" aria-hidden>
+          {active ? (direction === 'asc' ? '▲' : '▼') : '⇅'}
+        </span>
+      </button>
     </th>
   );
 }

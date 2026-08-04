@@ -160,13 +160,16 @@ export function Header({
   if (narrow) {
     return (
       <header className="header header-mobile">
+        {/* The tab bar takes its own row: three tabs plus the title and two icon buttons do not
+            fit on one line at 375px. */}
+        <ViewSwitcher
+          appView={appView}
+          publicMode={publicMode}
+          short
+          onAppViewChange={onAppViewChange}
+        />
         <div className="header-row">
           <div className="header-left">
-            <ViewSwitcher
-              appView={appView}
-              publicMode={publicMode}
-              onAppViewChange={onAppViewChange}
-            />
             <h1 className="header-title">PL Sim</h1>
           </div>
           <div className="header-actions">{actions}</div>
