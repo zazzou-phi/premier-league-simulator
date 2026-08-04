@@ -1,5 +1,8 @@
 # Phase 2 — Mental model and discoverability
 
+> **Shipped.** Kept as the record of the decisions, in particular §2.6. Current behaviour is
+> documented in [../web.md](../web.md).
+
 Phase 1 fixed what you see first. Phase 2 fixes what the controls appear to promise, and removes
 the need for the help modal to explain the interface.
 

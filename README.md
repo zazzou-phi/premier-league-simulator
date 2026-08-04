@@ -220,8 +220,7 @@ cd engine
 npm run export:public
 ```
 
-This writes `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json` and
-`actual-results-state.json`.
+This writes `meta.json`, `bootstrap.json`, `league-state.json` and `projections.json`.
 
 Exports use a **kickoff reveal policy**: predictions for fixtures that have not kicked off
 yet are blanked out and the published table is recomputed from revealed matches only, so

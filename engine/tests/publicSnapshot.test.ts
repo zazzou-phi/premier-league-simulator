@@ -118,7 +118,6 @@ describe('buildPublicSnapshot', () => {
     await seedPrediction();
     const files = snapshotToFiles(buildPublicSnapshot(repo));
     expect(Object.keys(files).sort()).toEqual([
-      'actual-results-state.json',
       'bootstrap.json',
       'league-state.json',
       'meta.json',

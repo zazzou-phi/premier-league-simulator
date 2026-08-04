@@ -32,22 +32,26 @@ function HelpSections({ sections }: { sections: HelpSection[] }) {
 }
 
 export function ViewHelpModal({ view, publicMode, onClose }: Props) {
-  const [tab, setTab] = useState<Tab>('howTo');
   const help = getViewHelp(view, publicMode);
+  // Views whose every interaction now has a visible affordance have nothing left to explain.
+  const hasHowTo = help.howTo.length > 0;
+  const [tab, setTab] = useState<Tab>(hasHowTo ? 'howTo' : 'about');
 
   return (
     <Modal className="modal help-modal" titleId="view-help-title" onClose={onClose}>
       <h2 id="view-help-title">{help.title} help</h2>
       <div className="help-modal-tab-bar" role="tablist" aria-label="Help sections">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'howTo'}
-          className={`help-modal-tab${tab === 'howTo' ? ' active' : ''}`}
-          onClick={() => setTab('howTo')}
-        >
-          How to use
-        </button>
+        {hasHowTo && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'howTo'}
+            className={`help-modal-tab${tab === 'howTo' ? ' active' : ''}`}
+            onClick={() => setTab('howTo')}
+          >
+            How to use
+          </button>
+        )}
         <button
           type="button"
           role="tab"

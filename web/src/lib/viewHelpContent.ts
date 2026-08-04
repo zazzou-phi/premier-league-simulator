@@ -36,17 +36,12 @@ function consensusHelp(publicMode: boolean): ViewHelp {
     },
   ];
 
-  const howToBullets = [
-    'Click a fixture to open its full outcome and scoreline distribution across the batch.',
-    'Click a club in the table to filter the fixture list to its 38 matches; click again to clear.',
-    'On mobile, switch between the Table and Fixtures panels with the tabs.',
-  ];
+  const howToBullets: string[] = [];
 
   if (!publicMode) {
     howToBullets.push(
-      'Change the consensus mode in the ⋮ menu to re-derive scorelines from the same batch.',
       'Run Monte Carlo to play thousands of seasons and build or refresh a projection.',
-      'Use Manage Projections in the ⋮ menu to rename or delete Monte Carlo batches.',
+      'Manage Projections renames or deletes saved Monte Carlo batches.',
     );
     about.splice(1, 0, {
       title: 'Season form',
@@ -61,7 +56,9 @@ function consensusHelp(publicMode: boolean): ViewHelp {
   return {
     title: APP_VIEW_LABELS.consensus,
     about,
-    howTo: [{ title: 'Controls and interactions', bullets: howToBullets }],
+    howTo: howToBullets.length
+      ? [{ title: 'Controls and interactions', bullets: howToBullets }]
+      : [],
   };
 }
 
@@ -73,8 +70,7 @@ function projectionsHelp(publicMode: boolean): ViewHelp {
   if (!publicMode) {
     howToBullets.push(
       'Run Monte Carlo to play thousands of seasons and build or refresh a projection.',
-      'Change the consensus mode in the ⋮ menu to re-derive scorelines from the same batch.',
-      'Use Manage Projections in the ⋮ menu to rename or delete Monte Carlo batches.',
+      'Manage Projections renames or deletes saved Monte Carlo batches.',
     );
   }
 
@@ -100,7 +96,9 @@ function projectionsHelp(publicMode: boolean): ViewHelp {
         paragraphs: [CONSENSUS_MODE_HINT],
       },
     ],
-    howTo: [{ title: 'Controls and interactions', bullets: howToBullets }],
+    howTo: howToBullets.length
+      ? [{ title: 'Controls and interactions', bullets: howToBullets }]
+      : [],
   };
 }
 
@@ -111,7 +109,7 @@ function resultsHelp(): ViewHelp {
       {
         title: 'What this view shows',
         paragraphs: [
-          'Results is the record of real match scores entered so far, with the live league table they produce.',
+          'Results is the record of real match scores played so far, with the live league table they produce. It is read-only: scores are synced from fixturedownload, which is authoritative and overwrites any local change.',
         ],
       },
       {
@@ -121,16 +119,7 @@ function resultsHelp(): ViewHelp {
         ],
       },
     ],
-    howTo: [
-      {
-        title: 'Controls and interactions',
-        bullets: [
-          'Double-click a fixture score to record a real result; select a row and press Clear to remove one.',
-          'Click a club in the table to filter the fixture list to its matches.',
-          'On mobile, switch between the Table and Fixtures panels with the tabs.',
-        ],
-      },
-    ],
+    howTo: [],
   };
 }
 

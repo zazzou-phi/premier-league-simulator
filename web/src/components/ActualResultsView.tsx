@@ -6,6 +6,7 @@ import type {
   ResolvedMatch,
   Team,
 } from '@shared/engine/types.js';
+import { formatKickoffDate } from '../lib/fixtureLabel.js';
 import { filterMatchesByTeam } from '../lib/matchFilters.js';
 import { FixtureList } from './FixtureList.js';
 import { LeagueTable } from './LeagueTable.js';
@@ -16,31 +17,25 @@ interface Props {
   fixtures: Fixture[];
   actualResults: ActualMatchResult[];
   selectedMatchNumber: number | null;
-  editingMatchNumber: number | null;
-  readOnly?: boolean;
+  /** Lowest matchday still unplayed, used to anchor the fixture list. */
+  nextMatchday: number | null;
   onSelectMatch: (matchNumber: number | null) => void;
-  onStartEdit: (matchNumber: number) => void;
-  onSaveScore: (matchNumber: number, goalsHome: number, goalsAway: number) => void;
-  onCancelEdit: () => void;
-  onClearScore: (matchNumber: number) => void;
 }
 
 /**
- * Recorded results have no server-side state endpoint, so the real-world table is derived
- * here from the same engine code the simulator uses.
+ * The record of what actually happened. Results are synced from fixturedownload and are not
+ * editable here — the sync is authoritative and overwrites any local divergence.
+ *
+ * There is no server-side state endpoint for recorded results, so the real-world table is
+ * derived here from the same engine code the simulator uses.
  */
 export function ActualResultsView({
   teams,
   fixtures,
   actualResults,
   selectedMatchNumber,
-  editingMatchNumber,
-  readOnly = false,
+  nextMatchday,
   onSelectMatch,
-  onStartEdit,
-  onSaveScore,
-  onCancelEdit,
-  onClearScore,
 }: Props) {
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
@@ -100,6 +95,13 @@ export function ActualResultsView({
     onSelectMatch(null);
   };
 
+  // Before a ball is kicked the table is twenty rows of zeros, which says less than one line does.
+  const preSeason = actualResults.length === 0;
+  const firstKickoff = useMemo(() => {
+    const dates = fixtures.map((fixture) => fixture.date).sort();
+    return dates[0] ?? null;
+  }, [fixtures]);
+
   return (
     <SeasonLayout
       standings={
@@ -107,10 +109,22 @@ export function ActualResultsView({
           <LeagueTable
             standings={standings}
             title="Actual table"
+            subtitle="Recorded scores only, synced from fixturedownload"
+            tone="actual"
             matchesPlayed={actualResults.length}
             matchesTotal={fixtures.length}
             selectedTeamId={selectedTeamId}
             onSelectTeam={handleSelectTeam}
+            emptyState={
+              preSeason ? (
+                // The header already says no matches have been played; this says when they will be.
+                <p className="panel-empty">
+                  {firstKickoff
+                    ? `The season starts ${formatKickoffDate(firstKickoff)}.`
+                    : 'No fixtures scheduled.'}
+                </p>
+              ) : undefined
+            }
           />
         </div>
       }
@@ -118,16 +132,10 @@ export function ActualResultsView({
         <FixtureList
           matches={matches}
           selectedMatchNumber={selectedMatchNumber}
-          editingMatchNumber={editingMatchNumber}
+          initialMatchday={nextMatchday}
           filterTeamLabel={selectedTeam?.shortName ?? null}
-          allowEdit={!readOnly}
-          editRecordedResults
           emptyMessage="No fixtures available."
           onSelect={onSelectMatch}
-          onStartEdit={onStartEdit}
-          onSave={onSaveScore}
-          onCancelEdit={onCancelEdit}
-          onClear={onClearScore}
           onClearFilter={() => setSelectedTeamId(null)}
         />
       }

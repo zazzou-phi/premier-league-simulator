@@ -1,25 +1,19 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ActualMatchResult, ResolvedMatch } from '@shared/engine/types.js';
 import { matchWinnerSide } from '../lib/matchFilters.js';
 import { FixturePrefix } from './FixturePrefix.js';
-import { ScoreDisplay, ScoreEditor } from './ScoreEditor.js';
+import { ScoreDisplay } from './ScoreEditor.js';
 
 interface Props {
   matches: ResolvedMatch[];
   selectedMatchNumber: number | null;
-  editingMatchNumber?: number | null;
+  /** Matchday to scroll to on mount. A 380-row list opened at round 1 is unusable in March. */
+  initialMatchday?: number | null;
   filterTeamLabel?: string | null;
-  allowEdit?: boolean;
-  /** In the recorded-results editor, locked matches are still editable and clearable. */
-  editRecordedResults?: boolean;
   actualResults?: ActualMatchResult[];
   emptyMessage?: string;
   onSelect: (matchNumber: number | null) => void;
-  onStartEdit?: (matchNumber: number) => void;
-  onSave?: (matchNumber: number, goalsHome: number, goalsAway: number) => void;
-  onCancelEdit?: () => void;
-  onClear?: (matchNumber: number) => void;
-  /** Opens the Monte Carlo distribution for a fixture instead of editing it. */
+  /** Opens the Monte Carlo distribution for a fixture. Absent in the actual-results record. */
   onOpenMatch?: (matchNumber: number) => void;
   onClearFilter?: () => void;
 }
@@ -54,17 +48,11 @@ function teamClassName(match: ResolvedMatch, side: 'home' | 'away'): string {
 export function FixtureList({
   matches,
   selectedMatchNumber,
-  editingMatchNumber = null,
+  initialMatchday = null,
   filterTeamLabel = null,
-  allowEdit = true,
-  editRecordedResults = false,
   actualResults = [],
   emptyMessage = 'No fixtures to show.',
   onSelect,
-  onStartEdit,
-  onSave,
-  onCancelEdit,
-  onClear,
   onOpenMatch,
   onClearFilter,
 }: Props) {
@@ -73,6 +61,72 @@ export function FixtureList({
     [actualResults],
   );
   const groups = useMemo(() => groupByMatchday(matches), [matches]);
+
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const headerRefs = useRef(new Map<number, HTMLDivElement>());
+  const anchoredTo = useRef<number | null>(null);
+  const [currentMatchday, setCurrentMatchday] = useState<number | null>(null);
+
+  const scrollToMatchday = useCallback((matchday: number): boolean => {
+    const body = bodyRef.current;
+    const header = headerRefs.current.get(matchday);
+    // On mobile SeasonLayout hides this panel with CSS rather than unmounting it, so it can
+    // measure zero — scrolling then lands at 0 instead of the matchday.
+    if (!body || !header || body.clientHeight === 0) return false;
+    body.scrollTop += header.getBoundingClientRect().top - body.getBoundingClientRect().top;
+    setCurrentMatchday(matchday);
+    return true;
+  }, []);
+
+  // Open on the round the season is actually on, once — not on every re-render.
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || initialMatchday == null || anchoredTo.current === initialMatchday) return;
+    const attempt = () => {
+      if (anchoredTo.current === initialMatchday) return;
+      if (scrollToMatchday(initialMatchday)) anchoredTo.current = initialMatchday;
+    };
+    attempt();
+    // Retry when a hidden panel gains height, which is when the mobile tab switches to it.
+    const observer = new ResizeObserver(attempt);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, [initialMatchday, groups, scrollToMatchday]);
+
+  // Keep the jump control showing whichever matchday is at the top of the scroller.
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const top = body.getBoundingClientRect().top;
+      let current = groups[0]?.matchday ?? null;
+      for (const group of groups) {
+        const header = headerRefs.current.get(group.matchday);
+        if (!header) continue;
+        if (header.getBoundingClientRect().top - top > 1) break;
+        current = group.matchday;
+      }
+      setCurrentMatchday(current);
+    };
+    const onScroll = () => {
+      if (frame === 0) frame = requestAnimationFrame(update);
+    };
+
+    update();
+    body.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      body.removeEventListener('scroll', onScroll);
+      if (frame !== 0) cancelAnimationFrame(frame);
+    };
+  }, [groups]);
+
+  const matchdayIndex = groups.findIndex((group) => group.matchday === currentMatchday);
+  const previousMatchday = matchdayIndex > 0 ? groups[matchdayIndex - 1]?.matchday : undefined;
+  const nextMatchday =
+    matchdayIndex >= 0 ? groups[matchdayIndex + 1]?.matchday : groups[0]?.matchday;
 
   return (
     <div className="fixture-list">
@@ -91,7 +145,43 @@ export function FixtureList({
           </button>
         )}
       </div>
-      <div className="fixture-list-body">
+      {groups.length > 1 && (
+        <div className="fixture-list-nav">
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            disabled={previousMatchday == null}
+            aria-label="Previous matchday"
+            onClick={() => previousMatchday != null && scrollToMatchday(previousMatchday)}
+          >
+            ‹ Prev
+          </button>
+          <label className="fixture-list-nav-jump">
+            <span className="visually-hidden">Jump to matchday</span>
+            <select
+              className="fixture-list-nav-select"
+              value={currentMatchday ?? ''}
+              onChange={(e) => scrollToMatchday(Number(e.target.value))}
+            >
+              {groups.map((group) => (
+                <option key={group.matchday} value={group.matchday}>
+                  Matchday {group.matchday}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            disabled={nextMatchday == null}
+            aria-label="Next matchday"
+            onClick={() => nextMatchday != null && scrollToMatchday(nextMatchday)}
+          >
+            Next ›
+          </button>
+        </div>
+      )}
+      <div className="fixture-list-body" ref={bodyRef}>
         {matches.length === 0 && <p className="fixture-list-empty">{emptyMessage}</p>}
         {groups.map((group) => {
           const playedInGroup = group.matches.filter(
@@ -100,7 +190,13 @@ export function FixtureList({
 
           return (
             <div key={group.matchday}>
-              <div className="matchday-header">
+              <div
+                className="matchday-header"
+                ref={(el) => {
+                  if (el) headerRefs.current.set(group.matchday, el);
+                  else headerRefs.current.delete(group.matchday);
+                }}
+              >
                 <span>Matchday {group.matchday}</span>
                 <span className="matchday-header-meta">
                   {playedInGroup}/{group.matches.length}
@@ -109,36 +205,20 @@ export function FixtureList({
               {group.matches.map((match) => {
                 const num = match.fixture.matchNumber;
                 const selected = num === selectedMatchNumber;
-                const editing = num === editingMatchNumber;
                 const played = match.result.status === 'played';
-                const locked = match.locked;
-                const canEdit = allowEdit && (editRecordedResults || !locked) && onSave != null;
-                const canClear =
-                  played && onClear != null && (editRecordedResults ? locked : !locked);
                 const actual = actualByMatch.get(num);
-
-                const handleScoreClick = () => {
-                  if (onOpenMatch) {
-                    onOpenMatch(num);
-                    return;
-                  }
-                  // Recording a result is the only action an unplayed fixture has, so the
-                  // score doubles as the edit affordance.
-                  if (canEdit) onStartEdit?.(num);
-                };
 
                 return (
                   <div
                     key={num}
                     className={`fixture-row ${selected ? 'selected' : ''}`}
                     onClick={() => onSelect(selected ? null : num)}
-                    onDoubleClick={() => canEdit && onStartEdit?.(num)}
                   >
                     <FixturePrefix
                       matchday={match.fixture.matchday}
                       date={match.fixture.date}
                       time={match.fixture.time}
-                      locked={locked}
+                      locked={match.locked}
                     />
                     <span
                       className={`fixture-home ${teamClassName(match, 'home')}`}
@@ -148,22 +228,18 @@ export function FixtureList({
                       {match.teamHome.name}
                     </span>
                     <span className="fixture-score">
-                      {editing && canEdit ? (
-                        <ScoreEditor
-                          match={match}
-                          onSave={(goalsHome, goalsAway) => onSave?.(num, goalsHome, goalsAway)}
-                          onCancel={() => onCancelEdit?.()}
-                        />
-                      ) : (
-                        <ScoreDisplay
-                          goalsHome={match.result.goalsHome}
-                          goalsAway={match.result.goalsAway}
-                          played={played}
-                          actual={actual}
-                          onClick={handleScoreClick}
-                          onDoubleClick={() => canEdit && onStartEdit?.(num)}
-                        />
-                      )}
+                      <ScoreDisplay
+                        goalsHome={match.result.goalsHome}
+                        goalsAway={match.result.goalsAway}
+                        played={played}
+                        actual={actual}
+                        actionLabel={
+                          onOpenMatch
+                            ? `Outcome distribution: ${match.teamHome.name} vs ${match.teamAway.name}`
+                            : undefined
+                        }
+                        onClick={onOpenMatch ? () => onOpenMatch(num) : undefined}
+                      />
                     </span>
                     <span
                       className={`fixture-away ${teamClassName(match, 'away')}`}
@@ -171,20 +247,6 @@ export function FixtureList({
                     >
                       {match.teamAway.name}{' '}
                       <span className="fixture-team-short">{match.teamAway.shortName}</span>
-                    </span>
-                    <span className="fixture-row-actions">
-                      {selected && canClear && !editing && (
-                        <button
-                          type="button"
-                          className="btn btn-small btn-danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onClear?.(num);
-                          }}
-                        >
-                          Clear
-                        </button>
-                      )}
                     </span>
                   </div>
                 );

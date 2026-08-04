@@ -1,26 +1,20 @@
 import { useRef } from 'react';
 import {
+  APP_VIEWS,
   APP_VIEW_LABELS,
   APP_VIEW_SHORT_LABELS,
-  getAppViews,
   type AppView,
 } from '../lib/appView.js';
 
 interface Props {
   appView: AppView;
-  publicMode?: boolean;
   /** Use abbreviated tab text. Full labels stay available to assistive tech. */
   short?: boolean;
   onAppViewChange: (view: AppView) => void;
 }
 
-export function ViewSwitcher({
-  appView,
-  publicMode = false,
-  short = false,
-  onAppViewChange,
-}: Props) {
-  const views = getAppViews(publicMode);
+export function ViewSwitcher({ appView, short = false, onAppViewChange }: Props) {
+  const views = APP_VIEWS;
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const focusTab = (index: number) => {

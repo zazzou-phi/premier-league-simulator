@@ -1,5 +1,7 @@
 # Phase 1 — Lead with the forecast
 
+> **Shipped.** Current behaviour is documented in [../web.md](../web.md).
+
 Highest impact per unit of risk. Almost no logic changes: a different landing view, visible
 navigation, a derived summary, a mobile reflow, and the accessibility floor.
 

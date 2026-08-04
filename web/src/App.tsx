@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findNextMatchday } from '@shared/engine/schedule.js';
 import type { MatchDistribution, TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 import type {
@@ -79,12 +79,14 @@ export function App() {
   const [publicMeta, setPublicMeta] = useState<PublicMeta | null>(null);
 
   const [selectedMatchNumber, setSelectedMatchNumber] = useState<number | null>(null);
-  const [editingMatchNumber, setEditingMatchNumber] = useState<number | null>(null);
 
   const [upsetVariance, setUpsetVariance] = useState(DEFAULT_UPSET_VARIANCE);
   const [seasonEloDeltaWeight, setSeasonEloDeltaWeight] = useState(
     DEFAULT_SEASON_ELO_DELTA_WEIGHT,
   );
+  // Season form is read server-side from settings at run time, so a run must not start while
+  // the write for the value the user just picked is still in flight.
+  const pendingSettingsWrite = useRef<Promise<unknown>>(Promise.resolve());
 
   const [savingConsensusMode, setSavingConsensusMode] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
@@ -192,32 +194,6 @@ export function App() {
     );
   }, [distribution, projections.consensus]);
 
-  const handleSaveActualScore = async (
-    matchNumber: number,
-    goalsHome: number,
-    goalsAway: number,
-  ) => {
-    setError(null);
-    try {
-      await api.setActualResult(matchNumber, goalsHome, goalsAway);
-      setActualResults(await api.listActualResults());
-      setEditingMatchNumber(null);
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to save result'));
-    }
-  };
-
-  const handleClearActualScore = async (matchNumber: number) => {
-    setError(null);
-    try {
-      await api.clearActualResult(matchNumber);
-      setActualResults(await api.listActualResults());
-      setEditingMatchNumber(null);
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to clear result'));
-    }
-  };
-
   const switchPrediction = async (id: number) => {
     setError(null);
     setModal(null);
@@ -265,25 +241,39 @@ export function App() {
     }
   };
 
+  const trackSettingsWrite = (write: Promise<unknown>) => {
+    pendingSettingsWrite.current = Promise.allSettled([pendingSettingsWrite.current, write]);
+  };
+
   const handleUpsetVarianceChange = (value: number) => {
     setUpsetVariance(value);
     if (publicMode) return;
-    void api.setUpsetVariance(value).catch((err: unknown) => {
-      setError(errorMessage(err, 'Failed to save upset factor'));
-    });
+    trackSettingsWrite(
+      api.setUpsetVariance(value).catch((err: unknown) => {
+        setError(errorMessage(err, 'Failed to save upset factor'));
+      }),
+    );
   };
 
   const handleSeasonEloDeltaWeightChange = (value: number) => {
     setSeasonEloDeltaWeight(value);
     if (publicMode) return;
-    void api.setSeasonEloDeltaWeight(value).catch((err: unknown) => {
-      setError(errorMessage(err, 'Failed to save season form'));
-    });
+    trackSettingsWrite(
+      api.setSeasonEloDeltaWeight(value).catch((err: unknown) => {
+        setError(errorMessage(err, 'Failed to save season form'));
+      }),
+    );
+  };
+
+  const handleResetRunParameters = () => {
+    handleUpsetVarianceChange(DEFAULT_UPSET_VARIANCE);
+    handleSeasonEloDeltaWeightChange(DEFAULT_SEASON_ELO_DELTA_WEIGHT);
   };
 
   const handleRunMonteCarlo = async (runs: number, name: string) => {
     setMonteCarlo({ running: true, progress: { completed: 0, total: runs }, result: null, error: null });
     try {
+      await pendingSettingsWrite.current;
       const result = await api.runMonteCarlo(runs, {
         upsetVariance,
         name,
@@ -327,14 +317,28 @@ export function App() {
   const switchAppView = (view: AppView) => {
     if (view === appView) return;
     setSelectedMatchNumber(null);
-    setEditingMatchNumber(null);
     setAppView(view);
   };
 
+  const openMonteCarlo = () => {
+    setMonteCarlo({ running: false, progress: null, result: null, error: null });
+    setModal('monteCarlo');
+  };
+
+  // An empty view should say what to do next, and let the reader do it from here.
   const emptyProjectionMessage = (
     <div className="view-empty">
       <p>No projections yet.</p>
-      <p className="muted">Run a Monte Carlo batch to build one.</p>
+      {publicMode ? (
+        <p className="muted">This snapshot was published without a projection.</p>
+      ) : (
+        <>
+          <p className="muted">Run a Monte Carlo batch to build one.</p>
+          <button type="button" className="btn btn-simulate" onClick={openMonteCarlo}>
+            Run Monte Carlo
+          </button>
+        </>
+      )}
     </div>
   );
 
@@ -366,19 +370,9 @@ export function App() {
         }
         recordedResultCount={actualResults.length}
         nextMatchday={nextMatchday}
-        consensusMode={consensusMode}
-        savingConsensusMode={savingConsensusMode}
         monteCarloRunning={monteCarlo.running}
-        upsetVariance={upsetVariance}
-        seasonEloDeltaWeight={seasonEloDeltaWeight}
         onAppViewChange={switchAppView}
-        onUpsetVarianceChange={handleUpsetVarianceChange}
-        onSeasonEloDeltaWeightChange={handleSeasonEloDeltaWeightChange}
-        onConsensusModeChange={(mode) => void handleConsensusModeChange(mode)}
-        onOpenMonteCarlo={() => {
-          setMonteCarlo({ running: false, progress: null, result: null, error: null });
-          setModal('monteCarlo');
-        }}
+        onOpenMonteCarlo={openMonteCarlo}
         onOpenPredictions={() => setModal('predictions')}
         onOpenRatings={() => setModal('ratings')}
       />
@@ -421,6 +415,15 @@ export function App() {
               consensusState={projections.consensus}
               consensusError={projections.error}
               loading={projections.loading}
+              runs={projections.runs}
+              nextMatchday={nextMatchday}
+              consensusMode={consensusMode}
+              savingConsensusMode={savingConsensusMode}
+              onConsensusModeChange={
+                publicMode
+                  ? undefined
+                  : (mode) => void handleConsensusModeChange(mode)
+              }
               selectedMatchNumber={selectedMatchNumber}
               onSelectMatch={setSelectedMatchNumber}
               onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
@@ -446,15 +449,8 @@ export function App() {
             fixtures={fixtures}
             actualResults={actualResults}
             selectedMatchNumber={selectedMatchNumber}
-            editingMatchNumber={editingMatchNumber}
-            readOnly={publicMode}
+            nextMatchday={nextMatchday}
             onSelectMatch={setSelectedMatchNumber}
-            onStartEdit={setEditingMatchNumber}
-            onSaveScore={(matchNumber, goalsHome, goalsAway) =>
-              void handleSaveActualScore(matchNumber, goalsHome, goalsAway)
-            }
-            onCancelEdit={() => setEditingMatchNumber(null)}
-            onClearScore={(matchNumber) => void handleClearActualScore(matchNumber)}
           />
         )}
       </main>
@@ -487,7 +483,10 @@ export function App() {
           error={monteCarlo.error}
           teams={teams}
           upsetVariance={upsetVariance}
+          seasonEloDeltaWeight={seasonEloDeltaWeight}
           onUpsetVarianceChange={handleUpsetVarianceChange}
+          onSeasonEloDeltaWeightChange={handleSeasonEloDeltaWeightChange}
+          onResetRunParameters={handleResetRunParameters}
           onClose={() => {
             if (!monteCarlo.running) setModal(null);
           }}

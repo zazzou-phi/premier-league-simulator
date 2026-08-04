@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { MONTE_CARLO_MAX_RUNS } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
+import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
+import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
 import type { MonteCarloRunResult } from '../types.js';
 import { Modal } from './Modal.js';
 import { ProjectionsTable } from './ProjectionsTable.js';
+import { SeasonFormControl } from './SeasonFormControl.js';
 import { UpsetFactorControl } from './UpsetFactorControl.js';
 
 interface Props {
@@ -13,7 +16,10 @@ interface Props {
   error: string | null;
   teams: Team[];
   upsetVariance: number;
+  seasonEloDeltaWeight: number;
   onUpsetVarianceChange: (value: number) => void;
+  onSeasonEloDeltaWeightChange: (value: number) => void;
+  onResetRunParameters: () => void;
   onClose: () => void;
   onRun: (runs: number, name: string) => void;
   onOpenProjections: () => void;
@@ -34,7 +40,10 @@ export function MonteCarloModal({
   error,
   teams,
   upsetVariance,
+  seasonEloDeltaWeight,
   onUpsetVarianceChange,
+  onSeasonEloDeltaWeightChange,
+  onResetRunParameters,
   onClose,
   onRun,
   onOpenProjections,
@@ -46,6 +55,10 @@ export function MonteCarloModal({
   useEffect(() => {
     setRunStartedAt(running ? performance.now() : null);
   }, [running]);
+
+  const atDefaults =
+    upsetVariance === DEFAULT_UPSET_VARIANCE &&
+    seasonEloDeltaWeight === DEFAULT_SEASON_ELO_DELTA_WEIGHT;
 
   const handleRun = () => {
     const runs = parseInt(runsInput, 10);
@@ -90,13 +103,33 @@ export function MonteCarloModal({
         onChange={(e) => setNameInput(e.target.value)}
       />
 
-      <UpsetFactorControl
-        id="monte-carlo-upset"
-        variant="full"
-        value={upsetVariance}
-        disabled={running}
-        onChange={onUpsetVarianceChange}
-      />
+      {/* Both parameters are read at simulation time and change nothing on screen, so they
+          belong with the Run button rather than in a header menu styled as a live filter. */}
+      <div className="run-parameters">
+        <div className="run-parameters-head">
+          <h3 className="run-parameters-title">Run parameters</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            disabled={running || atDefaults}
+            onClick={onResetRunParameters}
+          >
+            Reset to defaults
+          </button>
+        </div>
+        <UpsetFactorControl
+          id="monte-carlo-upset"
+          value={upsetVariance}
+          disabled={running}
+          onChange={onUpsetVarianceChange}
+        />
+        <SeasonFormControl
+          id="monte-carlo-season-form"
+          value={seasonEloDeltaWeight}
+          disabled={running}
+          onChange={onSeasonEloDeltaWeightChange}
+        />
+      </div>
 
       <div className="modal-actions">
         <button type="button" className="btn btn-simulate" disabled={running} onClick={handleRun}>
