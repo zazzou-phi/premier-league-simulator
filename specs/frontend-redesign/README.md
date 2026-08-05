@@ -1,13 +1,19 @@
 # Frontend redesign
 
-Phases 1 and 2 have shipped; their outcomes are folded into [../web.md](../web.md), and the phase
-documents are kept as the record of why each change was made. Phase 3 is still a plan.
+All three phases have shipped; their outcomes are folded into [../web.md](../web.md), and the phase
+documents are kept as the record of why each change was made. [phase-3-plan.md](phase-3-plan.md)
+records the phase-3 execution order and where it diverged from the spec.
 
 | Phase | Theme | Doc | Status |
 |-------|-------|-----|--------|
 | 1 | Lead with the forecast; make navigation and focus visible | [phase-1.md](phase-1.md) | **shipped** |
 | 2 | Fix the mental model: run settings, discoverability, empty states | [phase-2.md](phase-2.md) | **shipped** |
-| 3 | Craft: typography, crests, distribution scale, light theme | [phase-3.md](phase-3.md) | planned |
+| 3 | Craft: typography, crests, distribution scale, light theme | [phase-3.md](phase-3.md) | **shipped** |
+
+Two phase-3 items landed narrower than the spec: crest *images* are unsourced (the `TeamBadge`
+seam ships, rendering short codes until a crest-licensing decision is made), and the responsive
+code/name de-duplication was dropped to keep the null-crest UI visually unchanged. See
+[phase-3-plan.md](phase-3-plan.md).
 
 ## Problem statement
 

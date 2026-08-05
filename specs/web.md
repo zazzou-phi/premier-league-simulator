@@ -55,8 +55,18 @@ arrow keys, roving `tabIndex`).
 
 ### Projections
 
-- Position-probability table and distribution bars (`ProjectionsView`, `ProjectionsTable`, `PositionDistributionBar`)
+- Position-probability table and finishing-distribution histograms (`ProjectionsView`,
+  `ProjectionsTable`, `PositionDistributionBar`)
 - Title / CL / European / relegation style probabilities from the active prediction
+- `PositionDistributionBar` is a fixed 20-slot histogram — one slot per finishing position, so
+  every row is read against the same axis and two clubs' spreads line up. Height encodes
+  frequency, colour encodes zone. A shared `PositionAxis` ruler (ticks at the 1/4/5/17/20 zone
+  boundaries) is rendered once per column, not per row. P10/P90 ticks mark the middle 80%, and a
+  readout (`Nth: count (pct)`) appears on hover **and** touch — the `role="img"` + `aria-label`
+  summary stays for screen readers. Still CSS + inline SVG, no charting dependency.
+- Below 900px — where the table drops its distribution column — the view switches to
+  `ProjectionCardList` (`PROJECTIONS_CARDS_QUERY`), so the distribution is never lost to the gap
+  between the column-hide breakpoint and the mobile layout.
 
 ### Results
 
@@ -71,15 +81,47 @@ arrow keys, roving `tabIndex`).
 
 - View tab bar, Monte Carlo button (private, projection views), `More ▾` menu, view help.
 - The `More` menu holds the same two entries in every view and mode — `Team Ratings` and
-  `Manage Projections` — with unavailable entries disabled and explained rather than hidden.
+  `Manage Projections` — with unavailable entries disabled and explained rather than hidden. It
+  also carries the **theme** control (System / Light / Dark), which keeps the menu open while
+  switching so the reader can compare.
 - **Run parameters live in the Monte Carlo modal**, not the header: upset factor and season form
   are read at simulation time (`app.ts`, `runner.ts`, the CLIs) and change nothing on screen.
   Both persist on change through the settings API; `App.tsx` awaits the in-flight write before
   issuing a run. `Reset to defaults` restores `DEFAULT_UPSET_VARIANCE` /
-  `DEFAULT_SEASON_ELO_DELTA_WEIGHT`.
+  `DEFAULT_SEASON_ELO_DELTA_WEIGHT`. The modal also carries 1k/5k/25k run presets and a run-time
+  estimate derived from the last completed batch's ms-per-run (`lib/runRate.ts`, `localStorage`).
 
 Public header omits the Monte Carlo button and the consensus-mode control; the footer can show the
 export timestamp from `meta.json`.
+
+## Theme and typography
+
+- **Two faces.** `--font-ui` (system UI stack) sets prose, labels and buttons; `--font-mono` is
+  opted back in only on numeric surfaces, always paired with `font-variant-numeric: tabular-nums`
+  so columns stay aligned. Base size is 14px.
+- **Light and dark.** The palette lives in CSS custom properties. `:root` is the dark set (the
+  default look); a `@media (prefers-color-scheme: light)` block supplies the light set, gated on
+  `:not([data-theme])` so a saved choice always wins over the system, and `:root[data-theme]`
+  is the explicit escape hatch in both directions. `lib/useTheme.ts` persists the choice to
+  `localStorage` (works in the public build, which has no settings API) and applies it as the
+  `data-theme` attribute; a small pre-paint script in `index.html` sets the attribute before
+  first paint so a saved theme never flashes.
+- The four zone colours are the only ones that encode data. Light values (the GitHub light
+  semantics) clear 3:1 on both the page and the elevated surface, and the family stays
+  distinguishable under deuteranopia/protanopia — champion/relegation is the closest pair and is
+  additionally separated by position, border, tint and legend. See
+  [frontend-redesign/phase-3-plan.md](frontend-redesign/phase-3-plan.md).
+
+## Club identity
+
+- `TeamBadge` is the single place a club's short code — and, once sourced, its crest — is
+  rendered, replacing chip markup formerly duplicated across the league table, projections table,
+  card list, headline strip, fixture list and ratings modal. `crest` is `null` for every club
+  today, so it always falls back to the code chip; the seam exists so crests drop in without
+  touching call sites. Projection rows carry only `teamId`/`teamName`, so the badge resolves the
+  full `Team` (for `crest`) through the shared `lib/teamsById.ts` lookup.
+- `ZoneLegend` renders the four-zone key. It sits in a table's title row (via `LeagueTable`'s
+  `titleActions` slot) and once in the Projections view, never appended below a scrolling table.
 
 ## Fixture list
 
