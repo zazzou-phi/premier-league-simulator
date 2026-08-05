@@ -7,9 +7,11 @@ import {
   PROJECTION_COMPARATORS,
   type ProjectionSortKey,
 } from '../lib/projectionSort.js';
+import { teamsById } from '../lib/teamsById.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
-import { PositionDistributionBar } from './PositionDistributionBar.js';
+import { PositionAxis, PositionDistributionBar } from './PositionDistributionBar.js';
 import { SortableTh } from './SortableTh.js';
+import { TeamBadge } from './TeamBadge.js';
 
 interface Props {
   projections: TeamSeasonProjection[];
@@ -30,10 +32,7 @@ export function ProjectionsTable({
   teams = [],
   showDistribution = true,
 }: Props) {
-  const shortNameById = useMemo(
-    () => new Map(teams.map((team) => [team.id, team.shortName])),
-    [teams],
-  );
+  const byId = useMemo(() => teamsById(teams), [teams]);
 
   const { sortedItems, sort, toggleSort } = useSortableTable<
     TeamSeasonProjection,
@@ -118,7 +117,14 @@ export function ProjectionsTable({
               title="Mean goals conceded"
               onSort={toggleSort}
             />
-            {showDistribution && <th className="projections-distribution">Finishing positions</th>}
+            {showDistribution && (
+              <th className="projections-distribution">
+                <div className="projections-distribution-head">
+                  <span>Finishing positions</span>
+                  <PositionAxis />
+                </div>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -126,9 +132,11 @@ export function ProjectionsTable({
             <tr key={row.teamId}>
               <td>{index + 1}</td>
               <td className="projections-team">
-                <span className="league-table-short">
-                  {shortNameById.get(row.teamId) ?? ''}
-                </span>
+                <TeamBadge
+                  team={byId.get(row.teamId)}
+                  teamName={row.teamName}
+                  codeClassName="league-table-short"
+                />
                 {row.teamName}
               </td>
               <td className={probabilityClass(row.titleProbability)}>

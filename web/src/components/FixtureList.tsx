@@ -3,6 +3,7 @@ import type { ActualMatchResult, ResolvedMatch } from '@shared/engine/types.js';
 import { matchWinnerSide } from '../lib/matchFilters.js';
 import { FixturePrefix } from './FixturePrefix.js';
 import { ScoreDisplay } from './ScoreEditor.js';
+import { TeamBadge } from './TeamBadge.js';
 
 interface Props {
   matches: ResolvedMatch[];
@@ -224,7 +225,11 @@ export function FixtureList({
                       className={`fixture-home ${teamClassName(match, 'home')}`}
                       title={match.teamHome.name}
                     >
-                      <span className="fixture-team-short">{match.teamHome.shortName}</span>{' '}
+                      <TeamBadge
+                        team={match.teamHome}
+                        teamName={match.teamHome.name}
+                        codeClassName="fixture-team-short"
+                      />{' '}
                       {match.teamHome.name}
                     </span>
                     <span className="fixture-score">
@@ -246,7 +251,11 @@ export function FixtureList({
                       title={match.teamAway.name}
                     >
                       {match.teamAway.name}{' '}
-                      <span className="fixture-team-short">{match.teamAway.shortName}</span>
+                      <TeamBadge
+                        team={match.teamAway}
+                        teamName={match.teamAway.name}
+                        codeClassName="fixture-team-short"
+                      />
                     </span>
                   </div>
                 );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MONTE_CARLO_MAX_RUNS } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
+import { readRunRate, writeRunRate } from '../lib/runRate.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
 import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
 import type { MonteCarloRunResult } from '../types.js';
@@ -24,6 +25,9 @@ interface Props {
   onRun: (runs: number, name: string) => void;
   onOpenProjections: () => void;
 }
+
+/** A weekly batch, a confident batch, and an overnight one. */
+const RUN_PRESETS = [1_000, 5_000, 25_000];
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)} ms`;
@@ -51,19 +55,31 @@ export function MonteCarloModal({
   const [runsInput, setRunsInput] = useState('1000');
   const [nameInput, setNameInput] = useState('');
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [msPerRun, setMsPerRun] = useState<number | null>(() => readRunRate());
 
   useEffect(() => {
     setRunStartedAt(running ? performance.now() : null);
   }, [running]);
+
+  // Cost the next batch from the last one that actually finished on this machine.
+  useEffect(() => {
+    if (!result) return;
+    writeRunRate(result.elapsedMs, result.runs);
+    setMsPerRun(result.elapsedMs / result.runs);
+  }, [result]);
+
+  const parsedRuns = Number.parseInt(runsInput, 10);
+  const runsValid =
+    Number.isInteger(parsedRuns) && parsedRuns >= 1 && parsedRuns <= MONTE_CARLO_MAX_RUNS;
+  const estimate = msPerRun != null && runsValid ? msPerRun * parsedRuns : null;
 
   const atDefaults =
     upsetVariance === DEFAULT_UPSET_VARIANCE &&
     seasonEloDeltaWeight === DEFAULT_SEASON_ELO_DELTA_WEIGHT;
 
   const handleRun = () => {
-    const runs = parseInt(runsInput, 10);
-    if (!Number.isInteger(runs) || runs < 1 || runs > MONTE_CARLO_MAX_RUNS) return;
-    onRun(runs, nameInput.trim() || `Monte Carlo ${runs.toLocaleString()}`);
+    if (!runsValid) return;
+    onRun(parsedRuns, nameInput.trim() || `Monte Carlo ${parsedRuns.toLocaleString()}`);
   };
 
   return (
@@ -78,17 +94,40 @@ export function MonteCarloModal({
       <label className="modal-label" htmlFor="monte-carlo-runs">
         Number of seasons
       </label>
-      <input
-        id="monte-carlo-runs"
-        className="modal-input"
-        type="number"
-        min={1}
-        max={MONTE_CARLO_MAX_RUNS}
-        step={1}
-        value={runsInput}
-        disabled={running}
-        onChange={(e) => setRunsInput(e.target.value)}
-      />
+      <div className="run-count-field">
+        <input
+          id="monte-carlo-runs"
+          className="modal-input run-count-input"
+          type="number"
+          min={1}
+          max={MONTE_CARLO_MAX_RUNS}
+          step={1}
+          value={runsInput}
+          disabled={running}
+          onChange={(e) => setRunsInput(e.target.value)}
+        />
+        <div className="run-count-presets">
+          {RUN_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={`btn btn-ghost btn-small ${parsedRuns === preset ? 'active' : ''}`}
+              disabled={running}
+              aria-pressed={parsedRuns === preset}
+              onClick={() => setRunsInput(String(preset))}
+            >
+              {preset.toLocaleString()}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Shown only once a batch has actually completed here — the cost is machine-specific,
+          so there is no sensible default to guess from. */}
+      <p className="muted modal-hint run-count-estimate">
+        {estimate == null
+          ? 'Run once to learn how long a season takes on this machine.'
+          : `About ${formatDuration(estimate)} at the last run's speed.`}
+      </p>
 
       <label className="modal-label" htmlFor="monte-carlo-name">
         Projection name

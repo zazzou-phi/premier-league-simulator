@@ -11,6 +11,7 @@ import { useSortableTable } from '../lib/useSortableTable.js';
 import { Modal } from './Modal.js';
 import { SortableTh } from './SortableTh.js';
 import { Sparkline } from './Sparkline.js';
+import { TeamBadge } from './TeamBadge.js';
 
 interface Props {
   teams: Team[];
@@ -117,7 +118,9 @@ export function TeamRatingsModal({ teams, onClose }: Props) {
           <tbody>
             {sortedItems.map((team) => (
               <tr key={team.id}>
-                <td>{team.shortName}</td>
+                <td>
+                  <TeamBadge team={team} teamName={team.name} codeClassName="ratings-code" />
+                </td>
                 <td>{team.name}</td>
                 <td className="ratings-table-numeric ratings-active-col">
                   {Math.round(team.elo)}

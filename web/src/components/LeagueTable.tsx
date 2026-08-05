@@ -1,9 +1,11 @@
 import { useMemo, type ReactNode } from 'react';
 import { zoneForPosition } from '@shared/engine/standings.js';
 import type { StandingRow } from '@shared/engine/types.js';
-import { LEGEND_ZONES, ZONE_LABELS } from '../lib/leagueZones.js';
+import { ZONE_LABELS } from '../lib/leagueZones.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
 import { SortableTh } from './SortableTh.js';
+import { TeamBadge } from './TeamBadge.js';
+import { ZoneLegend } from './ZoneLegend.js';
 
 type SortKey =
   | 'position'
@@ -89,6 +91,7 @@ export function LeagueTable({
             {matchesPlayed === 0 ? 'No matches played yet' : `${matchesPlayed}/${matchesTotal} played`}
           </span>
         )}
+        <ZoneLegend />
         {titleActions}
       </div>
       {subtitle && <p className="league-table-subtitle">{subtitle}</p>}
@@ -205,7 +208,11 @@ export function LeagueTable({
 
             const teamCell = (
               <>
-                <span className="league-table-short">{row.team.shortName}</span>
+                <TeamBadge
+                  team={row.team}
+                  teamName={row.team.name}
+                  codeClassName="league-table-short"
+                />
                 {row.team.name}
               </>
             );
@@ -251,14 +258,6 @@ export function LeagueTable({
           })}
         </tbody>
       </table>
-      <div className="zone-legend">
-        {LEGEND_ZONES.map((zone) => (
-          <span key={zone} className="zone-legend-item">
-            <span className={`zone-legend-swatch zone-legend-swatch-${zone}`} />
-            {ZONE_LABELS[zone]}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
