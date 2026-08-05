@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Premier League Simulator</title>
+    <!-- Apply a saved theme before first paint so an explicit light/dark choice never flashes
+         the other theme on load. Mirrors the localStorage key in lib/useTheme.ts. -->
+    <script>
+      try {
+        var t = localStorage.getItem('pl-sim:theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

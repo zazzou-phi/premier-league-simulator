@@ -18,10 +18,120 @@
   --zone-europa: #39c5cf;
   --zone-relegation: #f85149;
   --focus-ring: #f0b429;
-  --fixture-row-max-width: 44rem;
-  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-  font-size: 13px;
+  /* Surfaces and effects that were hardcoded before the light theme. Kept as tokens so the
+     one light-palette block below is the only place the second theme is defined. */
+  --overlay-bg: rgba(0, 0, 0, 0.75);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --toast-danger-bg: #3d1f1f;
+  --toast-success-bg: #1a3d2a;
+  --row-selected-bg: rgba(255, 200, 50, 0.15);
+  --btn-simulate-fg: #0d1117;
+  --segment-actual-ring: rgba(255, 255, 255, 0.75);
+  --fixture-row-max-width: 41rem;
+  /* Prose, labels and buttons read in the UI face; only figures keep the mono stack, so
+     columns of numbers stay comparable without setting the whole app in monospace. */
+  --font-ui:
+    system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-family: var(--font-ui);
+  font-size: 14px;
   line-height: 1.4;
+}
+
+/* Light theme. Dark stays the default look: the base :root above is dark, so anyone without
+   an explicit light system preference or a saved choice sees exactly what shipped before.
+   The auto block is gated on `:not([data-theme])` so a saved choice always wins over the
+   system, and the explicit block covers a dark-OS user who toggles to light. The two zone
+   colours and green/red are the darker GitHub light semantics: each clears 3:1 on both the
+   page (#ffffff) and the elevated surface (#f6f8fa), and the family stays distinguishable
+   under deuteranopia and protanopia. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg: #ffffff;
+    --bg-elevated: #f6f8fa;
+    --bg-hover: #eaeef2;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-muted: #656d76;
+    --accent: #0969da;
+    --accent-dim: #0969da1f;
+    --green: #1a7f37;
+    --yellow: #9a6700;
+    --red: #cf222e;
+    --cyan: #1b7c83;
+    --purple: #8250df;
+    --zone-champion: #9a6700;
+    --zone-champions-league: #0969da;
+    --zone-europa: #1b7c83;
+    --zone-relegation: #cf222e;
+    --focus-ring: #bf8700;
+    --overlay-bg: rgba(31, 35, 40, 0.45);
+    --shadow: rgba(31, 35, 40, 0.15);
+    --toast-danger-bg: #ffebe9;
+    --toast-success-bg: #dafbe1;
+    --row-selected-bg: rgba(154, 103, 0, 0.12);
+    --btn-simulate-fg: #ffffff;
+    --segment-actual-ring: rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-elevated: #f6f8fa;
+  --bg-hover: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --text-muted: #656d76;
+  --accent: #0969da;
+  --accent-dim: #0969da1f;
+  --green: #1a7f37;
+  --yellow: #9a6700;
+  --red: #cf222e;
+  --cyan: #1b7c83;
+  --purple: #8250df;
+  --zone-champion: #9a6700;
+  --zone-champions-league: #0969da;
+  --zone-europa: #1b7c83;
+  --zone-relegation: #cf222e;
+  --focus-ring: #bf8700;
+  --overlay-bg: rgba(31, 35, 40, 0.45);
+  --shadow: rgba(31, 35, 40, 0.15);
+  --toast-danger-bg: #ffebe9;
+  --toast-success-bg: #dafbe1;
+  --row-selected-bg: rgba(154, 103, 0, 0.12);
+  --btn-simulate-fg: #ffffff;
+  --segment-actual-ring: rgba(0, 0, 0, 0.55);
+}
+
+/* Figures only. Every rule here pairs the mono face with tabular figures — a proportional
+   face with proportional digits is what makes a column of numbers impossible to scan. */
+.league-table td,
+.projections-table td,
+.ratings-table-numeric,
+.accuracy-table td,
+.accuracy-metric-value,
+.score-display,
+.fixture-prefix,
+.headline-pct,
+.projection-card-rank,
+.projection-card-figure dd,
+.sim-id,
+.upset-factor-value,
+.monte-carlo-progress-header,
+.diverging-axis,
+.header-matchday {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Club names are prose, not figures, and sit inside cells the rule above just set in mono. */
+.league-table td.league-table-team,
+.projections-table td.projections-team {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.25;
 }
 
 * {
@@ -98,7 +208,7 @@ select:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: #3d1f1f;
+  background: var(--toast-danger-bg);
   color: var(--red);
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--red);
@@ -116,7 +226,7 @@ select:focus-visible,
 }
 
 .app-toast-success {
-  background: #1a3d2a;
+  background: var(--toast-success-bg);
   color: var(--green);
   border-bottom-color: var(--green);
 }
@@ -185,7 +295,7 @@ select:focus-visible,
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px var(--shadow);
   padding: 0.35rem;
   display: flex;
   flex-direction: column;
@@ -195,6 +305,29 @@ select:focus-visible,
 .header-options-panel {
   min-width: 16rem;
   padding: 0.65rem;
+}
+
+.header-menu-theme {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.header-menu-theme-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.header-menu-theme-options {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.header-menu-theme-options .btn {
+  flex: 1;
 }
 
 .header-dropdown-panel > .btn {
@@ -320,15 +453,17 @@ select:focus-visible,
   outline: 1px solid var(--cyan);
 }
 
+/* 44px, not 2.75rem: the rem basis is a hardcoded root font-size, so the touch target
+   silently tracked the type scale and sat at 35.75px. */
 .btn.header-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border-width: 2px;
   border-color: currentColor;
@@ -348,7 +483,7 @@ select:focus-visible,
 
 .btn-simulate {
   background: var(--green);
-  color: #0d1117;
+  color: var(--btn-simulate-fg);
   font-weight: 600;
 }
 
@@ -387,8 +522,10 @@ select:focus-visible,
   min-height: 0;
   overflow: hidden;
   /* Size to the full P/W/D/L/GF/GA/GD/Pts column set instead of clipping it, but
-     never let the table crowd out the fixture list. */
-  grid-template-columns: fit-content(46rem) minmax(0, 1fr);
+     never let the table crowd out the fixture list. The cap covers the table's
+     max-content width plus the panel's own padding — below that it clips silently,
+     because the scroller above it absorbs the overflow. */
+  grid-template-columns: fit-content(47rem) minmax(0, 1fr);
 }
 
 .season-layout-tab-bar {
@@ -592,6 +729,22 @@ select:focus-visible,
   font-weight: 600;
 }
 
+/* Crest slot and the default code chip. Every call site passes its own code class
+   (league-table-short / fixture-team-short / ratings-code), so this default is only the
+   backstop; the crest sits where the code did, inline with the name. */
+.team-badge-code {
+  font-weight: 600;
+}
+
+.team-badge-crest {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.4rem;
+  object-fit: contain;
+  vertical-align: -0.2em;
+}
+
 .league-table tbody tr {
   border-bottom: 1px solid transparent;
 }
@@ -605,7 +758,7 @@ select:focus-visible,
 }
 
 .league-table tbody tr.team-selected td {
-  background: rgba(255, 200, 50, 0.15);
+  background: var(--row-selected-bg);
   font-weight: 600;
 }
 
@@ -649,12 +802,15 @@ select:focus-visible,
   background: color-mix(in srgb, var(--zone-relegation) 10%, transparent);
 }
 
+/* Sits inline in a table's title row, or above the projection cards — never appended
+   below a scrolling table, where it leaves the viewport just when it is needed. */
 .zone-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.85rem;
-  margin-top: 0.5rem;
-  font-size: 0.8em;
+  align-items: center;
+  gap: 0.2rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 400;
   color: var(--text-muted);
   flex-shrink: 0;
 }
@@ -934,7 +1090,7 @@ select:focus-visible,
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1060,6 +1216,29 @@ select:focus-visible,
   padding: 0.4rem;
   border-radius: 4px;
   margin-bottom: 0.75rem;
+}
+
+/* Presets sit beside the field rather than replacing it: 1k/5k/25k cover the usual runs,
+   and the input still takes anything up to the engine's cap. */
+.run-count-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.run-count-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.run-count-presets {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.run-count-estimate {
+  margin: 0 0 0.75rem;
 }
 
 .modal-range {
@@ -1192,9 +1371,24 @@ select:focus-visible,
   color: var(--cyan);
 }
 
+/* A flat max-height cut the last visible row in half at every type scale. Pinning the row
+   height makes the cut land on a boundary by construction: header + 13 whole rows. The
+   gradient is a scroll shadow — `local` pins it to the content, so it fades out only once
+   the reader has actually reached the bottom. */
 .ratings-table-wrap {
-  max-height: 400px;
+  --ratings-row-h: 2rem;
+  max-height: calc(var(--ratings-row-h) * 14);
   overflow: auto;
+  background:
+    linear-gradient(to top, var(--bg-elevated), transparent) bottom / 100% 1.25rem no-repeat
+      local,
+    radial-gradient(farthest-side at 50% 100%, var(--shadow), transparent) bottom / 100% 0.5rem
+      no-repeat scroll;
+}
+
+.ratings-table thead th,
+.ratings-table tbody td {
+  height: var(--ratings-row-h);
 }
 
 .ratings-table {
@@ -1427,6 +1621,10 @@ select:focus-visible,
   font-size: 0.85em;
 }
 
+.projections-panel > .zone-legend {
+  margin: 0 0 0.45rem;
+}
+
 /* Mobile substitute for the projections table. Reflows; never scrolls sideways. */
 .projection-cards-wrap {
   flex: 1;
@@ -1573,20 +1771,109 @@ select:focus-visible,
   font-weight: 600;
 }
 
-.position-bar {
-  display: flex;
-  height: 0.85rem;
+/* Fixed 20-slot finishing histogram. One slot per position so every row is read against the
+   same axis; height encodes frequency, colour encodes zone. Replaces a proportional-width bar
+   whose axis differed per row. */
+.position-hist-wrap {
+  position: relative;
   width: 100%;
   min-width: 6rem;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--bg);
 }
 
-.position-bar-segment {
+.position-hist {
+  --hist-h: 1.5rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  align-items: end;
+  gap: 1px;
+  height: var(--hist-h);
+  border-bottom: 1px solid var(--border);
+  /* Scrub horizontally for the readout; leave vertical scrolling to the page. */
+  touch-action: pan-y;
+}
+
+.position-hist-slot {
+  display: flex;
+  align-items: flex-end;
   height: 100%;
-  min-width: 0;
+}
+
+.position-hist-slot.active {
+  background: var(--bg-hover);
+}
+
+.position-hist-bar {
+  width: 100%;
+  min-height: 1px;
+  border-radius: 1px 1px 0 0;
+}
+
+/* The middle-80% ticks: thin marks at the 10th and 90th percentile positions. */
+.position-hist-pct {
+  position: absolute;
+  top: -2px;
+  bottom: -1px;
+  width: 0;
+  border-left: 1px dashed var(--text-muted);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Floats above the bar so it never adds height to a table row; revealed on hover and touch. */
+.position-hist-readout {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 0;
+  z-index: 3;
+  padding: 0.05rem 0.35rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.position-axis {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 1px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.position-axis-slot {
+  text-align: center;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.projections-distribution-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.projection-cards-axis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* Match the card interior (0.5rem padding + 1px border) so the axis lines up with the bars. */
+  padding: 0 calc(0.5rem + 1px);
+  margin-bottom: 0.4rem;
+}
+
+.projection-cards-axis-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .position-bar-segment-champion {
@@ -1695,7 +1982,7 @@ select:focus-visible,
 }
 
 .outcome-bar-segment-actual {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, white 75%, transparent);
+  box-shadow: inset 0 0 0 2px var(--segment-actual-ring);
   filter: brightness(1.12);
 }
 
@@ -1722,7 +2009,7 @@ select:focus-visible,
   }
 
   .fixture-row {
-    grid-template-columns: 5.5rem minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    grid-template-columns: 5.25rem minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 0.15rem 0.25rem;
     padding: 0.12rem 0.2rem;
     font-size: 0.85em;
@@ -1782,10 +2069,10 @@ select:focus-visible,
   }
 
   .btn.header-icon-btn {
-    width: 2.75rem;
-    height: 2.75rem;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     border-radius: 50%;
   }
@@ -1879,7 +2166,7 @@ select:focus-visible,
   }
 
   .fixture-row {
-    grid-template-columns: 4.75rem minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 0.1rem 0.15rem;
     padding: 0.08rem 0.12rem;
     font-size: 0.78em;

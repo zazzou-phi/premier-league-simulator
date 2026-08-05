@@ -1,9 +1,10 @@
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
-import { MOBILE_QUERY, useMediaQuery } from '../lib/useMediaQuery.js';
+import { PROJECTIONS_CARDS_QUERY, useMediaQuery } from '../lib/useMediaQuery.js';
 import { ProjectionCardList } from './ProjectionCardList.js';
 import { ProjectionHeadline } from './ProjectionHeadline.js';
 import { ProjectionsTable } from './ProjectionsTable.js';
+import { ZoneLegend } from './ZoneLegend.js';
 
 interface Props {
   projections: TeamSeasonProjection[];
@@ -23,7 +24,9 @@ export function ProjectionsView({
 }: Props) {
   // Branches here rather than inside ProjectionsTable, which MonteCarloModal also renders with
   // showDistribution={false} — cards built around the distribution bar make no sense there.
-  const narrow = useMediaQuery(MOBILE_QUERY);
+  // Switch at 900px, where the table drops its distribution column, so the cards (which keep
+  // the distribution) take over exactly there rather than leaving a gap down to 640px.
+  const narrow = useMediaQuery(PROJECTIONS_CARDS_QUERY);
 
   return (
     <div className="projections-view">
@@ -40,6 +43,9 @@ export function ProjectionsView({
               nextMatchday={nextMatchday}
               teams={teams}
             />
+            {/* The distribution bars are entirely colour-encoded, so this view needs the
+                key at least as much as the tables do. */}
+            <ZoneLegend />
             {narrow ? (
               <ProjectionCardList projections={projections} runs={runs} teams={teams} />
             ) : (

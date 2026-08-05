@@ -3,7 +3,9 @@ import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
 import { formatProbability } from '../lib/formatProbability.js';
 import { PROJECTION_COMPARATORS, PROJECTION_SORT_OPTIONS } from '../lib/projectionSort.js';
-import { PositionDistributionBar } from './PositionDistributionBar.js';
+import { teamsById } from '../lib/teamsById.js';
+import { PositionAxis, PositionDistributionBar } from './PositionDistributionBar.js';
+import { TeamBadge } from './TeamBadge.js';
 
 interface Props {
   projections: TeamSeasonProjection[];
@@ -20,10 +22,7 @@ export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
   const [optionValue, setOptionValue] = useState(PROJECTION_SORT_OPTIONS[0]!.value);
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
 
-  const shortNameById = useMemo(
-    () => new Map(teams.map((team) => [team.id, team.shortName])),
-    [teams],
-  );
+  const byId = useMemo(() => teamsById(teams), [teams]);
 
   const selected =
     PROJECTION_SORT_OPTIONS.find((option) => option.value === optionValue) ??
@@ -63,6 +62,13 @@ export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
         </select>
       </div>
 
+      {/* One axis for the whole list: the per-card bars share it, so a club's spread can be
+          read against the same 1–20 scale without a ruler under every card. */}
+      <div className="projection-cards-axis">
+        <span className="projection-cards-axis-label">Finishing positions</span>
+        <PositionAxis />
+      </div>
+
       <ol className="projection-cards">
         {rows.map((row, index) => {
           const open = expanded.has(row.teamId);
@@ -71,7 +77,11 @@ export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
               <div className="projection-card-head">
                 <span className="projection-card-rank">{index + 1}</span>
                 <span className="projection-card-team">
-                  <span className="league-table-short">{shortNameById.get(row.teamId) ?? ''}</span>
+                  <TeamBadge
+                    team={byId.get(row.teamId)}
+                    teamName={row.teamName}
+                    codeClassName="league-table-short"
+                  />
                   {row.teamName}
                 </span>
               </div>

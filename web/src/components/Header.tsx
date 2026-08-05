@@ -1,5 +1,6 @@
 import type { AppView } from '../lib/appView.js';
 import { MOBILE_QUERY, useMediaQuery } from '../lib/useMediaQuery.js';
+import { THEME_OPTIONS, useTheme } from '../lib/useTheme.js';
 import { HeaderDropdownMenu } from './HeaderDropdownMenu.js';
 import { ViewHelpButton } from './ViewHelpButton.js';
 import { ViewSwitcher } from './ViewSwitcher.js';
@@ -31,6 +32,7 @@ export function Header({
   onOpenRatings,
 }: Props) {
   const narrow = useMediaQuery(MOBILE_QUERY);
+  const { preference, setPreference } = useTheme();
   const isProjectionFamily = appView === 'consensus' || appView === 'projections';
   const isResultsView = appView === 'results';
 
@@ -93,6 +95,29 @@ export function Header({
       >
         Manage Projections
       </button>
+      {/* Switching theme should not dismiss the menu — stop the panel's close-on-click here so
+          the reader can compare System / Light / Dark without reopening. */}
+      <div
+        className="header-menu-theme"
+        role="group"
+        aria-label="Theme"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="header-menu-theme-label">Theme</span>
+        <div className="header-menu-theme-options">
+          {THEME_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`btn btn-ghost btn-small ${preference === option.value ? 'active' : ''}`}
+              aria-pressed={preference === option.value}
+              onClick={() => setPreference(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </HeaderDropdownMenu>
   );
 

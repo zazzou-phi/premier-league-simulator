@@ -25,6 +25,16 @@ import type { MonteCarloRunResult, Prediction, PublicMeta } from './types.js';
 
 type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | null;
 
+/**
+ * The default projection name is `Monte Carlo {runs}`, so appending the run count
+ * unconditionally printed it twice — `Monte Carlo 1,000 · 1,000 runs`. Only add the
+ * suffix when the name does not already carry the figure.
+ */
+function predictionLabel(name: string, runs: number): string {
+  const formatted = runs.toLocaleString();
+  return name.includes(formatted) ? name : `${name} · ${formatted} runs`;
+}
+
 interface MonteCarloState {
   running: boolean;
   progress: { completed: number; total: number } | null;
@@ -365,7 +375,7 @@ export function App() {
         publicMode={publicMode}
         activePredictionLabel={
           projections.prediction
-            ? `${projections.prediction.name} · ${projections.runs.toLocaleString()} runs`
+            ? predictionLabel(projections.prediction.name, projections.runs)
             : null
         }
         recordedResultCount={actualResults.length}

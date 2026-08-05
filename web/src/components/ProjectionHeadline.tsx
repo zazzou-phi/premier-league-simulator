@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 import type { Team } from '@shared/engine/types.js';
 import { formatProbability } from '../lib/formatProbability.js';
+import { teamsById } from '../lib/teamsById.js';
+import { TeamBadge } from './TeamBadge.js';
 
 interface Props {
   projections: TeamSeasonProjection[];
@@ -38,10 +40,7 @@ const CARDS: CardSpec[] = [
 ];
 
 export function ProjectionHeadline({ projections, runs, nextMatchday, teams = [] }: Props) {
-  const shortNameById = useMemo(
-    () => new Map(teams.map((team) => [team.id, team.shortName])),
-    [teams],
-  );
+  const byId = useMemo(() => teamsById(teams), [teams]);
 
   if (projections.length === 0) return null;
 
@@ -67,9 +66,11 @@ export function ProjectionHeadline({ projections, runs, nextMatchday, teams = []
                     className={index === 0 ? 'headline-row headline-row-lead' : 'headline-row'}
                   >
                     <span className="headline-team">
-                      <span className="league-table-short">
-                        {shortNameById.get(row.teamId) ?? ''}
-                      </span>
+                      <TeamBadge
+                        team={byId.get(row.teamId)}
+                        teamName={row.teamName}
+                        codeClassName="league-table-short"
+                      />
                       {row.teamName}
                     </span>
                     <span className="headline-pct">{formatProbability(probabilityOf(row))}</span>
