@@ -16,3 +16,5 @@ deploy-docker.sh
 .venv/
 __pycache__/
 *.pyc
+
+engine/.cache/

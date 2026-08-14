@@ -3,6 +3,8 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { initSchema } from '../src/db/client.js';
 import { Repository } from '../src/db/repository.js';
 import * as schema from '../src/db/schema.js';
+import { DEFAULT_UPSET_VARIANCE } from '../src/engine/matchSimulator.js';
+import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../src/engine/seasonElo.js';
 import { generateFixtures } from '../src/engine/schedule.js';
 import type { Team } from '../src/engine/types.js';
 
@@ -53,11 +55,11 @@ export function createTestRepository(): { repo: Repository; sqlite: Database.Dat
     );
   }
 
+  // Seed the real defaults rather than literals, so the fixture cannot drift away from what
+  // a freshly seeded database actually gets.
   sqlite
-    .prepare(
-      `INSERT INTO app_settings (id, upset_variance, season_elo_delta_weight) VALUES (1, 0.2, 1)`,
-    )
-    .run();
+    .prepare(`INSERT INTO app_settings (id, upset_variance, season_elo_delta_weight) VALUES (1, ?, ?)`)
+    .run(DEFAULT_UPSET_VARIANCE, DEFAULT_SEASON_ELO_DELTA_WEIGHT);
 
   return { repo: new Repository(drizzle(sqlite, { schema })), sqlite };
 }
