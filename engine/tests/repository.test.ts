@@ -2,6 +2,8 @@ import type Database from 'better-sqlite3';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MatchLockedError, NotFoundError, ValidationError } from '../src/db/errors.js';
 import type { Repository } from '../src/db/repository.js';
+import { DEFAULT_UPSET_VARIANCE } from '../src/engine/matchSimulator.js';
+import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../src/engine/seasonElo.js';
 import { runMonteCarlo } from '../src/simulation/monteCarlo.js';
 import { SeasonRunner } from '../src/simulation/runner.js';
 import { createTestRepository } from './testDb.js';
@@ -204,10 +206,13 @@ describe('SeasonRunner', () => {
 
 describe('settings', () => {
   it('round-trips values', () => {
-    expect(repo.getSettings().upsetVariance).toBeCloseTo(0.2, 6);
+    expect(repo.getSettings().upsetVariance).toBeCloseTo(DEFAULT_UPSET_VARIANCE, 6);
     repo.updateSettings({ upsetVariance: 0.35 });
     expect(repo.getSettings().upsetVariance).toBeCloseTo(0.35, 6);
-    expect(repo.getSettings().seasonEloDeltaWeight).toBeCloseTo(1, 6);
+    expect(repo.getSettings().seasonEloDeltaWeight).toBeCloseTo(
+      DEFAULT_SEASON_ELO_DELTA_WEIGHT,
+      6,
+    );
   });
 });
 

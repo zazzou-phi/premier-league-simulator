@@ -2,6 +2,7 @@ import type { Hono } from 'hono';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApiApp } from '../src/api/app.js';
 import type { Repository } from '../src/db/repository.js';
+import { DEFAULT_UPSET_VARIANCE } from '../src/engine/matchSimulator.js';
 import type { SeasonState, Team } from '../src/engine/types.js';
 import { createTestRepository } from './testDb.js';
 
@@ -94,7 +95,10 @@ describe('health and reference data', () => {
 
 describe('settings', () => {
   it('round-trips upset variance', async () => {
-    expect((await (await json('/api/v1/settings/upset-variance')).json()).value).toBeCloseTo(0.2, 6);
+    expect((await (await json('/api/v1/settings/upset-variance')).json()).value).toBeCloseTo(
+      DEFAULT_UPSET_VARIANCE,
+      6,
+    );
     const res = await put('/api/v1/settings/upset-variance', { value: 0.4 });
     expect((await res.json()).value).toBeCloseTo(0.4, 6);
   });
