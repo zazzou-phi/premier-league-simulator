@@ -11,7 +11,8 @@
       "name": "web",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "web", "run", "dev"],
-      "port": 2627
+      "port": 2627,
+      "autoPort": true
     }
   ]
 }
