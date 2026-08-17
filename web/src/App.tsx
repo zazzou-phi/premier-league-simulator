@@ -18,7 +18,11 @@ import { PredictionManagerModal } from './components/PredictionManagerModal.js';
 import { ProjectionsView } from './components/ProjectionsView.js';
 import { TeamRatingsModal } from './components/TeamRatingsModal.js';
 import type { AppView } from './lib/appView.js';
-import { DEFAULT_CONSENSUS_MODE, type ConsensusMode } from './lib/consensusMode.js';
+import {
+  DEFAULT_CONSENSUS_MODE,
+  DEFAULT_PREDICTOR_POINTS,
+  type ConsensusMode,
+} from './lib/consensusMode.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from './lib/seasonForm.js';
 import { DEFAULT_UPSET_VARIANCE } from './lib/upsetVariance.js';
 import type { MonteCarloRunResult, Prediction, PublicMeta } from './types.js';
@@ -151,6 +155,8 @@ export function App() {
               name: meta.predictionName ?? 'Season',
               runs: meta.runs,
               consensusMode: DEFAULT_CONSENSUS_MODE,
+              exactScorePoints: DEFAULT_PREDICTOR_POINTS.exactScore,
+              correctResultPoints: DEFAULT_PREDICTOR_POINTS.correctResult,
               asOfMatchday: meta.asOfMatchday ?? null,
               lockedCount: 0,
               createdAt: meta.exportedAt,
@@ -188,6 +194,15 @@ export function App() {
   }, [toast]);
 
   const consensusMode = projections.prediction?.consensusMode ?? DEFAULT_CONSENSUS_MODE;
+
+  const predictorPoints = useMemo(
+    () => ({
+      exactScore: projections.prediction?.exactScorePoints ?? DEFAULT_PREDICTOR_POINTS.exactScore,
+      correctResult:
+        projections.prediction?.correctResultPoints ?? DEFAULT_PREDICTOR_POINTS.correctResult,
+    }),
+    [projections.prediction],
+  );
 
   // Same rule the engine uses for naming projections, so header and CLI never disagree.
   const nextMatchday = useMemo(
@@ -246,6 +261,26 @@ export function App() {
       setToast(`Consensus scorelines set to ${mode}`);
     } catch (err) {
       setError(errorMessage(err, 'Failed to update consensus mode'));
+    } finally {
+      setSavingConsensusMode(false);
+    }
+  };
+
+  const handlePredictorPointsChange = async (points: {
+    exactScore: number;
+    correctResult: number;
+  }) => {
+    const prediction = projections.prediction;
+    if (!prediction) return;
+    setError(null);
+    setSavingConsensusMode(true);
+    try {
+      const updated = await api.setPredictionPredictorPoints(prediction.id, points);
+      const consensus = await api.getPredictionState(prediction.id).catch(() => null);
+      setProjections((prev) => ({ ...prev, prediction: updated, consensus }));
+      setToast(`Predictor scoring set to ${points.exactScore}/${points.correctResult}`);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to update predictor scoring'));
     } finally {
       setSavingConsensusMode(false);
     }
@@ -434,6 +469,10 @@ export function App() {
                   ? undefined
                   : (mode) => void handleConsensusModeChange(mode)
               }
+              predictorPoints={predictorPoints}
+              onPredictorPointsChange={
+                publicMode ? undefined : (points) => void handlePredictorPointsChange(points)
+              }
               selectedMatchNumber={selectedMatchNumber}
               onSelectMatch={setSelectedMatchNumber}
               onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
@@ -514,6 +553,7 @@ export function App() {
           distribution={distribution.data}
           loading={distribution.loading}
           error={distribution.error}
+          predictorPoints={predictorPoints}
           onClose={() => setDistribution(null)}
         />
       )}

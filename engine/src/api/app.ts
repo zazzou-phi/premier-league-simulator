@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { parseConsensusMode } from '../engine/consensus.js';
+import {
+  parseConsensusMode,
+  PREDICTOR_POINTS_MAX,
+  type PredictorPoints,
+} from '../engine/consensus.js';
 import { getDefaultFixturesCsvPath, loadFixtures } from '../data/fixturesCsv.js';
 import { SEASON_ELO_DELTA_WEIGHT_MAX } from '../engine/seasonElo.js';
 import { MONTE_CARLO_MAX_RUNS, runMonteCarlo } from '../simulation/monteCarlo.js';
@@ -20,6 +24,39 @@ function numberInRange(value: unknown, label: string, min: number, max: number):
     throw new ApiError(`${label} must be a number between ${min} and ${max}`, 400);
   }
   return parsed;
+}
+
+interface PredictorPointsBody {
+  exactScore?: number;
+  correctResult?: number;
+}
+
+/**
+ * Validate a predictor payoff, taking either side from `current` when the body omits it.
+ *
+ * An exact score paying less than a bare correct result inverts `expectedPoints` consensus — it
+ * would start preferring an outcome's *least* likely scoreline — so reject rather than clamp.
+ */
+function validatePredictorPoints(
+  body: PredictorPointsBody,
+  current: PredictorPoints,
+): PredictorPoints {
+  const exactScore = numberInRange(
+    body.exactScore ?? current.exactScore,
+    'exactScore',
+    0,
+    PREDICTOR_POINTS_MAX,
+  );
+  const correctResult = numberInRange(
+    body.correctResult ?? current.correctResult,
+    'correctResult',
+    0,
+    PREDICTOR_POINTS_MAX,
+  );
+  if (exactScore < correctResult) {
+    throw new ApiError('exactScore must be at least correctResult', 400);
+  }
+  return { exactScore, correctResult };
 }
 
 export function createApiApp(repo: Repository): Hono {
@@ -77,6 +114,31 @@ export function createApiApp(repo: Repository): Hono {
     const value = numberInRange(body.value, 'value', 0, SEASON_ELO_DELTA_WEIGHT_MAX);
     return c.json({
       value: repo.updateSettings({ seasonEloDeltaWeight: value }).seasonEloDeltaWeight,
+    });
+  });
+
+  app.get('/api/v1/settings/predictor-points', (c) => {
+    const settings = repo.getSettings();
+    return c.json({
+      exactScore: settings.exactScorePoints,
+      correctResult: settings.correctResultPoints,
+    });
+  });
+
+  app.put('/api/v1/settings/predictor-points', async (c) => {
+    const body = await c.req.json<PredictorPointsBody>();
+    const current = repo.getSettings();
+    const points = validatePredictorPoints(body, {
+      exactScore: current.exactScorePoints,
+      correctResult: current.correctResultPoints,
+    });
+    const updated = repo.updateSettings({
+      exactScorePoints: points.exactScore,
+      correctResultPoints: points.correctResult,
+    });
+    return c.json({
+      exactScore: updated.exactScorePoints,
+      correctResult: updated.correctResultPoints,
     });
   });
 
@@ -262,11 +324,28 @@ export function createApiApp(repo: Repository): Hono {
 
   app.patch('/api/v1/predictions/:id', async (c) => {
     const id = intParam(c.req.param('id'), 'id');
-    const body = await c.req.json<{ name?: string; consensusMode?: string }>();
+    const body = await c.req.json<
+      { name?: string; consensusMode?: string } & PredictorPointsBody
+    >();
+
+    // The payoff is snapshotted per batch, but consensus mode is re-selectable after the fact,
+    // so its parameter has to be too — otherwise retuning would mean re-running the batch.
+    const retunes = body.exactScore !== undefined || body.correctResult !== undefined;
+    const current = repo.getPrediction(id);
+    const points = retunes
+      ? validatePredictorPoints(body, {
+          exactScore: current.exactScorePoints,
+          correctResult: current.correctResultPoints,
+        })
+      : null;
+
     return c.json(
       repo.updatePrediction(id, {
         ...(body.name?.trim() ? { name: body.name.trim() } : {}),
         ...(body.consensusMode ? { consensusMode: parseConsensusMode(body.consensusMode) } : {}),
+        ...(points
+          ? { exactScorePoints: points.exactScore, correctResultPoints: points.correctResult }
+          : {}),
       }),
     );
   });

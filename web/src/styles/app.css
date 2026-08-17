@@ -340,6 +340,9 @@ select:focus-visible,
   align-items: center;
   gap: 0.4rem;
   margin-left: auto;
+  /* The predictor payoff drops onto its own line under the buttons it belongs to. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .consensus-mode-label {
@@ -356,6 +359,50 @@ select:focus-visible,
 .consensus-mode-buttons .btn {
   padding-inline: 0.45rem;
   font-size: 0.75rem;
+}
+
+/* Predictor payoff, shown only while the mode it drives is selected. */
+.predictor-points {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.predictor-points-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.predictor-points-field {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.predictor-points-field input {
+  width: 3.5rem;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.predictor-points-field input:disabled {
+  opacity: 0.6;
+}
+
+.predictor-points-hint {
+  max-width: 30rem;
+  margin: 0;
+  font-size: 0.7rem;
+  text-align: right;
 }
 
 /* Segmented control. Sized by content, so all three tabs fit in both modes. */
@@ -1941,6 +1988,20 @@ select:focus-visible,
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+/* Best pick for this outcome and what it is worth; the overall winner is un-muted. */
+.outcome-bar-ev {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.outcome-bar-ev-best {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .outcome-bar-track {

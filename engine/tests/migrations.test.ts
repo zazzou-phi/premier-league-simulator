@@ -79,3 +79,51 @@ describe('consensus mode migration', () => {
     expect(modeOf(id)).toBe('scoreline');
   });
 });
+
+describe('predictor points migration', () => {
+  /** Strip the payoff columns so the next initSchema sees a pre-expectedPoints database. */
+  function dropPredictorPointColumns(table: string): void {
+    sqlite.exec(`ALTER TABLE ${table} DROP COLUMN exact_score_points`);
+    sqlite.exec(`ALTER TABLE ${table} DROP COLUMN correct_result_points`);
+  }
+
+  it('adds the payoff columns to predictions carried over from before the mode', () => {
+    const id = insertPrediction('outcome');
+    dropPredictorPointColumns('predictions');
+
+    initSchema(sqlite);
+
+    const row = sqlite
+      .prepare(
+        `SELECT exact_score_points AS exact, correct_result_points AS result
+           FROM predictions WHERE id = ?`,
+      )
+      .get(id) as { exact: number; result: number };
+    expect(row).toEqual({ exact: 3, result: 1 });
+  });
+
+  it('adds the payoff columns to existing settings without touching the other values', () => {
+    sqlite
+      .prepare(
+        `INSERT INTO app_settings (id, upset_variance, season_elo_delta_weight) VALUES (1, 0.35, 2)`,
+      )
+      .run();
+    dropPredictorPointColumns('app_settings');
+
+    initSchema(sqlite);
+
+    const row = sqlite
+      .prepare(
+        `SELECT upset_variance AS upset, exact_score_points AS exact, correct_result_points AS result
+           FROM app_settings WHERE id = 1`,
+      )
+      .get() as { upset: number; exact: number; result: number };
+    expect(row).toEqual({ upset: 0.35, exact: 3, result: 1 });
+  });
+
+  it('is idempotent across repeated opens', () => {
+    dropPredictorPointColumns('predictions');
+    initSchema(sqlite);
+    expect(() => initSchema(sqlite)).not.toThrow();
+  });
+});

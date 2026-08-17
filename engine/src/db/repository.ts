@@ -4,8 +4,10 @@ import { gradePrediction, type AccuracyReport } from '../engine/accuracy.js';
 import {
   chooseConsensus,
   DEFAULT_CONSENSUS_MODE,
+  DEFAULT_PREDICTOR_POINTS,
   parseConsensusMode,
   type ConsensusMode,
+  type PredictorPoints,
   type ScorelineCount,
 } from '../engine/consensus.js';
 import { DEFAULT_UPSET_VARIANCE } from '../engine/matchSimulator.js';
@@ -34,6 +36,9 @@ export interface Prediction {
   consensusMode: ConsensusMode;
   upsetVariance: number;
   seasonEloDeltaWeight: number;
+  /** Predictor-game payoff this batch's `expectedPoints` consensus optimises against. */
+  exactScorePoints: number;
+  correctResultPoints: number;
   elapsedMs: number;
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */
   asOfMatchday: number | null;
@@ -81,6 +86,8 @@ export interface Page<T> {
 export interface AppSettings {
   upsetVariance: number;
   seasonEloDeltaWeight: number;
+  exactScorePoints: number;
+  correctResultPoints: number;
 }
 
 function nowIso(): string {
@@ -108,6 +115,13 @@ function mapFixture(row: typeof schema.fixtures.$inferSelect): Fixture {
   };
 }
 
+function predictorPointsOf(prediction: Prediction): PredictorPoints {
+  return {
+    exactScore: prediction.exactScorePoints,
+    correctResult: prediction.correctResultPoints,
+  };
+}
+
 function mapPrediction(row: typeof schema.predictions.$inferSelect): Prediction {
   return {
     id: row.id,
@@ -116,6 +130,8 @@ function mapPrediction(row: typeof schema.predictions.$inferSelect): Prediction 
     consensusMode: parseConsensusMode(row.consensusMode),
     upsetVariance: row.upsetVariance,
     seasonEloDeltaWeight: row.seasonEloDeltaWeight,
+    exactScorePoints: row.exactScorePoints,
+    correctResultPoints: row.correctResultPoints,
     elapsedMs: row.elapsedMs,
     asOfMatchday: row.asOfMatchday,
     lockedCount: row.lockedCount,
@@ -229,9 +245,16 @@ export class Repository {
       return {
         upsetVariance: DEFAULT_UPSET_VARIANCE,
         seasonEloDeltaWeight: DEFAULT_SEASON_ELO_DELTA_WEIGHT,
+        exactScorePoints: DEFAULT_PREDICTOR_POINTS.exactScore,
+        correctResultPoints: DEFAULT_PREDICTOR_POINTS.correctResult,
       };
     }
-    return { upsetVariance: row.upsetVariance, seasonEloDeltaWeight: row.seasonEloDeltaWeight };
+    return {
+      upsetVariance: row.upsetVariance,
+      seasonEloDeltaWeight: row.seasonEloDeltaWeight,
+      exactScorePoints: row.exactScorePoints,
+      correctResultPoints: row.correctResultPoints,
+    };
   }
 
   updateSettings(patch: Partial<AppSettings>): AppSettings {
@@ -498,12 +521,21 @@ export class Repository {
 
   updatePrediction(
     id: number,
-    patch: { name?: string; consensusMode?: ConsensusMode },
+    patch: {
+      name?: string;
+      consensusMode?: ConsensusMode;
+      exactScorePoints?: number;
+      correctResultPoints?: number;
+    },
   ): Prediction {
     this.getPrediction(id);
     const set: Record<string, unknown> = { updatedAt: nowIso() };
     if (patch.name !== undefined) set.name = patch.name;
     if (patch.consensusMode !== undefined) set.consensusMode = patch.consensusMode;
+    if (patch.exactScorePoints !== undefined) set.exactScorePoints = patch.exactScorePoints;
+    if (patch.correctResultPoints !== undefined) {
+      set.correctResultPoints = patch.correctResultPoints;
+    }
     this.db.update(schema.predictions).set(set).where(eq(schema.predictions.id, id)).run();
     return this.getPrediction(id);
   }
@@ -544,6 +576,8 @@ export class Repository {
           consensusMode: DEFAULT_CONSENSUS_MODE,
           upsetVariance: settings.upsetVariance,
           seasonEloDeltaWeight: settings.seasonEloDeltaWeight,
+          exactScorePoints: settings.exactScorePoints,
+          correctResultPoints: settings.correctResultPoints,
           elapsedMs: result.elapsedMs,
           asOfMatchday,
           lockedCount: lockedMatches.length,
@@ -838,6 +872,7 @@ export class Repository {
     const distributions = this.getPredictionDistributions(predictionId);
     const sample =
       prediction.consensusMode === 'sample' ? this.getActiveSampleResults(predictionId) : null;
+    const points = predictorPointsOf(prediction);
 
     const matches: ResolvedMatch[] = fixtures.map((fixture) => {
       const teamHome = teamsById.get(fixture.teamHomeId)!;
@@ -863,6 +898,7 @@ export class Repository {
             homeElo: teamHome.elo,
             awayElo: teamAway.elo,
             savedSample: sample?.get(fixture.matchNumber) ?? null,
+            points,
           })
         : null;
 
@@ -900,6 +936,7 @@ export class Repository {
           prediction.consensusMode === 'sample'
             ? this.getActiveSampleResults(predictionId)
             : null,
+        points: predictorPointsOf(prediction),
       },
       prediction.runs,
     );

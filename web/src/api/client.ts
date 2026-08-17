@@ -16,6 +16,12 @@ import type {
   SettingValue,
 } from '../types.js';
 
+/** Either side of the predictor payoff may be sent alone; the other keeps its stored value. */
+export interface PredictorPointsPatch {
+  exactScore?: number;
+  correctResult?: number;
+}
+
 export interface MonteCarloOptions {
   upsetVariance?: number;
   name?: string;
@@ -40,6 +46,7 @@ export interface LeagueApi {
   listPredictions(page?: number, pageSize?: number): Promise<PredictionListPage>;
   renamePrediction(id: number, name: string): Promise<Prediction>;
   setPredictionConsensusMode(id: number, consensusMode: ConsensusMode): Promise<Prediction>;
+  setPredictionPredictorPoints(id: number, points: PredictorPointsPatch): Promise<Prediction>;
   deletePrediction(id: number): Promise<void>;
   getPredictionState(id: number): Promise<SeasonState>;
   getPredictionProjections(id: number): Promise<ProjectionsResponse>;
@@ -190,6 +197,12 @@ const privateApi: LeagueApi = {
       body: JSON.stringify({ consensusMode }),
     }),
 
+  setPredictionPredictorPoints: (id, points) =>
+    request<Prediction>(`/api/v1/predictions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(points),
+    }),
+
   deletePrediction: (id) => request<void>(`/api/v1/predictions/${id}`, { method: 'DELETE' }),
 
   getPredictionState: (id) => request<SeasonState>(`/api/v1/predictions/${id}/state`),
@@ -240,6 +253,7 @@ const publicApi: LeagueApi = {
   listPredictions: async () => ({ items: [], total: 0 }),
   renamePrediction: async () => unavailable(),
   setPredictionConsensusMode: async () => unavailable(),
+  setPredictionPredictorPoints: async () => unavailable(),
   deletePrediction: async () => unavailable(),
   getPredictionState: async () => staticApi.getSeasonState(),
   getPredictionProjections: async () => staticApi.getProjections(),

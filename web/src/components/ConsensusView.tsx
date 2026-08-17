@@ -5,6 +5,7 @@ import type { ConsensusMode } from '../lib/consensusMode.js';
 import { filterMatchesByTeam } from '../lib/matchFilters.js';
 import { FixtureList } from './FixtureList.js';
 import { LeagueTable } from './LeagueTable.js';
+import { PredictorPointsControl } from './PredictorPointsControl.js';
 import { SeasonLayout } from './SeasonLayout.js';
 
 interface Props {
@@ -19,6 +20,9 @@ interface Props {
   savingConsensusMode?: boolean;
   /** Absent in public mode, where the mode is fixed by the published snapshot. */
   onConsensusModeChange?: (mode: ConsensusMode) => void;
+  predictorPoints: { exactScore: number; correctResult: number };
+  /** Absent in public mode, alongside `onConsensusModeChange`. */
+  onPredictorPointsChange?: (points: { exactScore: number; correctResult: number }) => void;
   selectedMatchNumber: number | null;
   onSelectMatch: (matchNumber: number | null) => void;
   onOpenMatch: (matchNumber: number) => void;
@@ -34,6 +38,8 @@ export function ConsensusView({
   consensusMode,
   savingConsensusMode = false,
   onConsensusModeChange,
+  predictorPoints,
+  onPredictorPointsChange,
   selectedMatchNumber,
   onSelectMatch,
   onOpenMatch,
@@ -91,6 +97,15 @@ export function ConsensusView({
           </button>
         ))}
       </div>
+      {/* The payoff only means anything to the mode it drives, so it appears with it. */}
+      {consensusMode === 'expectedPoints' && onPredictorPointsChange && (
+        <PredictorPointsControl
+          exactScore={predictorPoints.exactScore}
+          correctResult={predictorPoints.correctResult}
+          disabled={savingConsensusMode}
+          onChange={onPredictorPointsChange}
+        />
+      )}
     </div>
   );
 
