@@ -3,6 +3,7 @@ import {
   outcomeFromScoreline,
   type ConsensusMode,
   type MatchOutcome,
+  type PredictorPoints,
   type ScorelineCount,
 } from './consensus.js';
 import type { Fixture, Team } from './types.js';
@@ -96,6 +97,8 @@ export interface GradeablePrediction {
   lockedAtRunTime: Set<number>;
   /** Result for each fixture from the active sampled season; used by 'sample' consensus. */
   activeSample?: Map<number, { goalsHome: number; goalsAway: number }> | null;
+  /** Predictor-game payoff; used by 'expectedPoints' consensus. */
+  points?: PredictorPoints;
 }
 
 export function outcomeOf(goalsHome: number, goalsAway: number): MatchOutcome {
@@ -233,6 +236,7 @@ export function gradePrediction(input: GradeablePrediction, runs: number): Accur
       homeElo: teamHome.elo,
       awayElo: teamAway.elo,
       savedSample: input.activeSample?.get(fixture.matchNumber) ?? null,
+      points: input.points,
     });
 
     const scorelineHits = distribution.scorelines.find(

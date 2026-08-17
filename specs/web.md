@@ -27,9 +27,16 @@ arrow keys, roving `tabIndex`).
 ### Consensus
 
 - League table + fixture list for the active prediction (`ConsensusView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
-- Per-match outcome/scoreline distribution modal
-- Consensus mode switch: `scoreline` | `outcome` | `sample`, set from the table's own title row
-  (`LeagueTable`'s `titleActions` slot), not from a header menu
+- Per-match outcome/scoreline distribution modal. Its header line is the **best pick and what it
+  is worth** (`rankExpectedPoints`), and each outcome bar carries that outcome's best candidate
+  and expected points, so a near-miss draw is visible rather than implied.
+- Consensus mode switch: `scoreline` | `outcome` | `expectedPoints` (labelled *Predictor*) |
+  `sample`, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
+  header menu
+- Selecting *Predictor* reveals `PredictorPointsControl` beneath the buttons: the exact-score and
+  correct-result payoff, committed as a pair on blur / Enter / **Apply** rather than per keystroke,
+  since only the ratio means anything. It PATCHes the prediction, so it retunes the batch on
+  screen rather than the global setting. Absent in public mode alongside the mode switch.
 - Prediction manager: list / switch / rename / delete, plus **Accuracy** — grades the
   selected projection against results recorded since it ran (`PredictionAccuracy.tsx`).
   Rows show `from MD<n>` when the batch carries provenance. Public mode never reaches it:

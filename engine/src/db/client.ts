@@ -36,7 +36,9 @@ export function initSchema(sqlite: Database.Database): void {
     CREATE TABLE IF NOT EXISTS app_settings (
       id INTEGER PRIMARY KEY,
       upset_variance REAL NOT NULL,
-      season_elo_delta_weight REAL NOT NULL
+      season_elo_delta_weight REAL NOT NULL,
+      exact_score_points REAL NOT NULL DEFAULT 3,
+      correct_result_points REAL NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS simulations (
@@ -81,6 +83,8 @@ export function initSchema(sqlite: Database.Database): void {
       consensus_mode TEXT NOT NULL DEFAULT 'outcome',
       upset_variance REAL NOT NULL,
       season_elo_delta_weight REAL NOT NULL,
+      exact_score_points REAL NOT NULL DEFAULT 3,
+      correct_result_points REAL NOT NULL DEFAULT 1,
       elapsed_ms INTEGER NOT NULL DEFAULT 0,
       as_of_matchday INTEGER,
       locked_count INTEGER NOT NULL DEFAULT 0,
@@ -149,6 +153,24 @@ export function initSchema(sqlite: Database.Database): void {
   migrateDropTeamRatingColumns(sqlite);
   migrateConsensusModes(sqlite);
   migratePredictionProvenance(sqlite);
+  migratePredictorPoints(sqlite);
+}
+
+/**
+ * Add the predictor-game payoff columns to tables created before `expectedPoints` consensus.
+ * Existing rows take the defaults, which is right: they predate the mode and never used it.
+ */
+function migratePredictorPoints(sqlite: Database.Database): void {
+  for (const table of ['app_settings', 'predictions']) {
+    const columns = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    const names = new Set(columns.map((column) => column.name));
+    if (!names.has('exact_score_points')) {
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN exact_score_points REAL NOT NULL DEFAULT 3`);
+    }
+    if (!names.has('correct_result_points')) {
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN correct_result_points REAL NOT NULL DEFAULT 1`);
+    }
+  }
 }
 
 /** Add the provenance columns to `predictions` tables created before weekly scoring. */

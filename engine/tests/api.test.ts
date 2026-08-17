@@ -107,6 +107,31 @@ describe('settings', () => {
     expect((await put('/api/v1/settings/upset-variance', { value: 5 })).status).toBe(400);
     expect((await put('/api/v1/settings/season-elo-delta-weight', { value: -1 })).status).toBe(400);
   });
+
+  it('round-trips the predictor payoff', async () => {
+    const initial = await (await json('/api/v1/settings/predictor-points')).json();
+    expect(initial).toEqual({ exactScore: 3, correctResult: 1 });
+
+    const res = await put('/api/v1/settings/predictor-points', {
+      exactScore: 5,
+      correctResult: 2,
+    });
+    expect(await res.json()).toEqual({ exactScore: 5, correctResult: 2 });
+  });
+
+  it('patches one side of the payoff without disturbing the other', async () => {
+    await put('/api/v1/settings/predictor-points', { exactScore: 6, correctResult: 2 });
+    const res = await put('/api/v1/settings/predictor-points', { exactScore: 8 });
+    expect(await res.json()).toEqual({ exactScore: 8, correctResult: 2 });
+  });
+
+  it('rejects a payoff where an exact score pays less than a bare result', async () => {
+    const res = await put('/api/v1/settings/predictor-points', {
+      exactScore: 1,
+      correctResult: 3,
+    });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('simulations', () => {
@@ -346,6 +371,31 @@ describe('monte carlo and predictions', () => {
     const body = await res.json();
     expect(body.consensusMode).toBe('outcome');
     expect(body.name).toBe('Renamed');
+  });
+
+  it('retunes the predictor payoff on a stored batch', async () => {
+    const { predictionId } = await (await post('/api/v1/simulate/monte-carlo', { runs: 12 })).json();
+    const res = await app.request(`/api/v1/predictions/${predictionId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ consensusMode: 'expectedPoints', exactScore: 7 }),
+    });
+
+    const body = await res.json();
+    expect(body.consensusMode).toBe('expectedPoints');
+    expect(body.exactScorePoints).toBe(7);
+    // The untouched side keeps the value seeded from settings when the batch ran.
+    expect(body.correctResultPoints).toBe(1);
+  });
+
+  it('rejects an inverted payoff on a stored batch', async () => {
+    const { predictionId } = await (await post('/api/v1/simulate/monte-carlo', { runs: 12 })).json();
+    const res = await app.request(`/api/v1/predictions/${predictionId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ exactScore: 0, correctResult: 2 }),
+    });
+    expect(res.status).toBe(400);
   });
 
   it('selects a sampled season', async () => {

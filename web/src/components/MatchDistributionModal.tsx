@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
-import { computeMeanExpectedGoals, outcomeFromScoreline } from '@shared/engine/consensus.js';
+import {
+  outcomeFromScoreline,
+  rankExpectedPoints,
+  type ExpectedPointsCandidate,
+} from '@shared/engine/consensus.js';
 import type { MatchDistribution, ScorelineCount } from '@shared/simulation/monteCarlo.js';
 import type { ResolvedMatch } from '@shared/engine/types.js';
 import { Modal } from './Modal.js';
@@ -13,7 +17,12 @@ interface Props {
   distribution: MatchDistribution | null;
   loading?: boolean;
   error?: string | null;
+  predictorPoints: { exactScore: number; correctResult: number };
   onClose: () => void;
+}
+
+function formatPoints(value: number): string {
+  return value.toFixed(2);
 }
 
 function formatPct(count: number, total: number): string {
@@ -50,6 +59,10 @@ interface OutcomeBarProps {
   scorelines: ScorelineCount[];
   baseColor: string;
   actualScoreline: Pick<ScorelineCount, 'goalsHome' | 'goalsAway'> | null;
+  /** This outcome's best candidate pick, or null when no run produced the outcome. */
+  candidate: ExpectedPointsCandidate | null;
+  /** True when `candidate` is the highest-scoring pick across all three outcomes. */
+  best: boolean;
 }
 
 function OutcomeBar({
@@ -60,6 +73,8 @@ function OutcomeBar({
   scorelines,
   baseColor,
   actualScoreline,
+  candidate,
+  best,
 }: OutcomeBarProps) {
   const matching = scorelines
     .filter((scoreline) => outcomeFromScoreline(scoreline) === outcome)
@@ -74,6 +89,15 @@ function OutcomeBar({
     <div className="outcome-bar">
       <div className="outcome-bar-header">
         <span className="outcome-bar-label">{label}</span>
+        {candidate && (
+          <span
+            className={`outcome-bar-ev${best ? ' outcome-bar-ev-best' : ''}`}
+            title={`Best pick for this outcome: ${candidate.goalsHome}–${candidate.goalsAway}, worth ${formatPoints(candidate.expectedPoints)} points on average`}
+          >
+            {candidate.goalsHome}–{candidate.goalsAway} · {formatPoints(candidate.expectedPoints)}{' '}
+            pts
+          </span>
+        )}
         <span className="outcome-bar-summary">
           {outcomeTotal.toLocaleString()} ({formatPct(outcomeTotal, allTotal)})
         </span>
@@ -111,14 +135,22 @@ export function MatchDistributionModal({
   distribution,
   loading = false,
   error = null,
+  predictorPoints,
   onClose,
 }: Props) {
   const scorelines = distribution?.scorelines ?? [];
   const total = distribution?.outcomes.total ?? 0;
-  const expectedGoals = useMemo(
-    () => (total > 0 ? computeMeanExpectedGoals(scorelines) : null),
-    [scorelines, total],
+
+  const candidates = useMemo(
+    () =>
+      distribution && total > 0
+        ? rankExpectedPoints(distribution.outcomes, scorelines, predictorPoints)
+        : [],
+    [distribution, scorelines, total, predictorPoints],
   );
+  const bestCandidate = candidates[0] ?? null;
+  const candidateFor = (outcome: MatchOutcome): ExpectedPointsCandidate | null =>
+    candidates.find((c) => c.outcome === outcome) ?? null;
 
   const played = match.result.status === 'played';
   const actualScoreline =
@@ -134,10 +166,14 @@ export function MatchDistributionModal({
       <p className="match-distribution-teams">
         {match.teamHome.name} vs {match.teamAway.name}
       </p>
-      {expectedGoals && (
+      {bestCandidate && (
         <p className="muted match-distribution-meta">
-          Expected goals: {expectedGoals.goalsHome.toFixed(2)}–
-          {expectedGoals.goalsAway.toFixed(2)}
+          Best pick: <strong>
+            {bestCandidate.goalsHome}–{bestCandidate.goalsAway}
+          </strong>{' '}
+          · {formatPoints(bestCandidate.expectedPoints)} pts on average, scoring{' '}
+          {predictorPoints.exactScore} for an exact score and {predictorPoints.correctResult} for
+          the result
         </p>
       )}
       {actualScoreline ? (
@@ -163,6 +199,8 @@ export function MatchDistributionModal({
             scorelines={scorelines}
             baseColor="var(--green)"
             actualScoreline={actualScoreline}
+            candidate={candidateFor('homeWin')}
+            best={bestCandidate?.outcome === 'homeWin'}
           />
           <OutcomeBar
             label="Draw"
@@ -172,6 +210,8 @@ export function MatchDistributionModal({
             scorelines={scorelines}
             baseColor="var(--yellow)"
             actualScoreline={actualScoreline}
+            candidate={candidateFor('draw')}
+            best={bestCandidate?.outcome === 'draw'}
           />
           <OutcomeBar
             label={`${match.teamAway.name} win`}
@@ -181,6 +221,8 @@ export function MatchDistributionModal({
             scorelines={scorelines}
             baseColor="var(--accent)"
             actualScoreline={actualScoreline}
+            candidate={candidateFor('awayWin')}
+            best={bestCandidate?.outcome === 'awayWin'}
           />
           <p className="muted outcome-bar-total">
             Top {TOP_SCORELINES} scorelines plus the remainder per outcome ·{' '}

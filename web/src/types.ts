@@ -27,6 +27,9 @@ export interface Prediction {
   name: string;
   runs: number;
   consensusMode: ConsensusMode;
+  /** Predictor-game payoff this batch's `expectedPoints` consensus optimises against. */
+  exactScorePoints: number;
+  correctResultPoints: number;
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */
   asOfMatchday: number | null;
   lockedCount: number;

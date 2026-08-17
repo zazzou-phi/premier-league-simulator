@@ -282,7 +282,7 @@ describe('predictions', () => {
   it('builds a consensus season for every consensus mode', async () => {
     const { prediction } = await seedPrediction(25);
 
-    for (const mode of ['scoreline', 'outcome', 'sample'] as const) {
+    for (const mode of ['scoreline', 'outcome', 'sample', 'expectedPoints'] as const) {
       repo.updatePrediction(prediction.id, { consensusMode: mode });
       const state = repo.buildPredictionState(prediction.id);
       expect(state.matches).toHaveLength(380);
