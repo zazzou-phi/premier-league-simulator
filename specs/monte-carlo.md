@@ -85,6 +85,15 @@ merely few. Conversely draw mass concentrates on 1–1 and 0–0 while win mass 
 This is a property of the collapse, not of the match model: the model itself draws 22.6% of
 fixtures against an observed 23.9% (see [match-model.md](match-model.md)).
 
+It is also not a quirk of this problem. **The mode of a high-dimensional distribution is atypical** —
+the MAP configuration sits outside the *typical set*. The textbook example is the one here: for `n`
+iid Bernoulli(0.22) draws the single most likely sequence is all-zeros, yet essentially no
+realisation looks like that. The most likely season has no draws in it; no real season does. The
+same distinction turns up as Viterbi (MAP sequence) versus posterior-marginal decoding in HMMs, and
+as the standard Bayesian caution that in high dimensions the mode is not a representative point.
+
+So `likeliestResult` is not misbehaving. It is doing exactly what a MAP point estimate does.
+
 ## Calibrated picks
 
 `engine/src/engine/calibratedPicks.ts`. Picks the whole season at once: the assignment maximising
@@ -120,12 +129,77 @@ Fitted values on a 5,000-run batch: `γ = 0.223`, and `β` running from `0.270` 
 expectation is similar; the weakest and strongest sides need the largest nudge because their
 fixtures are the least even.
 
+One fixture from that batch, Everton v Crystal Palace:
+
+```
+p        H 0.438   D 0.244   A 0.317      argmax p     = homeWin
+log p    H -0.825  D -1.410  A -1.148
+bias     H  0      D +0.585  A +0.223     (β_EVE 0.278 + β_CRY 0.307)
+score    H -0.825  D -0.825  A -0.924     argmax score = draw
+```
+
+The draw trails the home win by 19 percentage points, and `+0.585` in log space closes the gap
+exactly; the draw takes the tie. That is the whole mechanism — the bias buys draws in the fixtures
+where they are cheapest, and the constraint decides how many to buy.
+
 Locked fixtures are included in the solve. Their distributions are degenerate, so they pin
 themselves and contribute their known result to the targets; that is what keeps a batch's picks
 stable as results land.
 
 The per-team constraint is what makes it usable. A league-wide draw quota alone concentrates draws
 on the evenly matched fixtures, leaving the strongest and weakest sides on nearly none.
+
+### Prior art
+
+The composite has no single canonical name, but none of the pieces are novel and it is worth
+knowing what to search for.
+
+The closest directly-named technique is **probability matching**, from ensemble weather
+forecasting — specifically the **probability-matched mean**, introduced in
+[Ebert (2001)](https://journals.ametsoc.org/mwr/article/129/10/2461/66323/Ability-of-a-Poor-Man-s-Ensemble-to-Predict-the).
+The problem there has the same shape: an ensemble-mean precipitation field is unrealistically
+smooth and under-forecasts heavy rain, so the mean supplies the spatial *pattern* while the values
+are resampled from the pooled distribution of ensemble members. Keep the ranking, fix the marginal.
+That is what this strategy does to a season.
+
+The optimisation is a **transportation problem** — a degenerate assignment problem with 380 items,
+three classes and prescribed class totals — and the biases are its **dual potentials**, which is
+why they enter additively in log space. Because there are two sets of margins (per-team draws and
+the league away total), the tightest formal match for the solver is **iterative proportional
+fitting**, also called *raking* in survey statistics and the *RAS algorithm* in economics.
+Alternating adjustments to hit prescribed margins is precisely what the sweeps do;
+[Cuturi (2013)](https://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport)
+sets out the same fixed point as Sinkhorn scaling for entropic optimal transport. The difference is
+that Sinkhorn yields a soft, fractional coupling, where the exact-threshold coordinate solve here
+yields a hard assignment — Sinkhorn's zero-temperature limit.
+
+Adjacent, and useful if extending this:
+
+- **Prior adjustment / class-prior shift** —
+  [Saerens, Latinne & Decaestecker (2002)](https://direct.mit.edu/neco/article/14/1/21/6577/Adjusting-the-Outputs-of-a-Classifier-to-New-a),
+  the same additive-offset-in-log-space idea, but correcting *probabilities* rather than
+  constraining an assignment.
+- **Per-group thresholding to hit a rate constraint** —
+  [Hardt, Price & Srebro (2016)](https://arxiv.org/pdf/1610.02413) tune group-specific thresholds
+  in the same structural way.
+- **Balanced / size-constrained clustering**, usually solved by min-cost flow: the same constrained
+  assignment shape.
+- **Quantification / learning from label proportions** — related, but aimed at *estimating*
+  prevalence rather than assigning under a known one.
+
+### Two senses of "calibrated"
+
+The word is overloaded in this repo, and the two senses are unrelated:
+
+| Sense | Where | Meaning |
+|---|---|---|
+| Marginal calibration | this strategy | The *counts* of picked outcomes match their expectations |
+| Probability calibration | `AccuracyReport.calibration` | Forecast *probabilities* match observed frequencies — the reliability bins in [accuracy.ts](../engine/src/engine/accuracy.ts) |
+
+A model can have either without the other. This one already had the second — that is what the
+reliability curve grades — and the strategy adds the first. "Marginal-calibrated assignment" or
+"probability-matched picks" would be the unambiguous names if this is ever written up outside the
+repo.
 
 **A calibrated point estimate still gives every team 7–9 draws**, because every team's *expectation*
 is ~8.5. The 7–14 spread across a real season is sampling noise, which only `random` reproduces.
