@@ -45,21 +45,21 @@ When set:
 2. Propagated into **all** `simulation_matches` for that fixture
 3. Treated as locked in season state (`ResolvedMatch.locked`)
 4. Replayed verbatim in every Monte Carlo run
-5. Always wins over consensus predictions when building prediction state
+5. Always wins over picked seasons when building prediction state
 
 ### Season state
 
-UI/API aggregate: teams, resolved matches (with lock flags), standings, `matchesPlayed` / `matchesTotal`. Built for simulations, actual-results-only views, and consensus predictions.
+UI/API aggregate: teams, resolved matches (with lock flags), standings, `matchesPlayed` / `matchesTotal`. Built for simulations, actual-results-only views, and picked seasons.
 
 ### Prediction
 
 Persisted Monte Carlo batch. Does **not** store per-run fixtures. Holds:
 
-- Run count and settings snapshot (`upsetVariance`, `seasonEloDeltaWeight`, `consensusMode`)
+- Run count and settings snapshot (`upsetVariance`, `seasonEloDeltaWeight`, `pickStrategy`)
 - Per-fixture outcome and scoreline distributions
 - Per-team finishing-position histograms and summed stats
 - Reservoir of complete sampled seasons (~50)
-- Active sample index for `sample` consensus
+- Active sample index for the `random` strategy
 
 ## Standings
 

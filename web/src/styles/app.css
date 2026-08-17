@@ -334,8 +334,8 @@ select:focus-visible,
   width: 100%;
 }
 
-/* Consensus scorelines: a property of the consensus table, set from beside it. */
-.consensus-mode-control {
+/* Picked scorelines: a property of the picks table, set from beside it. */
+.pick-strategy-control {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -345,24 +345,34 @@ select:focus-visible,
   justify-content: flex-end;
 }
 
-.consensus-mode-label {
+.pick-strategy-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
 }
 
-.consensus-mode-buttons {
+.pick-strategy-buttons {
   display: flex;
   gap: 0.25rem;
 }
 
-.consensus-mode-buttons .btn {
+.pick-strategy-buttons .btn {
   padding-inline: 0.45rem;
   font-size: 0.75rem;
 }
 
-/* Predictor payoff, shown only while the mode it drives is selected. */
-.predictor-points {
+/* What the selected strategy actually does. Wraps onto its own full-width line. */
+.pick-strategy-description {
+  flex-basis: 100%;
+  margin: 0;
+  max-width: 46ch;
+  text-align: right;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+/* Predictor payoff, shown only while the strategy it drives is selected. */
+.scoring-rules {
   flex-basis: 100%;
   display: flex;
   flex-direction: column;
@@ -370,20 +380,20 @@ select:focus-visible,
   gap: 0.2rem;
 }
 
-.predictor-points-fields {
+.scoring-rules-fields {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.predictor-points-field {
+.scoring-rules-field {
   display: flex;
   align-items: center;
   gap: 0.3rem;
   font-size: 0.75rem;
 }
 
-.predictor-points-field input {
+.scoring-rules-field input {
   width: 3.5rem;
   padding: 0.15rem 0.3rem;
   font-size: 0.75rem;
@@ -394,11 +404,11 @@ select:focus-visible,
   border-radius: 4px;
 }
 
-.predictor-points-field input:disabled {
+.scoring-rules-field input:disabled {
   opacity: 0.6;
 }
 
-.predictor-points-hint {
+.scoring-rules-hint {
   max-width: 30rem;
   margin: 0;
   font-size: 0.7rem;
@@ -1953,7 +1963,7 @@ select:focus-visible,
   font-size: 0.9rem;
 }
 
-.match-distribution-consensus {
+.match-distribution-pick {
   margin: 0 0 1rem;
   color: var(--cyan);
   font-size: 0.9rem;
@@ -2111,16 +2121,16 @@ select:focus-visible,
   }
 
   /* The mode control takes its own line rather than being pushed off the right edge. */
-  .consensus-mode-control {
+  .pick-strategy-control {
     width: 100%;
     margin-left: 0;
   }
 
-  .consensus-mode-buttons {
+  .pick-strategy-buttons {
     flex: 1;
   }
 
-  .consensus-mode-buttons .btn {
+  .pick-strategy-buttons .btn {
     flex: 1;
   }
 

@@ -1,42 +1,65 @@
 export type MatchOutcome = 'homeWin' | 'draw' | 'awayWin';
 
-/** How a prediction turns a distribution of simulated results into one scoreline. */
-export type ConsensusMode = 'scoreline' | 'outcome' | 'sample' | 'expectedPoints';
+/**
+ * How a prediction turns a distribution of simulated results into the one scoreline it picks
+ * for a fixture.
+ *
+ * `likeliestScore`, `likeliestResult` and `maxPoints` are per-fixture rules: each fixture is
+ * decided from its own histogram alone. `random` and `calibrated` are season-wide — the caller
+ * resolves the whole season first and passes this function the answer for one fixture.
+ */
+export type PickStrategy =
+  | 'likeliestScore'
+  | 'likeliestResult'
+  | 'maxPoints'
+  | 'random'
+  | 'calibrated';
 
-export const CONSENSUS_MODES: ConsensusMode[] = [
-  'scoreline',
-  'outcome',
-  'sample',
-  'expectedPoints',
+export const PICK_STRATEGIES: PickStrategy[] = [
+  'likeliestScore',
+  'likeliestResult',
+  'maxPoints',
+  'random',
+  'calibrated',
 ];
 
-export const DEFAULT_CONSENSUS_MODE: ConsensusMode = 'outcome';
+export const DEFAULT_PICK_STRATEGY: PickStrategy = 'calibrated';
 
-export function parseConsensusMode(value: unknown): ConsensusMode {
+/** Legacy stored values, kept parseable so old rows and old API clients still resolve. */
+const LEGACY_STRATEGY_NAMES: Record<string, PickStrategy> = {
+  scoreline: 'likeliestScore',
+  outcome: 'likeliestResult',
+  expectedpoints: 'maxPoints',
+  sample: 'random',
+};
+
+export function parsePickStrategy(value: unknown): PickStrategy {
   if (typeof value === 'string') {
-    const mode = value.trim().toLowerCase();
-    // Compare folded rather than testing membership directly: not every mode name is lowercase.
-    const match = CONSENSUS_MODES.find((candidate) => candidate.toLowerCase() === mode);
+    const name = value.trim().toLowerCase();
+    // Compare folded rather than testing membership directly: not every name is lowercase.
+    const match = PICK_STRATEGIES.find((candidate) => candidate.toLowerCase() === name);
     if (match) return match;
+    const legacy = LEGACY_STRATEGY_NAMES[name];
+    if (legacy) return legacy;
   }
-  return DEFAULT_CONSENSUS_MODE;
+  return DEFAULT_PICK_STRATEGY;
 }
 
 /**
- * Payoff of the predictor game the `expectedPoints` mode plays against. `exactScore` is what a
+ * Payoff of the predictor game the `maxPoints` strategy plays against. `exactScore` is what a
  * perfect scoreline pays and `correctResult` what a right result with the wrong scoreline pays.
  * These games award the higher of the two rather than both, which is why the expected value of
  * a pick is `correctResult · P(outcome) + (exactScore − correctResult) · P(scoreline)`.
  */
-export interface PredictorPoints {
+export interface ScoringRules {
   exactScore: number;
   correctResult: number;
 }
 
-export const DEFAULT_PREDICTOR_POINTS: PredictorPoints = { exactScore: 3, correctResult: 1 };
+export const DEFAULT_SCORING_RULES: ScoringRules = { exactScore: 3, correctResult: 1 };
 
 /** Sanity bound on a payoff value; only the ratio of the two matters, not the scale. */
-export const PREDICTOR_POINTS_MAX = 1000;
+export const SCORING_POINTS_MAX = 1000;
 
 export interface OutcomeCounts {
   homeWin: number;
@@ -151,7 +174,7 @@ function breakRepresentativeTie(
 }
 
 /** Modal scoreline within each outcome, then the most common of those three. */
-export function chooseRepresentativeScoreline(
+export function chooseLikeliestScore(
   scorelines: ScorelineCount[],
   homeElo: number,
   awayElo: number,
@@ -198,7 +221,7 @@ export interface ExpectedPointsCandidate {
 export function rankExpectedPoints(
   outcomeCounts: OutcomeCounts,
   scorelines: ScorelineCount[],
-  points: PredictorPoints = DEFAULT_PREDICTOR_POINTS,
+  rules: ScoringRules = DEFAULT_SCORING_RULES,
 ): ExpectedPointsCandidate[] {
   const total = outcomeCounts.homeWin + outcomeCounts.draw + outcomeCounts.awayWin;
   if (total === 0) return [];
@@ -209,7 +232,7 @@ export function rankExpectedPoints(
       goalsAway: rep.goalsAway,
       outcome: rep.outcome,
       n: rep.n,
-      expectedPoints: expectedPointsCount(outcomeCounts, rep, points) / total,
+      expectedPoints: expectedPointsCount(outcomeCounts, rep, rules) / total,
     }))
     .sort((a, b) => b.expectedPoints - a.expectedPoints);
 }
@@ -217,25 +240,25 @@ export function rankExpectedPoints(
 function expectedPointsCount(
   outcomeCounts: OutcomeCounts,
   rep: ScorelineRepresentative,
-  points: PredictorPoints,
+  rules: ScoringRules,
 ): number {
-  const exactBonus = points.exactScore - points.correctResult;
-  return points.correctResult * outcomeCount(outcomeCounts, rep.outcome) + exactBonus * rep.n;
+  const exactBonus = rules.exactScore - rules.correctResult;
+  return rules.correctResult * outcomeCount(outcomeCounts, rep.outcome) + exactBonus * rep.n;
 }
 
 /** The scoreline that maximises expected predictor-game points. See {@link rankExpectedPoints}. */
-export function chooseExpectedPointsScoreline(
+export function chooseMaxPointsScore(
   outcomeCounts: OutcomeCounts,
   scorelines: ScorelineCount[],
   homeElo: number,
   awayElo: number,
-  points: PredictorPoints = DEFAULT_PREDICTOR_POINTS,
+  rules: ScoringRules = DEFAULT_SCORING_RULES,
 ): { goalsHome: number; goalsAway: number } | null {
   const reps = scorelineRepresentatives(scorelines);
   if (reps.length === 0) return null;
 
   const scoreOf = (rep: ScorelineRepresentative): number =>
-    expectedPointsCount(outcomeCounts, rep, points);
+    expectedPointsCount(outcomeCounts, rep, rules);
 
   const maxScore = Math.max(...reps.map(scoreOf));
   const best = breakRepresentativeTie(
@@ -264,34 +287,40 @@ export function computeMeanExpectedGoals(
   return { goalsHome: sumHome / total, goalsAway: sumAway / total };
 }
 
-export interface ChooseConsensusInput {
-  mode?: ConsensusMode;
+export interface ChoosePickInput {
+  strategy?: PickStrategy;
   outcomeCounts: OutcomeCounts;
   scorelines: ScorelineCount[];
   homeElo: number;
   awayElo: number;
-  /** Result for this fixture from the active sampled season; used by 'sample' mode. */
+  /** Result for this fixture from the active sampled season; used by `random`. */
   savedSample?: { goalsHome: number; goalsAway: number } | null;
-  /** Predictor-game payoff; used by 'expectedPoints' mode. */
-  points?: PredictorPoints;
+  /**
+   * This fixture's share of the season-wide calibrated assignment; used by `calibrated`.
+   * Built by `buildCalibratedPicks`, which needs every fixture at once.
+   */
+  calibratedPick?: { goalsHome: number; goalsAway: number } | null;
+  /** Predictor-game payoff; used by `maxPoints`. */
+  rules?: ScoringRules;
 }
 
-export function chooseConsensus(
-  input: ChooseConsensusInput,
+export function choosePick(
+  input: ChoosePickInput,
 ): { goalsHome: number; goalsAway: number } | null {
-  const mode = input.mode ?? DEFAULT_CONSENSUS_MODE;
+  const strategy = input.strategy ?? DEFAULT_PICK_STRATEGY;
 
-  if (mode === 'sample') return input.savedSample ?? null;
-  if (mode === 'scoreline') {
-    return chooseRepresentativeScoreline(input.scorelines, input.homeElo, input.awayElo);
+  if (strategy === 'random') return input.savedSample ?? null;
+  if (strategy === 'calibrated') return input.calibratedPick ?? null;
+  if (strategy === 'likeliestScore') {
+    return chooseLikeliestScore(input.scorelines, input.homeElo, input.awayElo);
   }
-  if (mode === 'expectedPoints') {
-    return chooseExpectedPointsScoreline(
+  if (strategy === 'maxPoints') {
+    return chooseMaxPointsScore(
       input.outcomeCounts,
       input.scorelines,
       input.homeElo,
       input.awayElo,
-      input.points,
+      input.rules,
     );
   }
 

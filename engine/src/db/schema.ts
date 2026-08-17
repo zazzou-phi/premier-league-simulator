@@ -1,5 +1,5 @@
 import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { ConsensusMode } from '../engine/consensus.js';
+import type { PickStrategy } from '../engine/pickStrategy.js';
 
 export const teams = sqliteTable('teams', {
   id: integer('id').primaryKey(),
@@ -26,7 +26,7 @@ export const appSettings = sqliteTable('app_settings', {
   id: integer('id').primaryKey(),
   upsetVariance: real('upset_variance').notNull(),
   seasonEloDeltaWeight: real('season_elo_delta_weight').notNull(),
-  /** Predictor-game payoff driving `expectedPoints` consensus. */
+  /** Predictor-game payoff driving the `maxPoints` strategy. */
   exactScorePoints: real('exact_score_points').notNull().default(3),
   correctResultPoints: real('correct_result_points').notNull().default(1),
 });
@@ -95,12 +95,12 @@ export const predictions = sqliteTable('predictions', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
   runs: integer('runs').notNull(),
-  consensusMode: text('consensus_mode').notNull().$type<ConsensusMode>().default('outcome'),
+  pickStrategy: text('pick_strategy').notNull().$type<PickStrategy>().default('calibrated'),
   upsetVariance: real('upset_variance').notNull(),
   seasonEloDeltaWeight: real('season_elo_delta_weight').notNull(),
   /**
-   * Predictor-game payoff this batch's `expectedPoints` consensus optimises against. Seeded
-   * from settings when the batch runs, then retunable per batch like `consensusMode` itself.
+   * Predictor-game payoff the `maxPoints` strategy optimises against on this batch. Seeded
+   * from settings when the batch runs, then retunable per batch like `pickStrategy` itself.
    */
   exactScorePoints: real('exact_score_points').notNull().default(3),
   correctResultPoints: real('correct_result_points').notNull().default(1),
@@ -198,7 +198,7 @@ export const predictionTeamStats = sqliteTable(
 
 /**
  * Reservoir of complete simulated seasons. Bounded by `reservoirSize` per prediction so
- * consensus 'sample' mode can draw a coherent season rather than independent fixtures.
+ * the `random` strategy can replay a coherent season rather than independent fixtures.
  */
 export const predictionSampledSeasons = sqliteTable(
   'prediction_sampled_seasons',
@@ -216,7 +216,7 @@ export const predictionSampledSeasons = sqliteTable(
   (t) => [primaryKey({ columns: [t.predictionId, t.sampleIndex, t.matchNumber] })],
 );
 
-/** Which sampled season each prediction currently uses for 'sample' consensus. */
+/** Which sampled season each prediction currently replays for the `random` strategy. */
 export const predictionActiveSample = sqliteTable('prediction_active_sample', {
   predictionId: integer('prediction_id')
     .primaryKey()

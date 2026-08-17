@@ -279,11 +279,11 @@ describe('predictions', () => {
     expect(stored.scorelines.reduce((sum, s) => sum + s.n, 0)).toBe(20);
   });
 
-  it('builds a consensus season for every consensus mode', async () => {
+  it('builds a picked season for every pick strategy', async () => {
     const { prediction } = await seedPrediction(25);
 
-    for (const mode of ['scoreline', 'outcome', 'sample', 'expectedPoints'] as const) {
-      repo.updatePrediction(prediction.id, { consensusMode: mode });
+    for (const strategy of ['likeliestScore', 'likeliestResult', 'random', 'maxPoints', 'calibrated'] as const) {
+      repo.updatePrediction(prediction.id, { pickStrategy: strategy });
       const state = repo.buildPredictionState(prediction.id);
       expect(state.matches).toHaveLength(380);
       expect(state.matchesPlayed).toBe(380);
@@ -291,9 +291,9 @@ describe('predictions', () => {
     }
   });
 
-  it('draws a coherent season in sample mode', async () => {
+  it('replays a coherent season in random mode', async () => {
     const { prediction } = await seedPrediction(25);
-    repo.updatePrediction(prediction.id, { consensusMode: 'sample' });
+    repo.updatePrediction(prediction.id, { pickStrategy: 'random' });
 
     const first = repo.buildPredictionState(prediction.id);
     repo.setActiveSample(prediction.id, 3);
@@ -311,7 +311,7 @@ describe('predictions', () => {
     expect(() => repo.setActiveSample(prediction.id, -1)).toThrow(ValidationError);
   });
 
-  it('honours locked results in the consensus season', async () => {
+  it('honours locked results in the picked season', async () => {
     repo.setActualResult(1, 6, 0);
     const { prediction } = await seedPrediction(20);
     const match = repo.buildPredictionState(prediction.id).matches.find(

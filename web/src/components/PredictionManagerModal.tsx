@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
-import { formatConsensusMode } from '../lib/consensusMode.js';
+import { formatPickStrategy } from '../lib/pickStrategy.js';
 import type { AccuracyHistoryPoint, Prediction, PredictionAccuracy } from '../types.js';
 import {
   AccuracyTrend,
@@ -156,7 +156,7 @@ export function PredictionManagerModal({
                   <span className="sim-meta">
                     {prediction.asOfMatchday != null
                       ? `from MD${prediction.asOfMatchday}`
-                      : formatConsensusMode(prediction.consensusMode)}
+                      : formatPickStrategy(prediction.pickStrategy)}
                   </span>
                   <span className="sim-meta sim-count">
                     {prediction.runs.toLocaleString()} runs

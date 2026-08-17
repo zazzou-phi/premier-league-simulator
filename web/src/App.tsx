@@ -10,7 +10,7 @@ import type {
 import { api, isPublicMode } from './api/client.js';
 import { loadPublicMeta } from './api/staticClient.js';
 import { ActualResultsView } from './components/ActualResultsView.js';
-import { ConsensusView } from './components/ConsensusView.js';
+import { PicksView } from './components/PicksView.js';
 import { Header } from './components/Header.js';
 import { MatchDistributionModal } from './components/MatchDistributionModal.js';
 import { MonteCarloModal } from './components/MonteCarloModal.js';
@@ -19,10 +19,11 @@ import { ProjectionsView } from './components/ProjectionsView.js';
 import { TeamRatingsModal } from './components/TeamRatingsModal.js';
 import type { AppView } from './lib/appView.js';
 import {
-  DEFAULT_CONSENSUS_MODE,
-  DEFAULT_PREDICTOR_POINTS,
-  type ConsensusMode,
-} from './lib/consensusMode.js';
+  DEFAULT_PICK_STRATEGY,
+  DEFAULT_SCORING_RULES,
+  formatPickStrategy,
+  type PickStrategy,
+} from './lib/pickStrategy.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from './lib/seasonForm.js';
 import { DEFAULT_UPSET_VARIANCE } from './lib/upsetVariance.js';
 import type { MonteCarloRunResult, Prediction, PublicMeta } from './types.js';
@@ -57,7 +58,7 @@ interface ProjectionState {
   prediction: Prediction | null;
   runs: number;
   teams: TeamSeasonProjection[];
-  consensus: SeasonState | null;
+  picks: SeasonState | null;
   error: string | null;
   loading: boolean;
 }
@@ -66,7 +67,7 @@ const EMPTY_PROJECTIONS: ProjectionState = {
   prediction: null,
   runs: 0,
   teams: [],
-  consensus: null,
+  picks: null,
   error: null,
   loading: false,
 };
@@ -84,7 +85,7 @@ export function App() {
   const [toast, setToast] = useState<string | null>(null);
 
   // The forecast is the answer the engine exists to compute, so it leads. Bootstrap falls back to
-  // the consensus season when there is no batch to project from.
+  // the picks season when there is no batch to project from.
   const [appView, setAppView] = useState<AppView>('projections');
   const [teams, setTeams] = useState<Team[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -102,7 +103,7 @@ export function App() {
   // the write for the value the user just picked is still in flight.
   const pendingSettingsWrite = useRef<Promise<unknown>>(Promise.resolve());
 
-  const [savingConsensusMode, setSavingConsensusMode] = useState(false);
+  const [savingPickStrategy, setSavingPickStrategy] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
   const [monteCarlo, setMonteCarlo] = useState<MonteCarloState>({
     running: false,
@@ -115,7 +116,7 @@ export function App() {
   const loadProjection = useCallback(async (prediction: Prediction) => {
     setProjections((prev) => ({ ...prev, prediction, loading: true, error: null }));
     try {
-      const [projectionData, consensus] = await Promise.all([
+      const [projectionData, picks] = await Promise.all([
         api.getPredictionProjections(prediction.id),
         api.getPredictionState(prediction.id).catch(() => null),
       ]);
@@ -123,7 +124,7 @@ export function App() {
         prediction,
         runs: projectionData.runs,
         teams: projectionData.teams,
-        consensus,
+        picks,
         error: null,
         loading: false,
       });
@@ -148,15 +149,15 @@ export function App() {
           const meta = await loadPublicMeta().catch(() => null);
           setPublicMeta(meta);
           if (meta?.predictionId == null) {
-            setAppView('consensus');
+            setAppView('picks');
           } else {
             await loadProjection({
               id: meta.predictionId,
               name: meta.predictionName ?? 'Season',
               runs: meta.runs,
-              consensusMode: DEFAULT_CONSENSUS_MODE,
-              exactScorePoints: DEFAULT_PREDICTOR_POINTS.exactScore,
-              correctResultPoints: DEFAULT_PREDICTOR_POINTS.correctResult,
+              pickStrategy: DEFAULT_PICK_STRATEGY,
+              exactScorePoints: DEFAULT_SCORING_RULES.exactScore,
+              correctResultPoints: DEFAULT_SCORING_RULES.correctResult,
               asOfMatchday: meta.asOfMatchday ?? null,
               lockedCount: 0,
               createdAt: meta.exportedAt,
@@ -176,7 +177,7 @@ export function App() {
           const predictionPage = await api.listPredictions(1, 1).catch(() => null);
           const prediction = predictionPage?.items[0] ?? null;
           if (prediction) await loadProjection(prediction);
-          else setAppView('consensus');
+          else setAppView('picks');
         }
       } catch (err) {
         setFatalError(errorMessage(err, 'Failed to load the simulator'));
@@ -193,13 +194,13 @@ export function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const consensusMode = projections.prediction?.consensusMode ?? DEFAULT_CONSENSUS_MODE;
+  const pickStrategy = projections.prediction?.pickStrategy ?? DEFAULT_PICK_STRATEGY;
 
-  const predictorPoints = useMemo(
+  const scoringRules = useMemo(
     () => ({
-      exactScore: projections.prediction?.exactScorePoints ?? DEFAULT_PREDICTOR_POINTS.exactScore,
+      exactScore: projections.prediction?.exactScorePoints ?? DEFAULT_SCORING_RULES.exactScore,
       correctResult:
-        projections.prediction?.correctResultPoints ?? DEFAULT_PREDICTOR_POINTS.correctResult,
+        projections.prediction?.correctResultPoints ?? DEFAULT_SCORING_RULES.correctResult,
     }),
     [projections.prediction],
   );
@@ -211,13 +212,13 @@ export function App() {
   );
 
   const distributionMatch = useMemo(() => {
-    if (!distribution || !projections.consensus) return null;
+    if (!distribution || !projections.picks) return null;
     return (
-      projections.consensus.matches.find(
+      projections.picks.matches.find(
         (match) => match.fixture.matchNumber === distribution.matchNumber,
       ) ?? null
     );
-  }, [distribution, projections.consensus]);
+  }, [distribution, projections.picks]);
 
   const switchPrediction = async (id: number) => {
     setError(null);
@@ -249,40 +250,40 @@ export function App() {
     else setProjections(EMPTY_PROJECTIONS);
   };
 
-  const handleConsensusModeChange = async (mode: ConsensusMode) => {
+  const handlePickStrategyChange = async (strategy: PickStrategy) => {
     const prediction = projections.prediction;
     if (!prediction) return;
     setError(null);
-    setSavingConsensusMode(true);
+    setSavingPickStrategy(true);
     try {
-      const updated = await api.setPredictionConsensusMode(prediction.id, mode);
-      const consensus = await api.getPredictionState(prediction.id).catch(() => null);
-      setProjections((prev) => ({ ...prev, prediction: updated, consensus }));
-      setToast(`Consensus scorelines set to ${mode}`);
+      const updated = await api.setPredictionPickStrategy(prediction.id, strategy);
+      const picks = await api.getPredictionState(prediction.id).catch(() => null);
+      setProjections((prev) => ({ ...prev, prediction: updated, picks }));
+      setToast(`Scorelines picked by ${formatPickStrategy(strategy).toLowerCase()}`);
     } catch (err) {
-      setError(errorMessage(err, 'Failed to update consensus mode'));
+      setError(errorMessage(err, 'Failed to update the pick strategy'));
     } finally {
-      setSavingConsensusMode(false);
+      setSavingPickStrategy(false);
     }
   };
 
-  const handlePredictorPointsChange = async (points: {
+  const handleScoringRulesChange = async (points: {
     exactScore: number;
     correctResult: number;
   }) => {
     const prediction = projections.prediction;
     if (!prediction) return;
     setError(null);
-    setSavingConsensusMode(true);
+    setSavingPickStrategy(true);
     try {
-      const updated = await api.setPredictionPredictorPoints(prediction.id, points);
-      const consensus = await api.getPredictionState(prediction.id).catch(() => null);
-      setProjections((prev) => ({ ...prev, prediction: updated, consensus }));
+      const updated = await api.setPredictionScoringRules(prediction.id, points);
+      const picks = await api.getPredictionState(prediction.id).catch(() => null);
+      setProjections((prev) => ({ ...prev, prediction: updated, picks }));
       setToast(`Predictor scoring set to ${points.exactScore}/${points.correctResult}`);
     } catch (err) {
       setError(errorMessage(err, 'Failed to update predictor scoring'));
     } finally {
-      setSavingConsensusMode(false);
+      setSavingPickStrategy(false);
     }
   };
 
@@ -451,27 +452,27 @@ export function App() {
       )}
 
       <main className="app-main">
-        {appView === 'consensus' &&
+        {appView === 'picks' &&
           (projections.prediction == null ? (
             emptyProjectionMessage
           ) : (
-            <ConsensusView
+            <PicksView
               teams={teams}
-              consensusState={projections.consensus}
-              consensusError={projections.error}
+              picksState={projections.picks}
+              picksError={projections.error}
               loading={projections.loading}
               runs={projections.runs}
               nextMatchday={nextMatchday}
-              consensusMode={consensusMode}
-              savingConsensusMode={savingConsensusMode}
-              onConsensusModeChange={
+              pickStrategy={pickStrategy}
+              savingPickStrategy={savingPickStrategy}
+              onPickStrategyChange={
                 publicMode
                   ? undefined
-                  : (mode) => void handleConsensusModeChange(mode)
+                  : (mode) => void handlePickStrategyChange(mode)
               }
-              predictorPoints={predictorPoints}
-              onPredictorPointsChange={
-                publicMode ? undefined : (points) => void handlePredictorPointsChange(points)
+              scoringRules={scoringRules}
+              onScoringRulesChange={
+                publicMode ? undefined : (points) => void handleScoringRulesChange(points)
               }
               selectedMatchNumber={selectedMatchNumber}
               onSelectMatch={setSelectedMatchNumber}
@@ -553,7 +554,7 @@ export function App() {
           distribution={distribution.data}
           loading={distribution.loading}
           error={distribution.error}
-          predictorPoints={predictorPoints}
+          scoringRules={scoringRules}
           onClose={() => setDistribution(null)}
         />
       )}

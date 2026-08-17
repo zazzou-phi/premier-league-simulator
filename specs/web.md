@@ -17,26 +17,27 @@ Public mutating calls throw or no-op (`"Not available in public mode"`). Base pa
 
 | Id | Label | Private | Public |
 |----|-------|---------|--------|
-| `consensus` | Consensus | yes | yes |
+| `picks` | Picks | yes | yes |
 | `projections` | Projections | yes | yes |
 | `results` | Results | yes | yes |
 
 All three views are visible at once in a keyboard-operable tab bar (`ViewSwitcher`, `role="tablist"`,
 arrow keys, roving `tabIndex`).
 
-### Consensus
+### Picks
 
-- League table + fixture list for the active prediction (`ConsensusView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
+- League table + fixture list for the active prediction (`PicksView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
 - Per-match outcome/scoreline distribution modal. Its header line is the **best pick and what it
   is worth** (`rankExpectedPoints`), and each outcome bar carries that outcome's best candidate
   and expected points, so a near-miss draw is visible rather than implied.
-- Consensus mode switch: `scoreline` | `outcome` | `expectedPoints` (labelled *Predictor*) |
-  `sample`, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
-  header menu
-- Selecting *Predictor* reveals `PredictorPointsControl` beneath the buttons: the exact-score and
+- Pick strategy switch: `likeliestScore` | `likeliestResult` | `maxPoints` | `calibrated` |
+  `random`, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
+  header menu. The selected strategy's one-line description (`PICK_STRATEGY_DESCRIPTIONS`) sits
+  under the buttons, so the season-level trade-off is visible before choosing.
+- Selecting *Max points* reveals `ScoringRulesControl` beneath the buttons: the exact-score and
   correct-result payoff, committed as a pair on blur / Enter / **Apply** rather than per keystroke,
   since only the ratio means anything. It PATCHes the prediction, so it retunes the batch on
-  screen rather than the global setting. Absent in public mode alongside the mode switch.
+  screen rather than the global setting. Absent in public mode alongside the strategy switch.
 - Prediction manager: list / switch / rename / delete, plus **Accuracy** — grades the
   selected projection against results recorded since it ran (`PredictionAccuracy.tsx`).
   Rows show `from MD<n>` when the batch carries provenance. Public mode never reaches it:
@@ -98,7 +99,7 @@ arrow keys, roving `tabIndex`).
   `DEFAULT_SEASON_ELO_DELTA_WEIGHT`. The modal also carries 1k/5k/25k run presets and a run-time
   estimate derived from the last completed batch's ms-per-run (`lib/runRate.ts`, `localStorage`).
 
-Public header omits the Monte Carlo button and the consensus-mode control; the footer can show the
+Public header omits the Monte Carlo button and the pick-strategy control; the footer can show the
 export timestamp from `meta.json`.
 
 ## Theme and typography
@@ -144,4 +145,4 @@ when a zero-height panel gains height.
 
 ## Simulation UI note
 
-Server-side simulation CRUD and simulate endpoints exist and are covered by `engine/tests/api.test.ts`; they are driven by the `simulate:season` CLI and Monte Carlo, not by the browser. The web shell has **no simulation UI** — the shipped UI is prediction-centric (Monte Carlo + consensus + actuals), and `client.ts` exposes no wrappers for the simulation endpoints.
+Server-side simulation CRUD and simulate endpoints exist and are covered by `engine/tests/api.test.ts`; they are driven by the `simulate:season` CLI and Monte Carlo, not by the browser. The web shell has **no simulation UI** — the shipped UI is prediction-centric (Monte Carlo + picks + actuals), and `client.ts` exposes no wrappers for the simulation endpoints.

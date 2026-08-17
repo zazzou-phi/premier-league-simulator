@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  chooseConsensus,
-  chooseExpectedPointsScoreline,
-  parseConsensusMode,
+  choosePick,
+  DEFAULT_PICK_STRATEGY,
+  chooseMaxPointsScore,
+  parsePickStrategy,
   rankExpectedPoints,
   type OutcomeCounts,
   type ScorelineCount,
-} from '../src/engine/consensus.js';
+} from '../src/engine/pickStrategy.js';
 
 function scorelines(entries: Array<[number, number, number]>): ScorelineCount[] {
   return entries.map(([goalsHome, goalsAway, n]) => ({ goalsHome, goalsAway, n }));
@@ -44,20 +45,27 @@ const tossUp = {
 
 const elo = { homeElo: 1800, awayElo: 1750 };
 
-describe('parseConsensusMode', () => {
-  it('accepts the camelCase expectedPoints mode', () => {
-    expect(parseConsensusMode('expectedPoints')).toBe('expectedPoints');
-    expect(parseConsensusMode(' EXPECTEDPOINTS ')).toBe('expectedPoints');
+describe('parsePickStrategy', () => {
+  it('accepts a camelCase strategy name in any casing', () => {
+    expect(parsePickStrategy('maxPoints')).toBe('maxPoints');
+    expect(parsePickStrategy(' MAXPOINTS ')).toBe('maxPoints');
+  });
+
+  it('accepts the pre-rename names so stored rows still resolve', () => {
+    expect(parsePickStrategy('scoreline')).toBe('likeliestScore');
+    expect(parsePickStrategy('outcome')).toBe('likeliestResult');
+    expect(parsePickStrategy('expectedPoints')).toBe('maxPoints');
+    expect(parsePickStrategy('sample')).toBe('random');
   });
 
   it('falls back to the default for anything unrecognised', () => {
-    expect(parseConsensusMode('expected')).toBe('outcome');
+    expect(parsePickStrategy('expected')).toBe(DEFAULT_PICK_STRATEGY);
   });
 });
 
-describe('chooseExpectedPointsScoreline', () => {
+describe('chooseMaxPointsScore', () => {
   it('backs the favourite when the outcome margin outweighs scoreline concentration', () => {
-    const pick = chooseExpectedPointsScoreline(
+    const pick = chooseMaxPointsScore(
       clearFavourite.outcomes,
       clearFavourite.scorelines,
       elo.homeElo,
@@ -69,7 +77,7 @@ describe('chooseExpectedPointsScoreline', () => {
   });
 
   it('takes the concentrated draw when the outcomes are close', () => {
-    const pick = chooseExpectedPointsScoreline(
+    const pick = chooseMaxPointsScore(
       tossUp.outcomes,
       tossUp.scorelines,
       elo.homeElo,
@@ -82,7 +90,7 @@ describe('chooseExpectedPointsScoreline', () => {
 
   it('shifts with the payoff: a bigger exact-score bonus buys the concentrated scoreline', () => {
     const pickAt = (exactScore: number) =>
-      chooseExpectedPointsScoreline(
+      chooseMaxPointsScore(
         tossUp.outcomes,
         tossUp.scorelines,
         elo.homeElo,
@@ -94,45 +102,48 @@ describe('chooseExpectedPointsScoreline', () => {
     expect(pickAt(3)).toEqual({ goalsHome: 1, goalsAway: 1 });
   });
 
-  it('collapses onto outcome mode when an exact score pays no premium', () => {
+  it('collapses onto likeliestResult when an exact score pays no premium', () => {
     for (const fixture of [clearFavourite, tossUp]) {
-      const expectedPoints = chooseExpectedPointsScoreline(
+      const maxPoints = chooseMaxPointsScore(
         fixture.outcomes,
         fixture.scorelines,
         elo.homeElo,
         elo.awayElo,
         { exactScore: 1, correctResult: 1 },
       );
-      const outcome = chooseConsensus({
-        mode: 'outcome',
+      const likeliestResult = choosePick({
+        strategy: 'likeliestResult',
         outcomeCounts: fixture.outcomes,
         scorelines: fixture.scorelines,
         ...elo,
       });
-      expect(expectedPoints).toEqual(outcome);
+      expect(maxPoints).toEqual(likeliestResult);
     }
   });
 
-  it('disagrees with both existing scoreline-family modes across the two fixtures', () => {
-    const pick = (mode: 'scoreline' | 'outcome' | 'expectedPoints', fixture: typeof tossUp) =>
-      chooseConsensus({
-        mode,
+  it('disagrees with both likeliest-* strategies across the two fixtures', () => {
+    const pick = (
+      strategy: 'likeliestScore' | 'likeliestResult' | 'maxPoints',
+      fixture: typeof tossUp,
+    ) =>
+      choosePick({
+        strategy,
         outcomeCounts: fixture.outcomes,
         scorelines: fixture.scorelines,
-        points: { exactScore: 3, correctResult: 1 },
+        rules: { exactScore: 3, correctResult: 1 },
         ...elo,
       });
 
-    // Neither existing mode is right in both rows; expectedPoints tracks whichever is.
-    expect(pick('scoreline', clearFavourite)).toEqual({ goalsHome: 1, goalsAway: 1 });
-    expect(pick('expectedPoints', clearFavourite)).toEqual({ goalsHome: 1, goalsAway: 0 });
+    // Neither likeliest-* strategy is right in both rows; maxPoints tracks whichever is.
+    expect(pick('likeliestScore', clearFavourite)).toEqual({ goalsHome: 1, goalsAway: 1 });
+    expect(pick('maxPoints', clearFavourite)).toEqual({ goalsHome: 1, goalsAway: 0 });
 
-    expect(pick('outcome', tossUp)).toEqual({ goalsHome: 1, goalsAway: 0 });
-    expect(pick('expectedPoints', tossUp)).toEqual({ goalsHome: 1, goalsAway: 1 });
+    expect(pick('likeliestResult', tossUp)).toEqual({ goalsHome: 1, goalsAway: 0 });
+    expect(pick('maxPoints', tossUp)).toEqual({ goalsHome: 1, goalsAway: 1 });
   });
 
   it('can land on the outcome that is neither the favourite nor the modal scoreline', () => {
-    const pick = chooseExpectedPointsScoreline(
+    const pick = chooseMaxPointsScore(
       { homeWin: 4000, draw: 2800, awayWin: 3200 },
       scorelines([
         [1, 0, 600],
@@ -148,7 +159,7 @@ describe('chooseExpectedPointsScoreline', () => {
   });
 
   it('defaults the payoff when none is supplied', () => {
-    const withDefault = chooseExpectedPointsScoreline(
+    const withDefault = chooseMaxPointsScore(
       tossUp.outcomes,
       tossUp.scorelines,
       elo.homeElo,
@@ -158,7 +169,7 @@ describe('chooseExpectedPointsScoreline', () => {
   });
 
   it('returns null when the batch produced no scorelines', () => {
-    const pick = chooseExpectedPointsScoreline(
+    const pick = chooseMaxPointsScore(
       { homeWin: 0, draw: 0, awayWin: 0 },
       [],
       elo.homeElo,
@@ -190,7 +201,7 @@ describe('chooseExpectedPointsScoreline', () => {
       for (const exactScore of [1, 3, 8, 25]) {
         const points = { exactScore, correctResult: 1 };
         const ranked = rankExpectedPoints(fixture.outcomes, fixture.scorelines, points);
-        const chosen = chooseExpectedPointsScoreline(
+        const chosen = chooseMaxPointsScore(
           fixture.outcomes,
           fixture.scorelines,
           elo.homeElo,
@@ -207,7 +218,7 @@ describe('chooseExpectedPointsScoreline', () => {
   });
 
   it('prefers the draw when two candidates tie exactly', () => {
-    const pick = chooseExpectedPointsScoreline(
+    const pick = chooseMaxPointsScore(
       { homeWin: 4000, draw: 4000, awayWin: 2000 },
       scorelines([
         [1, 0, 900],

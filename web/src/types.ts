@@ -1,6 +1,6 @@
 import type { AccuracyReport } from '@shared/engine/accuracy.js';
 import type { AccuracyHistoryPoint, TeamEloSnapshot } from '@shared/db/repository.js';
-import type { ConsensusMode } from '@shared/engine/consensus.js';
+import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 
 export type { PublicBootstrap, PublicMeta } from '@shared/export/publicSnapshot.js';
@@ -17,7 +17,7 @@ export interface PredictionAccuracy extends AccuracyReport {
   predictionId: number;
   name: string;
   runs: number;
-  consensusMode: ConsensusMode;
+  pickStrategy: PickStrategy;
   asOfMatchday: number | null;
   createdAt: string;
 }
@@ -26,8 +26,8 @@ export interface Prediction {
   id: number;
   name: string;
   runs: number;
-  consensusMode: ConsensusMode;
-  /** Predictor-game payoff this batch's `expectedPoints` consensus optimises against. */
+  pickStrategy: PickStrategy;
+  /** Predictor-game payoff the `maxPoints` strategy optimises against on this batch. */
   exactScorePoints: number;
   correctResultPoints: number;
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */

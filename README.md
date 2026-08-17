@@ -5,7 +5,7 @@ across 38 matchdays, one table. Run Monte Carlo batches to get title, top-four a
 relegation probabilities, edit individual scorelines, and record real results as the
 season unfolds.
 
-Adapted from a FIFA World Cup 2026 simulator. The match model, Elo ratings, consensus
+Adapted from a FIFA World Cup 2026 simulator. The match model, Elo ratings, pick-strategy
 layer and persistence patterns carry over; the group stage, knockout bracket and penalty
 shootouts do not.
 
@@ -105,21 +105,29 @@ Instead a batch is saved as a *prediction* holding only:
 - a per-team finishing-position histogram
 - a reservoir of 50 complete seasons, sampled uniformly at random
 
-The reservoir is what lets `sample` consensus mode reproduce a *coherent* season rather
+The reservoir is what lets the `random` strategy reproduce a *coherent* season rather
 than stitching together independent per-fixture draws.
 
 Roughly 1,000 seasons — 380,000 matches — simulate in about 350 ms.
 
-## Consensus modes
+## Pick strategies
 
 A prediction collapses thousands of simulated seasons into one representative table.
 How each fixture picks its scoreline is configurable:
 
-| Mode | Behaviour |
-|------|-----------|
-| `scoreline` (default) | Modal scoreline within each outcome, then the most frequent of the three |
-| `outcome` | Most frequent outcome, then its most frequent scoreline |
-| `sample` | Replays one whole season from the reservoir |
+| Strategy | Behaviour |
+|----------|-----------|
+| `likeliestScore` | Modal scoreline within each outcome, then the most frequent of the three |
+| `likeliestResult` | Most frequent outcome, then its most frequent scoreline |
+| `maxPoints` | The pick maximising expected points under a predictor game's payoff |
+| `calibrated` (default) | Picks the whole season at once so W/D/L counts match what the simulation expects |
+| `random` | Replays one whole season from the reservoir |
+
+The first three decide each fixture from its own histogram, and that is why they distort the
+season: a draw is almost never the single likeliest outcome, so `likeliestResult` returns **zero**
+draws across 380 fixtures, while draw mass concentrates on 1–1 and 0–0, so `likeliestScore`
+returns a draw for about **70%** of them. `calibrated` fixes this by solving the season as one
+constrained assignment. See [specs/monte-carlo.md](specs/monte-carlo.md).
 
 ## Running it through a season
 
@@ -196,7 +204,7 @@ batch records the fixtures that were already locked when it ran and those are ex
 | Brier score | Summed squared error across home/draw/away. 0 perfect, 2/3 a uniform guess, 2 maximally wrong |
 | Skill score | `1 - brier/0.667`. Positive means it beat guessing 1/3 each |
 | Log loss | `-ln P(actual)`, floored at half a run so a zero-probability outcome cannot diverge |
-| Outcome hit rate | How often the displayed consensus called W/D/L right |
+| Outcome hit rate | How often the displayed pick called W/D/L right |
 | Exact scoreline | How often it got the scoreline on the nose |
 | Calibration | Predicted probability vs observed frequency, in deciles — things called 30% likely should happen about 30% of the time |
 

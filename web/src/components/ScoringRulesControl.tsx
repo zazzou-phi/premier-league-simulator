@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PREDICTOR_POINTS_HINT } from '../lib/consensusMode.js';
+import { SCORING_RULES_HINT } from '../lib/pickStrategy.js';
 
 interface Props {
   exactScore: number;
@@ -9,10 +9,10 @@ interface Props {
 }
 
 /**
- * The payoff `expectedPoints` consensus optimises against. Only the ratio of the two matters,
+ * The payoff the `maxPoints` strategy optimises against. Only the ratio of the two matters,
  * so the pair is committed together rather than each field writing on its own keystroke.
  */
-export function PredictorPointsControl({
+export function ScoringRulesControl({
   exactScore,
   correctResult,
   disabled = false,
@@ -40,9 +40,9 @@ export function PredictorPointsControl({
   };
 
   return (
-    <div className="predictor-points" role="group" aria-label="Predictor scoring">
-      <div className="predictor-points-fields">
-        <label className="predictor-points-field">
+    <div className="scoring-rules" role="group" aria-label="Predictor scoring">
+      <div className="scoring-rules-fields">
+        <label className="scoring-rules-field">
           <span className="muted">Exact score</span>
           <input
             type="number"
@@ -55,7 +55,7 @@ export function PredictorPointsControl({
             onKeyDown={(e) => e.key === 'Enter' && commit()}
           />
         </label>
-        <label className="predictor-points-field">
+        <label className="scoring-rules-field">
           <span className="muted">Correct result</span>
           <input
             type="number"
@@ -78,9 +78,9 @@ export function PredictorPointsControl({
         </button>
       </div>
       {valid ? (
-        <p className="muted predictor-points-hint">{PREDICTOR_POINTS_HINT}</p>
+        <p className="muted scoring-rules-hint">{SCORING_RULES_HINT}</p>
       ) : (
-        <p className="modal-warning predictor-points-hint">
+        <p className="modal-warning scoring-rules-hint">
           An exact score cannot pay less than a correct result.
         </p>
       )}
