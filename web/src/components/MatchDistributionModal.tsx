@@ -3,7 +3,7 @@ import {
   outcomeFromScoreline,
   rankExpectedPoints,
   type ExpectedPointsCandidate,
-} from '@shared/engine/consensus.js';
+} from '@shared/engine/pickStrategy.js';
 import type { MatchDistribution, ScorelineCount } from '@shared/simulation/monteCarlo.js';
 import type { ResolvedMatch } from '@shared/engine/types.js';
 import { Modal } from './Modal.js';
@@ -17,7 +17,7 @@ interface Props {
   distribution: MatchDistribution | null;
   loading?: boolean;
   error?: string | null;
-  predictorPoints: { exactScore: number; correctResult: number };
+  scoringRules: { exactScore: number; correctResult: number };
   onClose: () => void;
 }
 
@@ -135,7 +135,7 @@ export function MatchDistributionModal({
   distribution,
   loading = false,
   error = null,
-  predictorPoints,
+  scoringRules,
   onClose,
 }: Props) {
   const scorelines = distribution?.scorelines ?? [];
@@ -144,9 +144,9 @@ export function MatchDistributionModal({
   const candidates = useMemo(
     () =>
       distribution && total > 0
-        ? rankExpectedPoints(distribution.outcomes, scorelines, predictorPoints)
+        ? rankExpectedPoints(distribution.outcomes, scorelines, scoringRules)
         : [],
-    [distribution, scorelines, total, predictorPoints],
+    [distribution, scorelines, total, scoringRules],
   );
   const bestCandidate = candidates[0] ?? null;
   const candidateFor = (outcome: MatchOutcome): ExpectedPointsCandidate | null =>
@@ -172,17 +172,17 @@ export function MatchDistributionModal({
             {bestCandidate.goalsHome}–{bestCandidate.goalsAway}
           </strong>{' '}
           · {formatPoints(bestCandidate.expectedPoints)} pts on average, scoring{' '}
-          {predictorPoints.exactScore} for an exact score and {predictorPoints.correctResult} for
+          {scoringRules.exactScore} for an exact score and {scoringRules.correctResult} for
           the result
         </p>
       )}
       {actualScoreline ? (
-        <p className="match-distribution-consensus">
-          {match.locked ? 'Recorded result' : 'Consensus'}: {actualScoreline.goalsHome}–
+        <p className="match-distribution-pick">
+          {match.locked ? 'Recorded result' : 'Pick'}: {actualScoreline.goalsHome}–
           {actualScoreline.goalsAway}
         </p>
       ) : (
-        <p className="muted match-distribution-consensus">No scoreline yet</p>
+        <p className="muted match-distribution-pick">No scoreline yet</p>
       )}
 
       {loading ? (

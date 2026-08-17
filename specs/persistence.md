@@ -59,7 +59,7 @@ Defined in `engine/src/db/schema.ts` (Drizzle) with DDL also applied in `client.
 | `simulation_matches` | Per-sim scores (`scheduled` \| `played`) |
 | `actual_match_results` | Locked real scores |
 | `team_elo_history` | Dated Elo snapshot per club (`team_id`, `as_of`, `elo`) |
-| `predictions` | MC batch metadata + consensus mode + settings snapshot + provenance (`as_of_matchday`, `locked_count`) |
+| `predictions` | MC batch metadata + pick strategy + settings snapshot + provenance (`as_of_matchday`, `locked_count`) |
 | `prediction_locked_matches` | Fixtures already locked when the batch ran; excluded from grading |
 | `prediction_match_outcomes` | H/D/A counts per fixture |
 | `prediction_match_scorelines` | Scoreline histogram |
@@ -68,7 +68,7 @@ Defined in `engine/src/db/schema.ts` (Drizzle) with DDL also applied in `client.
 | `prediction_sampled_seasons` | Reservoir seasons |
 | `prediction_active_sample` | Active reservoir index for `sample` mode |
 
-Migrations may drop legacy attack/defence columns, remap old consensus values
+Migrations may drop legacy attack/defence columns, rename `consensus_mode` to `pick_strategy`, remap old strategy names
 (`floor` / `rounded` → `scoreline`), and add the prediction provenance columns
 (`as_of_matchday` null, `locked_count` 0 on pre-existing rows).
 
@@ -97,7 +97,7 @@ scored on results it was handed.
 `engine/src/db/repository.ts` is the persistence boundary:
 
 - CRUD for teams (Elo), settings, simulations, matches, actuals, predictions
-- Build `SeasonState` for sim / actuals / consensus
+- Build `SeasonState` for sim / actuals / picks
 - Propagate locks into all simulations
 - Save MC aggregates + reservoir
 - Reject edits to locked matches (`MatchLockedError`)

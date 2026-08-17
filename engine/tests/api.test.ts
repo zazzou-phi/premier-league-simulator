@@ -109,10 +109,10 @@ describe('settings', () => {
   });
 
   it('round-trips the predictor payoff', async () => {
-    const initial = await (await json('/api/v1/settings/predictor-points')).json();
+    const initial = await (await json('/api/v1/settings/scoring-rules')).json();
     expect(initial).toEqual({ exactScore: 3, correctResult: 1 });
 
-    const res = await put('/api/v1/settings/predictor-points', {
+    const res = await put('/api/v1/settings/scoring-rules', {
       exactScore: 5,
       correctResult: 2,
     });
@@ -120,13 +120,13 @@ describe('settings', () => {
   });
 
   it('patches one side of the payoff without disturbing the other', async () => {
-    await put('/api/v1/settings/predictor-points', { exactScore: 6, correctResult: 2 });
-    const res = await put('/api/v1/settings/predictor-points', { exactScore: 8 });
+    await put('/api/v1/settings/scoring-rules', { exactScore: 6, correctResult: 2 });
+    const res = await put('/api/v1/settings/scoring-rules', { exactScore: 8 });
     expect(await res.json()).toEqual({ exactScore: 8, correctResult: 2 });
   });
 
   it('rejects a payoff where an exact score pays less than a bare result', async () => {
-    const res = await put('/api/v1/settings/predictor-points', {
+    const res = await put('/api/v1/settings/scoring-rules', {
       exactScore: 1,
       correctResult: 3,
     });
@@ -361,15 +361,15 @@ describe('monte carlo and predictions', () => {
     expect((await json('/api/v1/predictions/999/accuracy')).status).toBe(404);
   });
 
-  it('changes consensus mode', async () => {
+  it('changes pick strategy', async () => {
     const { predictionId } = await (await post('/api/v1/simulate/monte-carlo', { runs: 12 })).json();
     const res = await app.request(`/api/v1/predictions/${predictionId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ consensusMode: 'outcome', name: 'Renamed' }),
+      body: JSON.stringify({ pickStrategy: 'likeliestResult', name: 'Renamed' }),
     });
     const body = await res.json();
-    expect(body.consensusMode).toBe('outcome');
+    expect(body.pickStrategy).toBe('likeliestResult');
     expect(body.name).toBe('Renamed');
   });
 
@@ -378,11 +378,11 @@ describe('monte carlo and predictions', () => {
     const res = await app.request(`/api/v1/predictions/${predictionId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ consensusMode: 'expectedPoints', exactScore: 7 }),
+      body: JSON.stringify({ pickStrategy: 'maxPoints', exactScore: 7 }),
     });
 
     const body = await res.json();
-    expect(body.consensusMode).toBe('expectedPoints');
+    expect(body.pickStrategy).toBe('maxPoints');
     expect(body.exactScorePoints).toBe(7);
     // The untouched side keeps the value seeded from settings when the batch ran.
     expect(body.correctResultPoints).toBe(1);

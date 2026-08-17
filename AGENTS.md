@@ -15,7 +15,7 @@ Default ports: API `3123`, web `2627`. Keep `API_PORT` in sync if either changes
 ## Domain invariants
 
 - Match model: two independent Poisson draws from fixed home/away baselines plus Elo gap. Do not inflate total goals when raising upset variance (form multiplier is mean-rescaled).
-- Monte Carlo runs are aggregated in memory — never persist per-run fixtures. Batches store outcome/scoreline distributions, finishing histograms, and a small season reservoir (~50) for `sample` consensus.
+- Monte Carlo runs are aggregated in memory — never persist per-run fixtures. Batches store outcome/scoreline distributions, finishing histograms, and a small season reservoir (~50) for the `random` strategy.
 - Locked (actual) results are authoritative: never overwrite them in sim, replay them in every MC run, and keep stored simulations consistent with them.
 - Because locked results are replayed verbatim, they carry no predictive content: grading a prediction must exclude the fixtures recorded in `prediction_locked_matches`, never score a batch on results it was handed.
 - `teams.elo` is overwritten by each ratings sync; the dated record lives in `team_elo_history` (and the tracked `data/teams.csv`).

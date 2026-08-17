@@ -82,7 +82,7 @@ function shouldReportProgress(completed: number, total: number): boolean {
  *
  * Individual runs are deliberately not persisted; at 380 matches a run that would be
  * millions of rows for a large batch. A reservoir keeps a bounded, uniformly random
- * subset of whole seasons so consensus sampling still reflects a coherent season.
+ * subset of whole seasons so the `random` strategy still replays a coherent season.
  */
 export async function runMonteCarlo(
   teams: Team[],

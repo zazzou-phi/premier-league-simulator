@@ -1,6 +1,6 @@
 import type { AppView } from './appView.js';
 import { APP_VIEW_LABELS } from './appView.js';
-import { CONSENSUS_MODE_HINT } from './consensusMode.js';
+import { PICK_STRATEGY_HINT } from './pickStrategy.js';
 import { SEASON_FORM_HINT } from './seasonForm.js';
 import { UPSET_FACTOR_HINT } from './upsetVariance.js';
 
@@ -16,17 +16,17 @@ export type ViewHelp = {
   howTo: HelpSection[];
 };
 
-function consensusHelp(publicMode: boolean): ViewHelp {
+function picksHelp(publicMode: boolean): ViewHelp {
   const about: HelpSection[] = [
     {
       title: 'What this view shows',
       paragraphs: [
-        'Consensus is a single representative scoreline for every fixture, derived from a Monte Carlo batch of simulated seasons.',
+        'A pick is the single scoreline the app commits to for a fixture, derived from a Monte Carlo batch of simulated seasons.',
       ],
     },
     {
-      title: 'Consensus scorelines',
-      paragraphs: [CONSENSUS_MODE_HINT],
+      title: 'Picked scorelines',
+      paragraphs: [PICK_STRATEGY_HINT],
     },
     {
       title: 'Table zones',
@@ -54,7 +54,7 @@ function consensusHelp(publicMode: boolean): ViewHelp {
   }
 
   return {
-    title: APP_VIEW_LABELS.consensus,
+    title: APP_VIEW_LABELS.picks,
     about,
     howTo: howToBullets.length
       ? [{ title: 'Controls and interactions', bullets: howToBullets }]
@@ -92,8 +92,8 @@ function projectionsHelp(publicMode: boolean): ViewHelp {
         ],
       },
       {
-        title: 'Consensus scorelines',
-        paragraphs: [CONSENSUS_MODE_HINT],
+        title: 'Picked scorelines',
+        paragraphs: [PICK_STRATEGY_HINT],
       },
     ],
     howTo: howToBullets.length
@@ -115,7 +115,7 @@ function resultsHelp(): ViewHelp {
       {
         title: 'How results affect other views',
         paragraphs: [
-          'Recorded results lock the matching fixtures in Monte Carlo runs, so the projections and the consensus season stay anchored to what has actually happened.',
+          'Recorded results lock the matching fixtures in Monte Carlo runs, so the projections and the picks season stay anchored to what has actually happened.',
         ],
       },
     ],
@@ -125,8 +125,8 @@ function resultsHelp(): ViewHelp {
 
 export function getViewHelp(view: AppView, publicMode: boolean): ViewHelp {
   switch (view) {
-    case 'consensus':
-      return consensusHelp(publicMode);
+    case 'picks':
+      return picksHelp(publicMode);
     case 'projections':
       return projectionsHelp(publicMode);
     case 'results':

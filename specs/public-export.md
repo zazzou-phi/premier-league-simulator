@@ -16,7 +16,7 @@ A fixture is revealed when `hasKickedOff(fixture, now)` is true: compare fixture
 2. Blank all other predicted scores (`scheduled`, null goals)
 3. **Recompute standings** from remaining played matches only
 
-This prevents the published table from leaking future consensus scorelines. Recorded actuals are always included.
+This prevents the published table from leaking future picked scorelines. Recorded actuals are always included.
 
 Projections (season-long position probabilities) are exported as-is; they are not per-fixture futures.
 
@@ -30,7 +30,7 @@ grade a projection — `getAccuracyHistory` returns an empty series there.
 |------|---------|
 | `meta.json` | `exportedAt`, `revealPolicy: "kickoff"`, active `predictionId` / `predictionName`, `asOfMatchday`, `runs` |
 | `bootstrap.json` | `teams`, `fixtures`, `actualResults`, `eloHistory` |
-| `league-state.json` | Redacted consensus `SeasonState`, or `null` if no prediction |
+| `league-state.json` | Redacted picked `SeasonState`, or `null` if no prediction |
 | `projections.json` | `{ runs, teams }` or `null` |
 
 The actuals-only table is deliberately not exported: the web client derives it from

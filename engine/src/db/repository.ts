@@ -1,15 +1,16 @@
 import type Database from 'better-sqlite3';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { gradePrediction, type AccuracyReport } from '../engine/accuracy.js';
+import { calibratedPicksFor } from '../engine/calibratedPicks.js';
 import {
-  chooseConsensus,
-  DEFAULT_CONSENSUS_MODE,
-  DEFAULT_PREDICTOR_POINTS,
-  parseConsensusMode,
-  type ConsensusMode,
-  type PredictorPoints,
+  choosePick,
+  DEFAULT_PICK_STRATEGY,
+  DEFAULT_SCORING_RULES,
+  parsePickStrategy,
+  type PickStrategy,
+  type ScoringRules,
   type ScorelineCount,
-} from '../engine/consensus.js';
+} from '../engine/pickStrategy.js';
 import { DEFAULT_UPSET_VARIANCE } from '../engine/matchSimulator.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../engine/seasonElo.js';
 import { findNextMatchday } from '../engine/schedule.js';
@@ -33,10 +34,10 @@ export interface Prediction {
   id: number;
   name: string;
   runs: number;
-  consensusMode: ConsensusMode;
+  pickStrategy: PickStrategy;
   upsetVariance: number;
   seasonEloDeltaWeight: number;
-  /** Predictor-game payoff this batch's `expectedPoints` consensus optimises against. */
+  /** Predictor-game payoff the `maxPoints` strategy optimises against on this batch. */
   exactScorePoints: number;
   correctResultPoints: number;
   elapsedMs: number;
@@ -51,7 +52,7 @@ export interface PredictionAccuracy extends AccuracyReport {
   predictionId: number;
   name: string;
   runs: number;
-  consensusMode: ConsensusMode;
+  pickStrategy: PickStrategy;
   asOfMatchday: number | null;
   createdAt: string;
 }
@@ -115,7 +116,7 @@ function mapFixture(row: typeof schema.fixtures.$inferSelect): Fixture {
   };
 }
 
-function predictorPointsOf(prediction: Prediction): PredictorPoints {
+function scoringRulesOf(prediction: Prediction): ScoringRules {
   return {
     exactScore: prediction.exactScorePoints,
     correctResult: prediction.correctResultPoints,
@@ -127,7 +128,7 @@ function mapPrediction(row: typeof schema.predictions.$inferSelect): Prediction 
     id: row.id,
     name: row.name,
     runs: row.runs,
-    consensusMode: parseConsensusMode(row.consensusMode),
+    pickStrategy: parsePickStrategy(row.pickStrategy),
     upsetVariance: row.upsetVariance,
     seasonEloDeltaWeight: row.seasonEloDeltaWeight,
     exactScorePoints: row.exactScorePoints,
@@ -245,8 +246,8 @@ export class Repository {
       return {
         upsetVariance: DEFAULT_UPSET_VARIANCE,
         seasonEloDeltaWeight: DEFAULT_SEASON_ELO_DELTA_WEIGHT,
-        exactScorePoints: DEFAULT_PREDICTOR_POINTS.exactScore,
-        correctResultPoints: DEFAULT_PREDICTOR_POINTS.correctResult,
+        exactScorePoints: DEFAULT_SCORING_RULES.exactScore,
+        correctResultPoints: DEFAULT_SCORING_RULES.correctResult,
       };
     }
     return {
@@ -523,7 +524,7 @@ export class Repository {
     id: number,
     patch: {
       name?: string;
-      consensusMode?: ConsensusMode;
+      pickStrategy?: PickStrategy;
       exactScorePoints?: number;
       correctResultPoints?: number;
     },
@@ -531,7 +532,7 @@ export class Repository {
     this.getPrediction(id);
     const set: Record<string, unknown> = { updatedAt: nowIso() };
     if (patch.name !== undefined) set.name = patch.name;
-    if (patch.consensusMode !== undefined) set.consensusMode = patch.consensusMode;
+    if (patch.pickStrategy !== undefined) set.pickStrategy = patch.pickStrategy;
     if (patch.exactScorePoints !== undefined) set.exactScorePoints = patch.exactScorePoints;
     if (patch.correctResultPoints !== undefined) {
       set.correctResultPoints = patch.correctResultPoints;
@@ -573,7 +574,7 @@ export class Repository {
         .values({
           name,
           runs: result.runs,
-          consensusMode: DEFAULT_CONSENSUS_MODE,
+          pickStrategy: DEFAULT_PICK_STRATEGY,
           upsetVariance: settings.upsetVariance,
           seasonEloDeltaWeight: settings.seasonEloDeltaWeight,
           exactScorePoints: settings.exactScorePoints,
@@ -871,8 +872,13 @@ export class Repository {
     const actuals = this.getActualResultsByMatch();
     const distributions = this.getPredictionDistributions(predictionId);
     const sample =
-      prediction.consensusMode === 'sample' ? this.getActiveSampleResults(predictionId) : null;
-    const points = predictorPointsOf(prediction);
+      prediction.pickStrategy === 'random' ? this.getActiveSampleResults(predictionId) : null;
+    // Season-wide, so it is solved once for the whole fixture list rather than per fixture.
+    const calibrated =
+      prediction.pickStrategy === 'calibrated'
+        ? calibratedPicksFor(fixtures, distributions)
+        : null;
+    const rules = scoringRulesOf(prediction);
 
     const matches: ResolvedMatch[] = fixtures.map((fixture) => {
       const teamHome = teamsById.get(fixture.teamHomeId)!;
@@ -890,15 +896,16 @@ export class Repository {
       }
 
       const distribution = distributions.get(fixture.matchNumber);
-      const consensus = distribution
-        ? chooseConsensus({
-            mode: prediction.consensusMode,
+      const pick = distribution
+        ? choosePick({
+            strategy: prediction.pickStrategy,
             outcomeCounts: distribution.outcomes,
             scorelines: distribution.scorelines,
             homeElo: teamHome.elo,
             awayElo: teamAway.elo,
             savedSample: sample?.get(fixture.matchNumber) ?? null,
-            points,
+            calibratedPick: calibrated?.get(fixture.matchNumber) ?? null,
+            rules,
           })
         : null;
 
@@ -907,9 +914,9 @@ export class Repository {
         teamHome,
         teamAway,
         result: {
-          goalsHome: consensus?.goalsHome ?? null,
-          goalsAway: consensus?.goalsAway ?? null,
-          status: consensus ? 'played' : 'scheduled',
+          goalsHome: pick?.goalsHome ?? null,
+          goalsAway: pick?.goalsAway ?? null,
+          status: pick ? 'played' : 'scheduled',
         },
         locked: false,
       };
@@ -926,17 +933,17 @@ export class Repository {
     const prediction = this.getPrediction(predictionId);
     const report = gradePrediction(
       {
-        consensusMode: prediction.consensusMode,
+        pickStrategy: prediction.pickStrategy,
         fixtures: this.getFixtures(),
         teamsById: this.getTeamsById(),
         distributions: this.getPredictionDistributions(predictionId),
         actuals: this.getActualResultsByMatch(),
         lockedAtRunTime: this.getPredictionLockedMatches(predictionId),
         activeSample:
-          prediction.consensusMode === 'sample'
+          prediction.pickStrategy === 'random'
             ? this.getActiveSampleResults(predictionId)
             : null,
-        points: predictorPointsOf(prediction),
+        rules: scoringRulesOf(prediction),
       },
       prediction.runs,
     );
@@ -945,7 +952,7 @@ export class Repository {
       predictionId: prediction.id,
       name: prediction.name,
       runs: prediction.runs,
-      consensusMode: prediction.consensusMode,
+      pickStrategy: prediction.pickStrategy,
       asOfMatchday: prediction.asOfMatchday,
       createdAt: prediction.createdAt,
       ...report,

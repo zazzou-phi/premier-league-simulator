@@ -1,4 +1,4 @@
-import type { ConsensusMode } from '@shared/engine/consensus.js';
+import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { MatchDistribution } from '@shared/simulation/monteCarlo.js';
 import type { ActualMatchResult, Fixture, SeasonState, Team } from '@shared/engine/types.js';
 import type { AccuracyHistoryPoint, TeamEloSnapshot } from '../types.js';
@@ -17,7 +17,7 @@ import type {
 } from '../types.js';
 
 /** Either side of the predictor payoff may be sent alone; the other keeps its stored value. */
-export interface PredictorPointsPatch {
+export interface ScoringRulesPatch {
   exactScore?: number;
   correctResult?: number;
 }
@@ -45,8 +45,8 @@ export interface LeagueApi {
 
   listPredictions(page?: number, pageSize?: number): Promise<PredictionListPage>;
   renamePrediction(id: number, name: string): Promise<Prediction>;
-  setPredictionConsensusMode(id: number, consensusMode: ConsensusMode): Promise<Prediction>;
-  setPredictionPredictorPoints(id: number, points: PredictorPointsPatch): Promise<Prediction>;
+  setPredictionPickStrategy(id: number, pickStrategy: PickStrategy): Promise<Prediction>;
+  setPredictionScoringRules(id: number, points: ScoringRulesPatch): Promise<Prediction>;
   deletePrediction(id: number): Promise<void>;
   getPredictionState(id: number): Promise<SeasonState>;
   getPredictionProjections(id: number): Promise<ProjectionsResponse>;
@@ -191,13 +191,13 @@ const privateApi: LeagueApi = {
       body: JSON.stringify({ name }),
     }),
 
-  setPredictionConsensusMode: (id, consensusMode) =>
+  setPredictionPickStrategy: (id, pickStrategy) =>
     request<Prediction>(`/api/v1/predictions/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ consensusMode }),
+      body: JSON.stringify({ pickStrategy }),
     }),
 
-  setPredictionPredictorPoints: (id, points) =>
+  setPredictionScoringRules: (id, points) =>
     request<Prediction>(`/api/v1/predictions/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(points),
@@ -252,8 +252,8 @@ const publicApi: LeagueApi = {
 
   listPredictions: async () => ({ items: [], total: 0 }),
   renamePrediction: async () => unavailable(),
-  setPredictionConsensusMode: async () => unavailable(),
-  setPredictionPredictorPoints: async () => unavailable(),
+  setPredictionPickStrategy: async () => unavailable(),
+  setPredictionScoringRules: async () => unavailable(),
   deletePrediction: async () => unavailable(),
   getPredictionState: async () => staticApi.getSeasonState(),
   getPredictionProjections: async () => staticApi.getProjections(),

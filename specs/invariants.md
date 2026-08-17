@@ -11,14 +11,14 @@ Rules that must hold across features. Violating these breaks domain correctness 
 ## Monte Carlo persistence
 
 4. Aggregate runs in memory. **Never** persist per-run fixture tables.
-5. A saved prediction stores outcome/scoreline distributions, finishing histograms, team stat sums, and a small season reservoir (~50) for `sample` consensus.
+5. A saved prediction stores outcome/scoreline distributions, finishing histograms, team stat sums, and a small season reservoir (~50) for the `random` strategy.
 
 ## Actual results
 
 6. Locked results are authoritative: simulations must not overwrite them.
 7. Every Monte Carlo run replays locked scores verbatim.
 8. Recording an actual result updates all stored simulation match rows for that fixture so the app stays consistent with reality.
-9. Consensus / prediction state always overlays actuals on top of chosen scorelines.
+9. Picked / prediction state always overlays actuals on top of chosen scorelines.
 
 ## Standings
 

@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
-  parseConsensusMode,
-  PREDICTOR_POINTS_MAX,
-  type PredictorPoints,
-} from '../engine/consensus.js';
+  parsePickStrategy,
+  SCORING_POINTS_MAX,
+  type ScoringRules,
+} from '../engine/pickStrategy.js';
 import { getDefaultFixturesCsvPath, loadFixtures } from '../data/fixturesCsv.js';
 import { SEASON_ELO_DELTA_WEIGHT_MAX } from '../engine/seasonElo.js';
 import { MONTE_CARLO_MAX_RUNS, runMonteCarlo } from '../simulation/monteCarlo.js';
@@ -26,7 +26,7 @@ function numberInRange(value: unknown, label: string, min: number, max: number):
   return parsed;
 }
 
-interface PredictorPointsBody {
+interface ScoringRulesBody {
   exactScore?: number;
   correctResult?: number;
 }
@@ -34,24 +34,24 @@ interface PredictorPointsBody {
 /**
  * Validate a predictor payoff, taking either side from `current` when the body omits it.
  *
- * An exact score paying less than a bare correct result inverts `expectedPoints` consensus — it
+ * An exact score paying less than a bare correct result inverts the `maxPoints` strategy — it
  * would start preferring an outcome's *least* likely scoreline — so reject rather than clamp.
  */
-function validatePredictorPoints(
-  body: PredictorPointsBody,
-  current: PredictorPoints,
-): PredictorPoints {
+function validateScoringRules(
+  body: ScoringRulesBody,
+  current: ScoringRules,
+): ScoringRules {
   const exactScore = numberInRange(
     body.exactScore ?? current.exactScore,
     'exactScore',
     0,
-    PREDICTOR_POINTS_MAX,
+    SCORING_POINTS_MAX,
   );
   const correctResult = numberInRange(
     body.correctResult ?? current.correctResult,
     'correctResult',
     0,
-    PREDICTOR_POINTS_MAX,
+    SCORING_POINTS_MAX,
   );
   if (exactScore < correctResult) {
     throw new ApiError('exactScore must be at least correctResult', 400);
@@ -117,7 +117,7 @@ export function createApiApp(repo: Repository): Hono {
     });
   });
 
-  app.get('/api/v1/settings/predictor-points', (c) => {
+  app.get('/api/v1/settings/scoring-rules', (c) => {
     const settings = repo.getSettings();
     return c.json({
       exactScore: settings.exactScorePoints,
@@ -125,10 +125,10 @@ export function createApiApp(repo: Repository): Hono {
     });
   });
 
-  app.put('/api/v1/settings/predictor-points', async (c) => {
-    const body = await c.req.json<PredictorPointsBody>();
+  app.put('/api/v1/settings/scoring-rules', async (c) => {
+    const body = await c.req.json<ScoringRulesBody>();
     const current = repo.getSettings();
-    const points = validatePredictorPoints(body, {
+    const points = validateScoringRules(body, {
       exactScore: current.exactScorePoints,
       correctResult: current.correctResultPoints,
     });
@@ -325,15 +325,15 @@ export function createApiApp(repo: Repository): Hono {
   app.patch('/api/v1/predictions/:id', async (c) => {
     const id = intParam(c.req.param('id'), 'id');
     const body = await c.req.json<
-      { name?: string; consensusMode?: string } & PredictorPointsBody
+      { name?: string; pickStrategy?: string } & ScoringRulesBody
     >();
 
-    // The payoff is snapshotted per batch, but consensus mode is re-selectable after the fact,
+    // The payoff is snapshotted per batch, but pick strategy is re-selectable after the fact,
     // so its parameter has to be too — otherwise retuning would mean re-running the batch.
     const retunes = body.exactScore !== undefined || body.correctResult !== undefined;
     const current = repo.getPrediction(id);
     const points = retunes
-      ? validatePredictorPoints(body, {
+      ? validateScoringRules(body, {
           exactScore: current.exactScorePoints,
           correctResult: current.correctResultPoints,
         })
@@ -342,7 +342,7 @@ export function createApiApp(repo: Repository): Hono {
     return c.json(
       repo.updatePrediction(id, {
         ...(body.name?.trim() ? { name: body.name.trim() } : {}),
-        ...(body.consensusMode ? { consensusMode: parseConsensusMode(body.consensusMode) } : {}),
+        ...(body.pickStrategy ? { pickStrategy: parsePickStrategy(body.pickStrategy) } : {}),
         ...(points
           ? { exactScorePoints: points.exactScore, correctResultPoints: points.correctResult }
           : {}),

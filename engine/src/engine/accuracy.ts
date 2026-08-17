@@ -1,11 +1,12 @@
+import { calibratedPicksFor } from './calibratedPicks.js';
 import {
-  chooseConsensus,
+  choosePick,
   outcomeFromScoreline,
-  type ConsensusMode,
+  type PickStrategy,
   type MatchOutcome,
-  type PredictorPoints,
+  type ScoringRules,
   type ScorelineCount,
-} from './consensus.js';
+} from './pickStrategy.js';
 import type { Fixture, Team } from './types.js';
 
 /**
@@ -38,7 +39,7 @@ export interface MatchAccuracy {
   probabilities: OutcomeProbabilities;
   actual: { goalsHome: number; goalsAway: number };
   actualOutcome: MatchOutcome;
-  /** Outcome the consensus scoreline implied — what the app displayed. */
+  /** Outcome the picked scoreline implied — what the app displayed. */
   predictedOutcome: MatchOutcome | null;
   predictedScoreline: { goalsHome: number; goalsAway: number } | null;
   outcomeHit: boolean;
@@ -86,7 +87,7 @@ export interface AccuracyReport {
 }
 
 export interface GradeablePrediction {
-  consensusMode: ConsensusMode;
+  pickStrategy: PickStrategy;
   fixtures: Fixture[];
   teamsById: Map<number, Team>;
   distributions: Map<
@@ -95,10 +96,10 @@ export interface GradeablePrediction {
   >;
   actuals: Map<number, { goalsHome: number; goalsAway: number }>;
   lockedAtRunTime: Set<number>;
-  /** Result for each fixture from the active sampled season; used by 'sample' consensus. */
+  /** Result for each fixture from the active sampled season; used by the `random` strategy. */
   activeSample?: Map<number, { goalsHome: number; goalsAway: number }> | null;
-  /** Predictor-game payoff; used by 'expectedPoints' consensus. */
-  points?: PredictorPoints;
+  /** Predictor-game payoff; used by the `maxPoints` strategy. */
+  rules?: ScoringRules;
 }
 
 export function outcomeOf(goalsHome: number, goalsAway: number): MatchOutcome {
@@ -207,6 +208,14 @@ export function gradePrediction(input: GradeablePrediction, runs: number): Accur
   let skippedLocked = 0;
   let pending = 0;
 
+  // Solved over the whole fixture list, including the locked ones. Their distributions are
+  // degenerate, so they pin themselves and contribute their known result to the targets — which
+  // is what keeps a batch's picks stable as results land.
+  const calibrated =
+    input.pickStrategy === 'calibrated'
+      ? calibratedPicksFor(input.fixtures, input.distributions)
+      : null;
+
   for (const fixture of input.fixtures) {
     if (input.lockedAtRunTime.has(fixture.matchNumber)) {
       skippedLocked += 1;
@@ -229,14 +238,15 @@ export function gradePrediction(input: GradeablePrediction, runs: number): Accur
     const probabilities = toProbabilities(distribution.outcomes);
     const actualOutcome = outcomeOf(actual.goalsHome, actual.goalsAway);
 
-    const predictedScoreline = chooseConsensus({
-      mode: input.consensusMode,
+    const predictedScoreline = choosePick({
+      strategy: input.pickStrategy,
       outcomeCounts: distribution.outcomes,
       scorelines: distribution.scorelines,
       homeElo: teamHome.elo,
       awayElo: teamAway.elo,
       savedSample: input.activeSample?.get(fixture.matchNumber) ?? null,
-      points: input.points,
+      calibratedPick: calibrated?.get(fixture.matchNumber) ?? null,
+      rules: input.rules,
     });
 
     const scorelineHits = distribution.scorelines.find(

@@ -16,7 +16,7 @@ function predictedSide(goals: number | null, played: boolean): string {
 
 /**
  * Scores are read-only everywhere: recorded results come from the fixturedownload sync, and a
- * consensus scoreline is derived from a batch. The only action a score carries is opening its
+ * picked scoreline is derived from a batch. The only action a score carries is opening its
  * outcome distribution, and only where a projection is loaded.
  */
 export function ScoreDisplay({

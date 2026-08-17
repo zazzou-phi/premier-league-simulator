@@ -33,7 +33,7 @@ export function Header({
 }: Props) {
   const narrow = useMediaQuery(MOBILE_QUERY);
   const { preference, setPreference } = useTheme();
-  const isProjectionFamily = appView === 'consensus' || appView === 'projections';
+  const isProjectionFamily = appView === 'picks' || appView === 'projections';
   const isResultsView = appView === 'results';
 
   // Which round the season is actually on — the anchor for a week-by-week workflow.
@@ -69,7 +69,7 @@ export function Header({
   const projectionsUnavailable = publicMode
     ? 'Projections are fixed in the published snapshot'
     : isResultsView
-      ? 'Switch to Consensus or Projections to manage batches'
+      ? 'Switch to Picks or Projections to manage batches'
       : null;
 
   const optionsMenu = (

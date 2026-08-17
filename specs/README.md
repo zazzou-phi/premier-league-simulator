@@ -7,7 +7,7 @@ Engineering specifications for the Premier League season simulator. These descri
 | [overview.md](overview.md) | Purpose, packages, modes, ports, lifecycle |
 | [domain.md](domain.md) | Season shape, types, standings, zones, actual results |
 | [match-model.md](match-model.md) | Poisson lambdas, upset variance, in-season Elo |
-| [monte-carlo.md](monte-carlo.md) | Aggregation, reservoir, consensus modes, projections |
+| [monte-carlo.md](monte-carlo.md) | Aggregation, reservoir, pick strategies, projections |
 | [persistence.md](persistence.md) | CSV schemas, SQLite tables, seed, sync |
 | [api.md](api.md) | Hono REST surface |
 | [web.md](web.md) | React UI views and private vs public behaviour |

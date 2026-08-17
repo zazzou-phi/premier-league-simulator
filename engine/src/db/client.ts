@@ -3,7 +3,11 @@ import { dirname, join } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { getProjectDataDir } from '../data/teamsCsv.js';
-import { DEFAULT_CONSENSUS_MODE } from '../engine/consensus.js';
+import {
+  DEFAULT_PICK_STRATEGY,
+  PICK_STRATEGIES,
+  type PickStrategy,
+} from '../engine/pickStrategy.js';
 import * as schema from './schema.js';
 
 export type Db = BetterSQLite3Database<typeof schema>;
@@ -80,7 +84,7 @@ export function initSchema(sqlite: Database.Database): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       runs INTEGER NOT NULL,
-      consensus_mode TEXT NOT NULL DEFAULT 'outcome',
+      pick_strategy TEXT NOT NULL DEFAULT 'calibrated',
       upset_variance REAL NOT NULL,
       season_elo_delta_weight REAL NOT NULL,
       exact_score_points REAL NOT NULL DEFAULT 3,
@@ -151,16 +155,16 @@ export function initSchema(sqlite: Database.Database): void {
   `);
 
   migrateDropTeamRatingColumns(sqlite);
-  migrateConsensusModes(sqlite);
+  migratePickStrategies(sqlite);
   migratePredictionProvenance(sqlite);
-  migratePredictorPoints(sqlite);
+  migrateScoringRules(sqlite);
 }
 
 /**
- * Add the predictor-game payoff columns to tables created before `expectedPoints` consensus.
+ * Add the predictor-game payoff columns to tables created before the `maxPoints` strategy.
  * Existing rows take the defaults, which is right: they predate the mode and never used it.
  */
-function migratePredictorPoints(sqlite: Database.Database): void {
+function migrateScoringRules(sqlite: Database.Database): void {
   for (const table of ['app_settings', 'predictions']) {
     const columns = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
     const names = new Set(columns.map((column) => column.name));
@@ -198,33 +202,64 @@ function migrateDropTeamRatingColumns(sqlite: Database.Database): void {
 }
 
 /**
- * Schema revisions applied by `migrateConsensusModes`, tracked in `PRAGMA user_version`.
+ * Schema revisions applied by `migratePickStrategies`, tracked in `PRAGMA user_version`.
  * Bump when adding a step below; existing databases run only the steps they have not seen.
  */
-const CONSENSUS_MODE_SCHEMA_VERSION = 1;
+const PICK_STRATEGY_SCHEMA_VERSION = 2;
+
+/** Pre-rename strategy names, in the order the value migration maps them. */
+const RENAMED_STRATEGIES: Array<[legacy: string, current: PickStrategy]> = [
+  ['scoreline', 'likeliestScore'],
+  ['outcome', 'likeliestResult'],
+  ['expectedPoints', 'maxPoints'],
+  ['sample', 'random'],
+];
+
+/** `consensus_mode` became `pick_strategy` when the modes were renamed. */
+function renameConsensusModeColumn(sqlite: Database.Database): void {
+  const columns = sqlite.prepare(`PRAGMA table_info(predictions)`).all() as Array<{ name: string }>;
+  const names = new Set(columns.map((column) => column.name));
+  if (names.has('consensus_mode') && !names.has('pick_strategy')) {
+    sqlite.exec(`ALTER TABLE predictions RENAME COLUMN consensus_mode TO pick_strategy`);
+  }
+}
 
 /**
- * Remap removed floor/rounded consensus modes onto the current default, and — once per database —
- * move `scoreline` batches onto it too.
+ * Bring stored strategy names up to date: rename the column, map the old mode names onto the
+ * current ones, and drop anything unrecognised onto the default.
  *
- * The scoreline backfill is version-guarded rather than unconditional: `scoreline` is still a
- * mode a user can deliberately choose, so re-running the update on every open would silently
- * revert that choice on the next restart.
+ * The name mapping runs unconditionally rather than under the version guard. It is a pure
+ * translation — the legacy names are no longer valid values, so re-running it is a no-op — and
+ * that keeps it correct for a database written by an older build after this one has already
+ * stamped its version.
  */
-function migrateConsensusModes(sqlite: Database.Database): void {
-  sqlite
-    .prepare(`UPDATE predictions SET consensus_mode = ? WHERE consensus_mode IN ('floor', 'rounded')`)
-    .run(DEFAULT_CONSENSUS_MODE);
+function migratePickStrategies(sqlite: Database.Database): void {
+  renameConsensusModeColumn(sqlite);
 
   const version = sqlite.pragma('user_version', { simple: true }) as number;
-  if (version >= CONSENSUS_MODE_SCHEMA_VERSION) return;
 
   // Pre-redesign batches defaulted to `scoreline`, which collapses most fixtures to 1–1 and
-  // produces a table full of draws. Move them onto the mode the app now defaults to.
+  // produces a table full of draws. Move them onto the mode the app then defaulted to. Guarded
+  // rather than unconditional: past this point `scoreline` is a deliberate user choice, and
+  // re-running would silently revert it on the next restart.
+  if (version < 1) {
+    sqlite
+      .prepare(`UPDATE predictions SET pick_strategy = 'outcome' WHERE pick_strategy = 'scoreline'`)
+      .run();
+  }
+
+  const rename = sqlite.prepare(`UPDATE predictions SET pick_strategy = ? WHERE pick_strategy = ?`);
+  for (const [legacy, current] of RENAMED_STRATEGIES) rename.run(current, legacy);
+
+  // Catch-all for strategies that have been removed outright, such as the old floor/rounded pair.
+  const placeholders = PICK_STRATEGIES.map(() => '?').join(', ');
   sqlite
-    .prepare(`UPDATE predictions SET consensus_mode = ? WHERE consensus_mode = 'scoreline'`)
-    .run(DEFAULT_CONSENSUS_MODE);
-  sqlite.pragma(`user_version = ${CONSENSUS_MODE_SCHEMA_VERSION}`);
+    .prepare(`UPDATE predictions SET pick_strategy = ? WHERE pick_strategy NOT IN (${placeholders})`)
+    .run(DEFAULT_PICK_STRATEGY, ...PICK_STRATEGIES);
+
+  if (version < PICK_STRATEGY_SCHEMA_VERSION) {
+    sqlite.pragma(`user_version = ${PICK_STRATEGY_SCHEMA_VERSION}`);
+  }
 }
 
 export function openDatabase(dbPath = getDefaultDbPath()): {
