@@ -20,7 +20,11 @@ export interface SeasonMatchResult {
   teamAwayId: number;
   goalsHome: number;
   goalsAway: number;
-  /** True when this came from a recorded real-world result rather than the model. */
+  /**
+   * True when this came from a recorded real-world result rather than the model. Always false
+   * for anything {@link simulateSeason} produces — locked fixtures are not simulated at all.
+   * `runMonteCarlo` re-attaches them, carrying this flag, once per batch.
+   */
   locked: boolean;
 }
 
@@ -31,8 +35,6 @@ export interface SeasonSimulationOptions {
   eloK?: number;
   eloDeltaWeight?: number;
   rng?: RandomSource;
-  /** Real results keyed by match number; these are replayed instead of simulated. */
-  lockedResults?: Map<number, { goalsHome: number; goalsAway: number }>;
 }
 
 export interface SeasonSimulationResult {
@@ -40,31 +42,24 @@ export interface SeasonSimulationResult {
   eloDeltas: Map<number, number>;
 }
 
-interface MatchdayGroup {
-  matchday: number;
-  fixtures: Fixture[];
-}
-
-function groupByMatchday(fixtures: Fixture[]): MatchdayGroup[] {
-  const byMatchday = new Map<number, Fixture[]>();
-  for (const fixture of fixtures) {
-    const list = byMatchday.get(fixture.matchday);
-    if (list) list.push(fixture);
-    else byMatchday.set(fixture.matchday, [fixture]);
-  }
-  return [...byMatchday.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([matchday, list]) => ({
-      matchday,
-      fixtures: list.sort((a, b) => a.matchNumber - b.matchNumber),
-    }));
+/**
+ * Fixtures in the order they are played. Hoisted out of the Monte Carlo hot loop — the order
+ * is a property of the fixture list, not of a run, so it is computed once per batch.
+ */
+export function orderFixtures(fixtures: Fixture[]): Fixture[] {
+  return [...fixtures].sort(
+    (a, b) => a.matchday - b.matchday || a.matchNumber - b.matchNumber,
+  );
 }
 
 /**
- * Play a full season fixture by fixture.
+ * Play a season fixture by fixture, in the order given.
  *
- * Form is refreshed once per matchday rather than after every match: fixtures inside a
- * matchday are concurrent in reality, and it keeps the Monte Carlo hot loop cheap.
+ * Every fixture handed to this function is simulated — locked ones are filtered out by the
+ * caller and never reach it, which is what confines Elo drift to simulated results.
+ *
+ * Form updates after every match, so a club's later fixtures in a matchday already see its
+ * earlier one. Callers should pass fixtures through {@link orderFixtures} first.
  */
 export function simulateSeason(
   teams: Team[],
@@ -77,60 +72,47 @@ export function simulateSeason(
   const eloK = options.eloK ?? DEFAULT_SEASON_ELO_K;
   const eloDeltaWeight = options.eloDeltaWeight ?? DEFAULT_SEASON_ELO_DELTA_WEIGHT;
   const rng = options.rng ?? defaultRandomSource;
-  const lockedResults = options.lockedResults;
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const eloDeltas = new Map<number, number>();
   const matches: SeasonMatchResult[] = [];
 
-  for (const { fixtures: matchdayFixtures } of groupByMatchday(fixtures)) {
-    for (const fixture of matchdayFixtures) {
-      const home = teamsById.get(fixture.teamHomeId);
-      const away = teamsById.get(fixture.teamAwayId);
-      if (!home || !away) continue;
+  for (const fixture of fixtures) {
+    const home = teamsById.get(fixture.teamHomeId);
+    const away = teamsById.get(fixture.teamAwayId);
+    if (!home || !away) continue;
 
-      const locked = lockedResults?.get(fixture.matchNumber);
-      let goalsHome: number;
-      let goalsAway: number;
+    const outcome = simulateMatchOutcome(
+      {
+        ...home,
+        elo: effectiveElo(home.elo, eloDeltas.get(home.id) ?? 0, eloDeltaWeight),
+      },
+      {
+        ...away,
+        elo: effectiveElo(away.elo, eloDeltas.get(away.id) ?? 0, eloDeltaWeight),
+      },
+      { baselineHome, baselineAway, upsetVariance, rng },
+    );
+    const { goalsHome, goalsAway } = outcome;
 
-      if (locked) {
-        goalsHome = locked.goalsHome;
-        goalsAway = locked.goalsAway;
-      } else {
-        const outcome = simulateMatchOutcome(
-          {
-            ...home,
-            elo: effectiveElo(home.elo, eloDeltas.get(home.id) ?? 0, eloDeltaWeight),
-          },
-          {
-            ...away,
-            elo: effectiveElo(away.elo, eloDeltas.get(away.id) ?? 0, eloDeltaWeight),
-          },
-          { baselineHome, baselineAway, upsetVariance, rng },
-        );
-        goalsHome = outcome.goalsHome;
-        goalsAway = outcome.goalsAway;
-      }
+    matches.push({
+      matchNumber: fixture.matchNumber,
+      teamHomeId: home.id,
+      teamAwayId: away.id,
+      goalsHome,
+      goalsAway,
+      locked: false,
+    });
 
-      matches.push({
-        matchNumber: fixture.matchNumber,
-        teamHomeId: home.id,
-        teamAwayId: away.id,
-        goalsHome,
-        goalsAway,
-        locked: locked != null,
-      });
-
-      const [homeDelta, awayDelta] = matchEloDelta(
-        home.elo + (eloDeltas.get(home.id) ?? 0),
-        away.elo + (eloDeltas.get(away.id) ?? 0),
-        goalsHome,
-        goalsAway,
-        eloK,
-      );
-      eloDeltas.set(home.id, (eloDeltas.get(home.id) ?? 0) + homeDelta);
-      eloDeltas.set(away.id, (eloDeltas.get(away.id) ?? 0) + awayDelta);
-    }
+    const [homeDelta, awayDelta] = matchEloDelta(
+      home.elo + (eloDeltas.get(home.id) ?? 0),
+      away.elo + (eloDeltas.get(away.id) ?? 0),
+      goalsHome,
+      goalsAway,
+      eloK,
+    );
+    eloDeltas.set(home.id, (eloDeltas.get(home.id) ?? 0) + homeDelta);
+    eloDeltas.set(away.id, (eloDeltas.get(away.id) ?? 0) + awayDelta);
   }
 
   return { matches, eloDeltas };

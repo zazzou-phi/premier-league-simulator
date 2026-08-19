@@ -1,6 +1,11 @@
-import { computeLeagueStandings, type PlayedMatch } from '../engine/standings.js';
+import {
+  accumulateTotals,
+  computeLeagueStandings,
+  type PlayedMatch,
+} from '../engine/standings.js';
 import type { Fixture, Team } from '../engine/types.js';
 import {
+  orderFixtures,
   simulateSeason,
   type SeasonMatchResult,
   type SeasonSimulationOptions,
@@ -60,6 +65,11 @@ export interface MonteCarloResult {
 export interface MonteCarloOptions extends SeasonSimulationOptions {
   runs: number;
   reservoirSize?: number;
+  /**
+   * Real results keyed by match number. These fixtures are not simulated at all — they are
+   * banked into every run's starting table and re-attached to the output afterwards.
+   */
+  lockedResults?: Map<number, { goalsHome: number; goalsAway: number }>;
   onProgress?: (completed: number, total: number) => void | Promise<void>;
 }
 
@@ -69,6 +79,15 @@ interface TeamAccumulator {
   goalsFor: number;
   goalsAgainst: number;
   positionSum: number;
+}
+
+function toPlayedMatch(match: SeasonMatchResult): PlayedMatch {
+  return {
+    homeTeamId: match.teamHomeId,
+    awayTeamId: match.teamAwayId,
+    goalsHome: match.goalsHome,
+    goalsAway: match.goalsAway,
+  };
 }
 
 function shouldReportProgress(completed: number, total: number): boolean {
@@ -83,6 +102,12 @@ function shouldReportProgress(completed: number, total: number): boolean {
  * Individual runs are deliberately not persisted; at 380 matches a run that would be
  * millions of rows for a large batch. A reservoir keeps a bounded, uniformly random
  * subset of whole seasons so the `random` strategy still replays a coherent season.
+ *
+ * Only the unplayed remainder is simulated. Locked fixtures are folded into a starting table
+ * once per batch and re-attached to the output afterwards, as degenerate distributions and as
+ * entries in each sampled season — so a batch still covers all 380 fixtures and everything
+ * downstream (the calibrated solve's targets, the per-fixture distribution modal, grading)
+ * sees exactly the shape it did when every run replayed them.
  */
 export async function runMonteCarlo(
   teams: Team[],
@@ -119,15 +144,29 @@ export async function runMonteCarlo(
   const reservoir: SampledSeason[] = [];
   const rng = options.rng;
 
-  for (let run = 0; run < runs; run++) {
-    const { matches } = simulateSeason(teams, fixtures, options);
+  // Split the fixture list once. Everything about the locked half is constant across runs.
+  const lockedResults = options.lockedResults ?? new Map();
+  const remainder = orderFixtures(fixtures.filter((f) => !lockedResults.has(f.matchNumber)));
+  const lockedMatches: SeasonMatchResult[] = fixtures.flatMap((fixture) => {
+    const locked = lockedResults.get(fixture.matchNumber);
+    if (!locked) return [];
+    return [
+      {
+        matchNumber: fixture.matchNumber,
+        teamHomeId: fixture.teamHomeId,
+        teamAwayId: fixture.teamAwayId,
+        goalsHome: locked.goalsHome,
+        goalsAway: locked.goalsAway,
+        locked: true,
+      },
+    ];
+  });
+  const lockedTotals = accumulateTotals(teams, lockedMatches.map(toPlayedMatch));
 
-    const played: PlayedMatch[] = matches.map((match) => ({
-      homeTeamId: match.teamHomeId,
-      awayTeamId: match.teamAwayId,
-      goalsHome: match.goalsHome,
-      goalsAway: match.goalsAway,
-    }));
+  for (let run = 0; run < runs; run++) {
+    const { matches } = simulateSeason(teams, remainder, options);
+
+    const played: PlayedMatch[] = matches.map(toPlayedMatch);
 
     for (const match of matches) {
       let outcomes = outcomesByMatch.get(match.matchNumber);
@@ -151,7 +190,7 @@ export async function runMonteCarlo(
       else scorelines.set(key, { goalsHome: match.goalsHome, goalsAway: match.goalsAway, n: 1 });
     }
 
-    for (const row of computeLeagueStandings(teams, played)) {
+    for (const row of computeLeagueStandings(teams, played, lockedTotals)) {
       const acc = accumulators.get(row.teamId);
       if (!acc) continue;
       acc.positionCounts[row.position - 1] = (acc.positionCounts[row.position - 1] ?? 0) + 1;
@@ -174,6 +213,36 @@ export async function runMonteCarlo(
     const completed = run + 1;
     if (options.onProgress && shouldReportProgress(completed, runs)) {
       await options.onProgress(completed, runs);
+    }
+  }
+
+  // Re-attach the locked fixtures the runs never touched, so the batch describes all 380.
+  // Their distributions are degenerate by construction — every run "agreed" on the real
+  // score — which is what makes them pin themselves in the calibrated solve and contribute
+  // their known result to its targets.
+  for (const match of lockedMatches) {
+    const outcome: MatchOutcomeCounts = { homeWin: 0, draw: 0, awayWin: 0, total: runs };
+    if (match.goalsHome > match.goalsAway) outcome.homeWin = runs;
+    else if (match.goalsHome < match.goalsAway) outcome.awayWin = runs;
+    else outcome.draw = runs;
+
+    outcomesByMatch.set(match.matchNumber, outcome);
+    scorelinesByMatch.set(
+      match.matchNumber,
+      new Map([
+        [
+          `${match.goalsHome}-${match.goalsAway}`,
+          { goalsHome: match.goalsHome, goalsAway: match.goalsAway, n: runs },
+        ],
+      ]),
+    );
+  }
+
+  if (lockedMatches.length > 0) {
+    for (const season of reservoir) {
+      season.matches = [...lockedMatches, ...season.matches].sort(
+        (a, b) => a.matchNumber - b.matchNumber,
+      );
     }
   }
 

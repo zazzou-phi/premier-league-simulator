@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accumulateTotals,
   computeFinalPositions,
   computeLeagueStandings,
   zoneForPosition,
@@ -117,6 +118,42 @@ describe('computeFinalPositions', () => {
     expect(positions.size).toBe(4);
     expect(positions.get(alpha.id)).toBe(1);
     expect(new Set(positions.values())).toEqual(new Set([1, 2, 3, 4]));
+  });
+});
+
+describe('seeded standings', () => {
+  const early: PlayedMatch[] = [
+    { homeTeamId: 1, awayTeamId: 2, goalsHome: 3, goalsAway: 0 },
+    { homeTeamId: 3, awayTeamId: 4, goalsHome: 1, goalsAway: 1 },
+  ];
+  const later: PlayedMatch[] = [
+    { homeTeamId: 2, awayTeamId: 3, goalsHome: 2, goalsAway: 1 },
+    { homeTeamId: 4, awayTeamId: 1, goalsHome: 0, goalsAway: 4 },
+  ];
+
+  it('reproduces the seed when no further matches are played', () => {
+    const base = accumulateTotals(teams, early);
+    expect(computeLeagueStandings(teams, [], base)).toEqual(computeLeagueStandings(teams, early));
+  });
+
+  it('equals computing the whole list at once', () => {
+    const base = accumulateTotals(teams, early);
+    expect(computeLeagueStandings(teams, later, base)).toEqual(
+      computeLeagueStandings(teams, [...early, ...later]),
+    );
+    expect(computeFinalPositions(teams, later, base)).toEqual(
+      computeFinalPositions(teams, [...early, ...later]),
+    );
+  });
+
+  it('never mutates the base it is given', () => {
+    // Monte Carlo reuses one base across every run; a shared reference would compound
+    // each run's results into the next and quietly produce impossible tables.
+    const base = accumulateTotals(teams, early);
+    const snapshot = structuredClone(base);
+    computeLeagueStandings(teams, later, base);
+    computeLeagueStandings(teams, later, base);
+    expect(base).toEqual(snapshot);
   });
 });
 

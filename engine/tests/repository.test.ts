@@ -96,22 +96,32 @@ describe('simulations', () => {
 });
 
 describe('actual results', () => {
-  it('propagates a real result into every simulation', () => {
+  it('leaves stored simulations untouched', () => {
     const a = repo.createSimulation('A');
     const b = repo.createSimulation('B');
     repo.setActualResult(1, 4, 0);
 
     for (const id of [a.id, b.id]) {
       const match = repo.getSimulationMatches(id).find((m) => m.matchNumber === 1)!;
-      expect(match).toMatchObject({ goalsHome: 4, goalsAway: 0, status: 'played' });
+      expect(match).toMatchObject({ goalsHome: null, goalsAway: null, status: 'scheduled' });
     }
   });
 
-  it('marks the fixture locked in season state', () => {
+  it('does not seed a new simulation from actuals', () => {
+    repo.setActualResult(1, 4, 0);
+    const simulation = repo.createSimulation('After');
+    const match = repo.getSimulationMatches(simulation.id).find((m) => m.matchNumber === 1)!;
+    expect(match).toMatchObject({ goalsHome: null, goalsAway: null, status: 'scheduled' });
+  });
+
+  it('overlays the real result onto season state', () => {
     const simulation = repo.createSimulation('A');
     repo.setActualResult(1, 1, 1);
     const match = repo.buildSeasonState(simulation.id).matches.find((m) => m.fixture.matchNumber === 1)!;
     expect(match.locked).toBe(true);
+    // The scoreline has to come from the overlay: the stored row is still empty.
+    expect(match.result).toMatchObject({ goalsHome: 1, goalsAway: 1, status: 'played' });
+    expect(repo.buildSeasonState(simulation.id).matchesPlayed).toBe(1);
   });
 
   it('refuses to overwrite a locked match', () => {
@@ -121,11 +131,20 @@ describe('actual results', () => {
     expect(() => repo.clearMatchResult(simulation.id, 1)).toThrow(MatchLockedError);
   });
 
-  it('unlocks when the real result is cleared', () => {
+  it('unlocks when the real result is cleared, leaving nothing behind', () => {
     const simulation = repo.createSimulation('A');
     repo.setActualResult(1, 1, 1);
     repo.clearActualResult(1);
+
     expect(() => repo.setMatchResult(simulation.id, 1, 2, 0)).not.toThrow();
+    repo.clearMatchResult(simulation.id, 1);
+
+    // Nothing was ever written into the simulation, so clearing strands no phantom score.
+    const state = repo.buildSeasonState(simulation.id);
+    const match = state.matches.find((m) => m.fixture.matchNumber === 1)!;
+    expect(match.locked).toBe(false);
+    expect(match.result).toMatchObject({ goalsHome: null, goalsAway: null, status: 'scheduled' });
+    expect(state.matchesPlayed).toBe(0);
   });
 
   it('rejects an unknown fixture', () => {
@@ -179,14 +198,30 @@ describe('SeasonRunner', () => {
     expect(match.goalsAway).toBe(5);
   });
 
-  it('never overwrites a locked result', () => {
+  it('never simulates over a locked result', () => {
     const simulation = repo.createSimulation('Run');
     repo.setActualResult(7, 3, 2);
-    new SeasonRunner(repo, { rng: testRng(5) }).simulateRestOfSeason(simulation.id);
+    const result = new SeasonRunner(repo, { rng: testRng(5) }).simulateRestOfSeason(simulation.id);
 
+    // The runner skipped it rather than writing to it, so the stored row stays empty...
     const match = repo.getSimulationMatches(simulation.id).find((m) => m.matchNumber === 7)!;
-    expect(match.goalsHome).toBe(3);
-    expect(match.goalsAway).toBe(2);
+    expect(match).toMatchObject({ goalsHome: null, goalsAway: null, status: 'scheduled' });
+    expect(result.matchesPlayed).toBe(379);
+
+    // ...and the real score is what any table built from this simulation sees.
+    const state = repo.buildSeasonState(simulation.id);
+    expect(state.matches.find((m) => m.fixture.matchNumber === 7)!.result).toMatchObject({
+      goalsHome: 3,
+      goalsAway: 2,
+    });
+    expect(state.matchesPlayed).toBe(380);
+  });
+
+  it('refuses to resimulate a single locked match', () => {
+    const simulation = repo.createSimulation('Run');
+    repo.setActualResult(3, 1, 0);
+    const runner = new SeasonRunner(repo, { rng: testRng(5) });
+    expect(() => runner.simulateSingleMatch(simulation.id, 3)).toThrow(MatchLockedError);
   });
 
   it('simulates a single match', () => {

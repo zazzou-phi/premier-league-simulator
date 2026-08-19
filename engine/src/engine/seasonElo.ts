@@ -3,22 +3,34 @@ import type { Team } from './types.js';
 export const DEFAULT_SEASON_ELO_K = 20;
 
 /**
- * How much in-season drift moves a team off its base Elo. Defaults to 0 — drift off.
+ * How much a simulated run of form moves a club off its base Elo. Defaults to a full-weight
+ * Elo update.
  *
- * `fetch:ratings` refreshes each club's base rating from clubelo, and that rating already
- * reflects every result so far this season, so adding drift on top counts the same form
- * twice. Fitting the weight as a free parameter against 2021/22–2025/26 finds it neither
- * significant (chi2(2) = 4.11, p = 0.13) nor useful: walk-forward over 152 matchday origins,
- * drift *cost* 0.00085 log-likelihood per match. The implied weights disagreed between the
- * home and away sides (0.145 and 0.401) and both sat far below the old default of 1.
+ * Only *simulated* results drift a rating. Real ones contribute nothing: `fetch:ratings`
+ * refreshes each club's base rating from clubelo weekly and that rating has already priced
+ * them in, so drifting on them again would count the same form twice. A batch projecting from
+ * matchday 12 therefore starts every club at today's clubelo number and lets only matchdays
+ * 12–38 move it.
  *
- * The lambda defaults in {@link matchSimulator} were also fitted with no drift applied, so a
- * non-zero weight would feed the model an input distribution it was not estimated on.
+ * An earlier revision defaulted this to 0, on walk-forward evidence that drift was neither
+ * significant (chi2(2) = 4.11, p = 0.13) nor useful (-0.00085 log-likelihood per match over
+ * 152 matchday origins). That measurement accumulated drift over *real, already-observed*
+ * results to predict the *next* matchday — which is exactly the double-count described above,
+ * and says nothing about how a counterfactual season should evolve from its origin.
  *
- * Still a live setting: raise it to re-enable drift, which is coherent if the base Elo is a
- * season-start snapshot rather than a clubelo refresh.
+ * The question drift actually answers is whether simulated *final tables* are as spread out as
+ * real ones. Against the five completed seasons in `engine/src/fitting`, weight 0 is
+ * under-dispersed: SD of points across the 20 clubs comes out at 16.0 against a historical
+ * 18.0, about 3.2 standard errors low. Weight 1 closes half of that (17.0) at no cost to the
+ * match-level fit — league H/D/A moves 44.2/22.3/33.5 to 43.8/22.5/33.7 and goals per match
+ * 2.940 to 2.939, since drift is close to zero-sum and mostly reshuffles *which* fixtures are
+ * mismatched. Weight 1.5 matches the historical dispersion almost exactly but is not the
+ * default: part of the residual gap is clubelo's pre-season ratings being shrunk toward the
+ * mean, and tuning drift to absorb that would be fitting a confound on five seasons.
+ *
+ * Calibrated to final-table dispersion, then, not to per-match likelihood.
  */
-export const DEFAULT_SEASON_ELO_DELTA_WEIGHT = 0;
+export const DEFAULT_SEASON_ELO_DELTA_WEIGHT = 1;
 export const SEASON_ELO_DELTA_WEIGHT_MAX = 5;
 
 export interface EloMatchInput {
