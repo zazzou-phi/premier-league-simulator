@@ -108,8 +108,8 @@ const preview = await syncActualResultsFromRemote({ repo, csv, dryRun: true });
 if (preview.overwritten > 0 && !args.force && !args.dryRun) {
   console.error(
     `\nThe remote has changed ${preview.overwritten} result(s) that were already recorded.\n` +
-      'That is usually a corrected scoreline, but it silently rewrites history and every\n' +
-      'stored simulation. Review with:\n\n' +
+      'That is usually a corrected scoreline, but it silently rewrites recorded history and\n' +
+      'the grades of every past projection. Review with:\n\n' +
       '  npm run fetch:results -- --dry-run\n\n' +
       'then re-run with --force to accept the changes.',
   );

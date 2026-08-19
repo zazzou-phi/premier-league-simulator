@@ -58,30 +58,36 @@ port whenever you change either one.
 
 ## The model
 
-Each match is two independent Poisson draws. Expected goals come from fixed home/away
-baselines plus an Elo gap:
+Each match is two independent Poisson draws. Each side's expected goals is its own
+log-linear function of the Elo gap:
 
 ```
-delta = k x (eloHome - eloAway) / 400
-lambdaHome = max(eps, baselineHome + delta / 2)
-lambdaAway = max(eps, baselineAway - delta / 2)
+gap = (eloHome - eloAway) / 400
+lambdaHome = baselineHome x exp(eloSlopeHome x gap)
+lambdaAway = baselineAway x exp(eloSlopeAway x gap)
 ```
 
-For any unclamped match, `lambdaHome + lambdaAway = baselineHome + baselineAway`. Elo
-only decides how lopsided the scoreline is — not how many goals the league scores overall.
+The match total is deliberately not fixed. Mismatches really are higher scoring — across
+2021/22–2025/26, fixtures inside a 100-point Elo gap averaged 2.84 goals and those beyond
+300 averaged 3.37 — which an additive split holding every fixture at the same total could
+not express. Being multiplicative, it also cannot produce a non-positive rate.
 
-Defaults are the four-season average (2021/22–2024/25): `baselineHome = 1.61` and
-`baselineAway = 1.36` (~2.97 combined in an even match). `k = 1` and `eps = 0.05`.
-See `specs/match-model.md` for the season breakdown.
+Defaults are maximum-likelihood estimates from a Poisson GLM over 2021/22–2025/26 (1900
+matches), against clubelo ratings as they stood on each match date: `baselineHome = 1.5292`,
+`baselineAway = 1.2757`, `eloSlopeHome = 0.7388`, `eloSlopeAway = -0.7218`. Refit with
+`npm run fit:lambdas`; see `specs/match-model.md`.
 
-Two knobs add realism on top:
+Two knobs sit on top:
 
-- **Upset variance** — a log-normal form multiplier applied per team per match. The
-  multiplier is rescaled by `exp(sigma^2)` so that turning it up makes results more
-  volatile without inflating the number of goals.
-- **In-season Elo drift** — after every match both teams get a standard Elo update.
-  Effective Elo (base plus weighted delta) is refreshed once per matchday. Set the
-  delta weight to 0 to disable.
+- **Upset variance** — a log-normal form multiplier applied per team per match, mean-rescaled
+  so that turning it up makes results more volatile without inflating the number of goals.
+  **Fitted to zero**: league goals are already fractionally under-dispersed relative to
+  Poisson, so this particular mechanism only ever costs likelihood.
+- **In-season Elo drift** — within a simulated season, both teams get a standard Elo update
+  after every simulated match, so a run of form compounds. Defaults to a full-weight update.
+  Real results contribute nothing, because the weekly clubelo refresh has already priced them
+  in; the weight is calibrated against the spread of historical final tables rather than
+  per-match likelihood. Set it to 0 to hold ratings fixed.
 
 ### Standings
 
@@ -150,8 +156,8 @@ syncing results would ignore the weekend — and does five things:
 Preview a week without writing anything with `npm run week -- --dry-run`.
 
 If the remote has *changed* a scoreline you already recorded, the command stops before
-touching anything. That is usually a correction, but it silently rewrites history and every
-stored simulation, so it asks first — review with `npm run fetch:results -- --dry-run`, then
+touching anything. That is usually a correction, but it silently rewrites recorded history and
+the grades of every past projection, so it asks first — review with `npm run fetch:results -- --dry-run`, then
 re-run with `--force`.
 
 | Flag | Effect |
@@ -177,8 +183,9 @@ npm run fetch:results -- --no-ratings  # scores only
 ```
 
 Recording a real result locks that fixture. Locked fixtures are never overwritten by a
-simulation, are replayed verbatim in every Monte Carlo run, and are propagated into every
-stored simulation so the whole app agrees with reality.
+simulation, are banked into every Monte Carlo run's starting table rather than simulated, and
+override stored simulations wherever a table is built — recording a result writes only
+`actual_match_results`, so a stored simulation is never rewritten behind your back.
 
 Results updates `actual_match_results` (and refreshes `data/fixtures.csv`); ratings update
 team Elo in SQLite and `data/teams.csv`, and append a dated row per club to

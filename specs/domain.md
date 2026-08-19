@@ -33,7 +33,7 @@ Kickoffs are UK wall-clock times (`Europe/London`, including BST). Used by the p
 
 A named interactive season: rows in `simulations` plus per-fixture `simulation_matches` (`scheduled` | `played` with optional goals).
 
-Created with current actual results already applied. Manual edits cannot overwrite locked fixtures unless explicitly allowed for internal sync.
+Created empty: real results are overlaid at read time rather than copied in, so `actual_match_results` stays the single writer of reality. Manual edits cannot overwrite locked fixtures unless explicitly allowed for internal sync.
 
 ### Actual match result
 
@@ -41,10 +41,12 @@ Authoritative real-world score for a fixture: `matchNumber`, `goalsHome`, `goals
 
 When set:
 
-1. Stored in `actual_match_results`
-2. Propagated into **all** `simulation_matches` for that fixture
+1. Stored in `actual_match_results` — the **only** write. Stored simulations are never
+   rewritten; a simulation stays a record of what it simulated
+2. Overlaid over `simulation_matches` at read time (`buildSeasonStateFrom`), so any table
+   built from a simulation agrees with reality without a second copy of the scoreline existing
 3. Treated as locked in season state (`ResolvedMatch.locked`)
-4. Replayed verbatim in every Monte Carlo run
+4. Banked into every Monte Carlo run's starting table rather than simulated
 5. Always wins over picked seasons when building prediction state
 
 ### Season state

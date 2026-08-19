@@ -14,11 +14,11 @@ Default ports: API `3123`, web `2627`. Keep `API_PORT` in sync if either changes
 
 ## Domain invariants
 
-- Match model: two independent Poisson draws from fixed home/away baselines plus Elo gap. Do not inflate total goals when raising upset variance (form multiplier is mean-rescaled).
+- Match model: two independent Poisson draws. Each side's rate is its own log-linear function of the Elo gap, fitted by Poisson GLM — the match total is not fixed, because mismatches really are higher scoring. Do not inflate total goals when raising upset variance (form multiplier is mean-rescaled).
 - Monte Carlo runs are aggregated in memory — never persist per-run fixtures. Batches store outcome/scoreline distributions, finishing histograms, and a small season reservoir (~50) for the `random` strategy.
-- Locked (actual) results are authoritative: never overwrite them in sim, replay them in every MC run, and keep stored simulations consistent with them.
-- Because locked results are replayed verbatim, they carry no predictive content: grading a prediction must exclude the fixtures recorded in `prediction_locked_matches`, never score a batch on results it was handed.
-- `teams.elo` is overwritten by each ratings sync; the dated record lives in `team_elo_history` (and the tracked `data/teams.csv`).
+- Locked (actual) results are authoritative: never overwrite them in sim, bank them into every MC run's starting table rather than simulating them, and overlay them over stored simulations at read time — recording a result must not rewrite a stored simulation.
+- Because locked results are banked rather than predicted, they carry no predictive content: grading a prediction must exclude the fixtures recorded in `prediction_locked_matches`, never score a batch on results it was handed.
+- `teams.elo` is overwritten by each ratings sync; the dated record lives in `team_elo_history` (and the tracked `data/teams.csv`). Because that sync already prices in every real result, only *simulated* matches drift a rating in-season.
 - Public export uses kickoff reveal: blank unrevealed predictions and recompute the published table from revealed matches only so snapshots cannot leak futures.
 - Prefer real fixtures/ratings pipelines over the circle-method generator except in tests that need a synthetic season.
 

@@ -111,17 +111,24 @@ prediction. `tempoShare` is currently an engine-level constant, not a user setti
 
 After every match, both teams receive a standard Elo update (`matchEloDelta`, K = 20 by default).
 
-Effective Elo for simulation: `base + weight × delta`. **Weight default `0` — drift off**,
-allowed `0…5` (`app_settings.season_elo_delta_weight`).
+Effective Elo for simulation: `base + weight × delta`. **Weight default `1`**, allowed `0…5`
+(`app_settings.season_elo_delta_weight`).
 
-### Why drift defaults to zero
+### What drifts, and what does not
 
-`fetch:ratings` overwrites each club's base Elo with clubelo's *current* rating, which already
-reflects every result so far this season. Applying `matchEloDelta` on top counts the same form
-twice, and the effect grows with how often ratings are refreshed.
+Only *simulated* matches move a rating. Locked fixtures are not simulated at all — they are
+banked into the run's starting table — so they contribute no delta, and `SeasonRunner` likewise
+seeds drift only from a simulation's own earlier results.
 
-Fitting the weight as a free coefficient (option C in `engine/src/fitting`) finds it neither
-significant nor useful:
+That asymmetry is the point. `fetch:ratings` overwrites each club's base Elo with clubelo's
+*current* rating, which already reflects every real result so far this season; applying
+`matchEloDelta` on top of those same results would count the same form twice. A batch
+projecting from matchday 12 therefore starts every club at today's clubelo number and lets only
+matchdays 12–38 move it.
+
+### Why the weight is 1
+
+An earlier revision defaulted the weight to `0`, on this evidence:
 
 | Test | Result |
 |---|---|
@@ -129,13 +136,43 @@ significant nor useful:
 | Implied weight, home / away | 0.145 / 0.401 — mutually inconsistent, both far below `1` |
 | Walk-forward, 152 matchday origins | drift **cost** 0.00085 log-likelihood per match |
 
-The lambda defaults above were also fitted with no drift applied, so a non-zero weight feeds
-the model an input distribution it was not estimated on.
+Those numbers are correct, and they measure the wrong thing. `rollingOriginEvaluation`
+accumulates drift over *real, already-observed* results and asks whether it sharpens the *next*
+matchday's per-match likelihood. Since clubelo already contains those results, that is a test of
+whether to double-count — and the answer is rightly no. It says nothing about how a
+counterfactual season should evolve from its origin, which is the only thing drift now does.
 
-Drift remains a live setting. Re-enabling it is coherent if the base Elo is a season-start
-snapshot rather than a clubelo refresh — that is the configuration it was designed for.
+The question drift actually answers is whether simulated **final tables** are as spread out as
+real ones. Simulating full seasons at K = 20 from `data/teams.csv` (1,500 seasons per weight):
 
-Within a season simulation, Elo deltas apply after each match, but the form used for lambdas is refreshed on a matchday boundary so matches on the same matchday share start-of-matchday effective Elo.
+| weight | champion pts | 4th | 17th | 1st−20th spread | SD of points |
+|---|---|---|---|---|---|
+| 0.00 | 84.8 | 67.0 | 38.5 | 65.9 | 16.03 |
+| 0.50 | 84.9 | 67.6 | 37.8 | 66.3 | 16.42 |
+| **1.00** | **85.5** | **68.5** | **36.8** | **67.3** | **17.00** |
+| 1.50 | 87.1 | 69.9 | 35.7 | 69.3 | 17.87 |
+| 2.00 | 89.7 | 71.7 | 33.7 | 72.9 | 19.27 |
+
+Against the five completed seasons (2021/22–2025/26), whose mean final table is champion 88.4,
+4th 68.8, 17th 37.8, spread 69.4, **SD of points 17.97**:
+
+- Weight `0` is under-dispersed by 1.99 points of SD — about 3.2 standard errors, given a
+  season-to-season SD of 1.41 on n = 5.
+- Weight `1` closes half the gap (1.5 SE remaining).
+- Weight `1.5` matches almost exactly (0.25 SE) but is **not** the default: part of the residual
+  gap is clubelo's pre-season ratings being shrunk toward the mean relative to realised
+  end-of-season strength, and tuning drift to absorb a ratings artefact would be fitting a
+  confound on five seasons.
+
+Drift is close to zero-sum at the match level, so this costs nothing in the fit the lambdas were
+estimated for: league H/D/A moves 44.2/22.3/33.5 at weight 0 to 43.8/22.5/33.7 at weight 1, and
+goals per match 2.940 to 2.939. It mostly reshuffles *which* fixtures are mismatched. Mean
+maximum drift at season end is 75 Elo at weight 0 against 104 at weight 1.
+
+In short: calibrated to final-table dispersion, not to per-match likelihood.
+
+Within a season simulation the delta applies after every match, so a club's later fixtures in a
+matchday already see its earlier one.
 
 ## Season simulation
 

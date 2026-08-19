@@ -19,13 +19,33 @@ Rough scale: ~1,000 seasons (~380,000 matches) in ~350 ms on typical hardware.
 
 ## Aggregation (in memory)
 
+Once per batch, before any run:
+
+- Split the fixture list into locked and unplayed. Only the unplayed remainder is simulated.
+- Fold the locked results into a starting table (`accumulateTotals`), so each run seeds its
+  standings from reality in O(1) instead of replaying those fixtures.
+- Sort the remainder into play order (`orderFixtures`) — a property of the fixture list, not
+  of a run.
+
 Each run:
 
-1. `simulateSeason` with current locked results
+1. `simulateSeason` over the remainder
 2. Increment per-fixture home/draw/away counts and scoreline histogram
-3. Record each team's finishing position
+3. Record each team's finishing position, from the seeded table
 4. Accumulate points / GF / GA sums
-5. Reservoir-sample the full season (Algorithm R) into a bounded set of complete seasons
+5. Reservoir-sample the simulated season (Algorithm R) into a bounded set of seasons
+
+Once per batch, after the loop, the locked fixtures are re-attached:
+
+- as **degenerate distributions** (`total = runs`, all mass on the real scoreline)
+- as entries in every sampled season, merged back in match-number order
+
+So a persisted batch still describes all 380 fixtures and its stored shape is unchanged by the
+remainder-only refactor. That matters downstream: the calibrated solve reads those degenerate
+distributions to pin the locked fixtures and to compute its per-team draw targets, the
+per-fixture distribution modal renders them as a 100% "recorded result" bar, and batches saved
+before and after the change grade identically. The per-run cost now scales with fixtures
+*remaining*, so a late-season batch is several times cheaper than a matchday-1 one.
 
 **Never persist per-run fixture rows.** Persist only:
 
@@ -34,6 +54,63 @@ Each run:
 - Finishing-position histograms (20 positions × 20 teams)
 - Team stat sums
 - Reservoir seasons (~50 × 380 rows)
+
+## Run count and convergence
+
+`npm run mc:convergence` measures how far a batch's answers move between seeds: it runs the
+same batch N times at each run count and reports the spread. Measured on the 2026/27 fixture
+list with all 380 fixtures unplayed, 10 batches per row, drift weight 1, upset variance 0:
+
+| Runs | title SD | top-4 SD | releg SD | pts SD | scoreline flips | outcome flips | ms |
+|---|---|---|---|---|---|---|---|
+| 1,000 | 0.53pp | 1.06pp | 0.79pp | 0.32 | 54.1% | 18.1% | 180 |
+| 2,500 | 0.35pp | 0.79pp | 0.52pp | 0.22 | 45.3% | 12.6% | 411 |
+| **5,000** | **0.26pp** | **0.56pp** | **0.39pp** | **0.16** | 39.1% | 9.6% | 845 |
+| 10,000 | 0.22pp | 0.35pp | 0.26pp | 0.12 | 33.9% | 6.7% | 1,716 |
+| 25,000 | 0.10pp | 0.24pp | 0.17pp | 0.07 | 25.4% | 4.8% | 4,350 |
+
+SDs are pooled across the 20 clubs — the maximum over teams is a tempting statistic but a bad
+one, because with a handful of batches each team's SD is itself noisy and taking the maximum of
+20 noisy estimates selects for the luckiest error. Flip rates are the mean share of unplayed
+fixtures where two batches disagree on the displayed pick.
+
+### The probabilities converge; the picks do not
+
+The probabilities behave exactly as sampling theory says: SD roughly halves per 4× runs. The
+convergence rule is stated in the CLI — title SD < 0.5pp, relegation SD < 0.5pp, points SD <
+0.25 — and **5,000 runs is the smallest tested value that meets it**.
+
+The pick-flip rates are a different story, and they are reported but deliberately *not* gated.
+Even at the 100,000-run cap, two batches still disagree on 10.2% of scorelines and 3.4% of
+outcomes. That is not under-sampling — it is near-ties. The median fixture's top two scorelines
+are separated by 1.73pp of probability mass, so which one is modal is close to a coin flip no
+matter how long you run.
+
+The calibrated strategy also amplifies this, by design. At 10,000 runs, comparing strategies on
+the same batches:
+
+| Strategy | scoreline flips | outcome flips |
+|---|---|---|
+| `likeliestScore` | 11.6% | 6.5% |
+| `likeliestResult` | 39.7% | **0.8%** |
+| `calibrated` | 34.3% | 6.7% |
+
+`likeliestResult` picks the outcome mode, and outcome modes are well separated (median top-two
+gap 23pp), so it almost never flips. `calibrated` solves the season under a constraint on the
+W/D/L counts, so when two fixtures are near-tied for which of them gets a draw, the constraint
+must pick one — and that choice flips easily. This is the price of the calibration and is worth
+knowing when a pick changes between two projections of the same week.
+
+### Choosing the default
+
+`npm run week` defaults to 10,000. The measurements justify it rather than move it: it sits
+comfortably inside every threshold, costs under two seconds, and buys a little margin over the
+5,000 the rule alone would allow. Halving it would be defensible; raising it would buy visibly
+stable picks only at run counts that cost minutes, and not even then.
+
+Note the default does not scale with fixtures remaining, though the cost does — a late-season
+batch simulating ~100 fixtures is several times cheaper than a matchday-1 one, so 10,000 gets
+*more* conservative as the season goes on.
 
 ## Projections
 

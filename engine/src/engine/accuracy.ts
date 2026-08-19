@@ -12,9 +12,9 @@ import type { Fixture, Team } from './types.js';
 /**
  * Grading a stored prediction against the results that actually landed.
  *
- * Only fixtures that were *unplayed* when the batch ran are gradeable: Monte Carlo replays
- * locked results verbatim, so a locked fixture's distribution is a restatement of a known
- * score and would flatter every metric. Callers pass that set in as `lockedAtRunTime`.
+ * Only fixtures that were *unplayed* when the batch ran are gradeable: a locked fixture's
+ * distribution is a restatement of a known score, not a forecast, and would flatter every
+ * metric. Callers pass that set in as `lockedAtRunTime`.
  */
 
 export const OUTCOMES: MatchOutcome[] = ['homeWin', 'draw', 'awayWin'];

@@ -88,7 +88,7 @@ empty. `data/teams.csv` is the tracked mirror — commit it weekly for a git-lev
 - `locked_count` — how many fixtures were already locked
 - `prediction_locked_matches` — which ones
 
-Monte Carlo replays locked results verbatim, so those fixtures carry no predictive content.
+A locked fixture's distribution just restates its known score, so it carries no predictive content.
 Grading (`repo.getPredictionAccuracy`) excludes them; without this record a batch would be
 scored on results it was handed.
 
@@ -98,6 +98,6 @@ scored on results it was handed.
 
 - CRUD for teams (Elo), settings, simulations, matches, actuals, predictions
 - Build `SeasonState` for sim / actuals / picks
-- Propagate locks into all simulations
+- Overlay actuals over simulation rows when building season state
 - Save MC aggregates + reservoir
 - Reject edits to locked matches (`MatchLockedError`)

@@ -6,7 +6,7 @@ Simulate a full Premier League season (20 clubs, 38 matchdays, 380 matches) with
 
 - Interactive score editing and single-season simulation
 - Monte Carlo batches that yield title, Champions League, European, and relegation probabilities
-- Locked real-world results that override every simulation path
+- Locked real-world results that override every simulation path at read time
 - A weekly in-season loop (`npm run week`) that syncs results and Elo, grades the previous
   projection, and re-projects the rest of the season
 - A static public site that cannot leak unrevealed future predictions
