@@ -114,8 +114,8 @@ export const predictions = sqliteTable('predictions', {
 });
 
 /**
- * Fixtures that were already locked when the batch ran. Monte Carlo replays locked results
- * verbatim, so these carry no predictive content and must be excluded when grading.
+ * Fixtures that were already locked when the batch ran. Their distributions just restate a
+ * known score, so they carry no predictive content and must be excluded when grading.
  */
 export const predictionLockedMatches = sqliteTable(
   'prediction_locked_matches',

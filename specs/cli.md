@@ -15,6 +15,7 @@ All commands run from `engine/` unless noted. Web scripts run from `web/`.
 | `npm run api` | REST API (default port 3123) | `--port`, `--db`, `--seed` |
 | `npm run simulate:season` | CLI season simulation | |
 | `npm run monte-carlo` | Run batch; print projections | `--runs` / `-n`, `--name`, `--db`, `--no-save` |
+| `npm run mc:convergence` | Measure run-to-run spread and recommend a run count | `--runs` (list), `--batches`, `--seed`, `--weight`, `--upset`, `--json`, `--db` |
 | `npm run export:public` | Write static JSON snapshot | `--out` (default `web/public/data`), `--db` |
 | `npm test` | Vitest suite | |
 | `npm run test:watch` | Watch mode | |
@@ -35,11 +36,11 @@ Engine tests (`engine/tests/`) protect:
 - Fixture CSV parse/validation
 - Results sync
 - Match model calibration (λ sum, home/away baselines, Elo gap, Poisson)
-- Standings tiebreakers and zones
-- Monte Carlo aggregation and locked replay
+- Standings tiebreakers, zones, and seeded starting tables
+- Monte Carlo aggregation, remainder-only simulation, and locked back-fill
 - Prediction grading (Brier, log loss, calibration, locked-fixture exclusion)
 - Dated Elo history and mover reporting
-- Repository (locks, predictions, settings)
+- Repository (read-time actual overlay, predictions, settings)
 - HTTP API routes and error codes
 - Public snapshot redaction / kickoff reveal
 

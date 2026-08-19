@@ -38,7 +38,7 @@ mode into preferring an outcome's *least* likely scoreline.
 |--------|------|-------|
 | GET | `/api/v1/actual-results` | `ActualMatchResult[]` |
 | GET | `/api/v1/actual-results/state` | `SeasonState` from actuals only |
-| PUT | `/api/v1/actual-results/:matchNumber` | `{ goalsHome, goalsAway }` — locks + propagates |
+| PUT | `/api/v1/actual-results/:matchNumber` | `{ goalsHome, goalsAway }` — locks the fixture |
 | DELETE | `/api/v1/actual-results/:matchNumber` | 204 |
 
 `PUT` and `DELETE` have no client: the web UI is read-only and the sync path calls
@@ -110,7 +110,7 @@ With `Accept: application/x-ndjson`, streams:
 ## Accuracy
 
 `GET /api/v1/predictions/:id/accuracy` grades a stored batch. Only fixtures it predicted
-blind count: Monte Carlo replays locked results verbatim, so fixtures listed in
+blind count: a locked fixture's distribution just restates its known score, so those listed in
 `prediction_locked_matches` are reported as `skippedLocked` and excluded from every metric.
 
 ```
