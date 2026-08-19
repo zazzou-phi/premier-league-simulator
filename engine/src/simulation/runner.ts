@@ -12,7 +12,7 @@ import {
   type EloMatchInput,
 } from '../engine/seasonElo.js';
 import type { Fixture, SimulationMatch, Team } from '../engine/types.js';
-import { NotFoundError } from '../db/errors.js';
+import { MatchLockedError, NotFoundError } from '../db/errors.js';
 import type { Repository } from '../db/repository.js';
 
 export interface RunnerOptions {
@@ -36,12 +36,34 @@ interface PendingFixture {
   away: Team;
 }
 
+type ActualResults = Map<number, { goalsHome: number; goalsAway: number }>;
+
 /** Simulates matches inside a stored simulation, leaving played and locked fixtures alone. */
 export class SeasonRunner {
   constructor(
     private readonly repo: Repository,
     private readonly options: RunnerOptions = {},
   ) {}
+
+  /**
+   * Read-time overlay of real results over a simulation's own rows.
+   *
+   * Recording a result no longer rewrites `simulation_matches`, so a locked fixture can still
+   * be sitting there as `scheduled`. Overlaying before anything else is what keeps
+   * {@link collectPending} from re-simulating a match that has already been played for real.
+   */
+  private withActuals(rows: SimulationMatch[], actuals: ActualResults): SimulationMatch[] {
+    return rows.map((row) => {
+      const actual = actuals.get(row.matchNumber);
+      if (!actual) return row;
+      return {
+        ...row,
+        goalsHome: actual.goalsHome,
+        goalsAway: actual.goalsAway,
+        status: 'played' as const,
+      };
+    });
+  }
 
   private resolveOptions(overrides: RunnerOptions = {}) {
     const settings = this.repo.getSettings();
@@ -57,9 +79,20 @@ export class SeasonRunner {
     };
   }
 
-  private playedEloInputs(rows: SimulationMatch[]): EloMatchInput[] {
+  /**
+   * Matches whose scorelines are allowed to move a rating: this simulation's own earlier
+   * results, and only those.
+   *
+   * Real results are excluded on purpose. Base Elo is refreshed weekly from clubelo, which has
+   * already priced them in, so drifting on them again would count the same form twice. Note
+   * the opposite polarity from {@link withActuals}, which overlays those very rows in.
+   */
+  private playedEloInputs(rows: SimulationMatch[], actuals: ActualResults): EloMatchInput[] {
     return rows.flatMap((row) =>
-      row.status === 'played' && row.goalsHome != null && row.goalsAway != null
+      row.status === 'played' &&
+      row.goalsHome != null &&
+      row.goalsAway != null &&
+      !actuals.has(row.matchNumber)
         ? [
             {
               matchNumber: row.matchNumber,
@@ -78,13 +111,14 @@ export class SeasonRunner {
     pending: PendingFixture[],
     rows: SimulationMatch[],
     teams: Team[],
+    actuals: ActualResults,
     overrides: RunnerOptions,
   ): SimulateResult {
     const { baselineHome, baselineAway, upsetVariance, eloDeltaWeight, eloK, rng } =
       this.resolveOptions(overrides);
 
-    // Seed drift from results already in the table so form carries into new matches.
-    const deltas = computeEloDeltasFromMatches(teams, this.playedEloInputs(rows), eloK);
+    // Seed drift from matches this simulation played itself, so form carries into new ones.
+    const deltas = computeEloDeltasFromMatches(teams, this.playedEloInputs(rows, actuals), eloK);
 
     const byMatchday = new Map<number, PendingFixture[]>();
     for (const item of pending) {
@@ -160,9 +194,10 @@ export class SeasonRunner {
     const teams = this.repo.getTeams();
     const teamsById = new Map(teams.map((team) => [team.id, team]));
     const fixturesByNumber = new Map(this.repo.getFixtures().map((f) => [f.matchNumber, f]));
-    const rows = this.repo.getSimulationMatches(simulationId);
+    const actuals = this.repo.getActualResultsByMatch();
+    const rows = this.withActuals(this.repo.getSimulationMatches(simulationId), actuals);
     const pending = this.collectPending(rows, fixturesByNumber, teamsById, () => true);
-    return this.simulatePending(simulationId, pending, rows, teams, overrides);
+    return this.simulatePending(simulationId, pending, rows, teams, actuals, overrides);
   }
 
   simulateUpToMatchday(
@@ -173,19 +208,23 @@ export class SeasonRunner {
     const teams = this.repo.getTeams();
     const teamsById = new Map(teams.map((team) => [team.id, team]));
     const fixturesByNumber = new Map(this.repo.getFixtures().map((f) => [f.matchNumber, f]));
-    const rows = this.repo.getSimulationMatches(simulationId);
+    const actuals = this.repo.getActualResultsByMatch();
+    const rows = this.withActuals(this.repo.getSimulationMatches(simulationId), actuals);
     const pending = this.collectPending(
       rows,
       fixturesByNumber,
       teamsById,
       (fixture) => fixture.matchday <= matchday,
     );
-    return this.simulatePending(simulationId, pending, rows, teams, overrides);
+    return this.simulatePending(simulationId, pending, rows, teams, actuals, overrides);
   }
 
   simulateNextMatchday(simulationId: number, overrides: RunnerOptions = {}): SimulateResult {
     const fixturesByNumber = new Map(this.repo.getFixtures().map((f) => [f.matchNumber, f]));
-    const rows = this.repo.getSimulationMatches(simulationId);
+    const rows = this.withActuals(
+      this.repo.getSimulationMatches(simulationId),
+      this.repo.getActualResultsByMatch(),
+    );
     const nextMatchday = rows
       .filter((row) => row.status !== 'played')
       .map((row) => fixturesByNumber.get(row.matchNumber)?.matchday)
@@ -208,7 +247,12 @@ export class SeasonRunner {
     const fixture = this.repo.getFixture(matchNumber);
     if (!fixture) throw new NotFoundError(`Fixture ${matchNumber}`);
 
-    const rows = this.repo.getSimulationMatches(simulationId);
+    const actuals = this.repo.getActualResultsByMatch();
+    // This path builds its own pending fixture rather than going through collectPending, so it
+    // needs the lock check that collectPending would otherwise have applied.
+    if (actuals.has(matchNumber)) throw new MatchLockedError(matchNumber);
+
+    const rows = this.withActuals(this.repo.getSimulationMatches(simulationId), actuals);
     const row = rows.find((r) => r.matchNumber === matchNumber);
     if (!row) throw new NotFoundError(`Match ${matchNumber} in simulation ${simulationId}`);
 
@@ -217,6 +261,13 @@ export class SeasonRunner {
 
     // Exclude this fixture's own prior result so a resimulation is not biased by it.
     const others = rows.filter((r) => r.matchNumber !== matchNumber);
-    return this.simulatePending(simulationId, [{ fixture, home, away }], others, teams, overrides);
+    return this.simulatePending(
+      simulationId,
+      [{ fixture, home, away }],
+      others,
+      teams,
+      actuals,
+      overrides,
+    );
   }
 }

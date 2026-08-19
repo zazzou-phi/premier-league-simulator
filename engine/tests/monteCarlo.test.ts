@@ -31,17 +31,12 @@ describe('simulateSeason', () => {
     expect(a.matches).toEqual(b.matches);
   });
 
-  it('replays locked results instead of simulating them', () => {
-    const lockedResults = new Map([
-      [1, { goalsHome: 7, goalsAway: 3 }],
-      [2, { goalsHome: 0, goalsAway: 4 }],
-    ]);
-    const { matches } = simulateSeason(teams, fixtures, { rng: testRng(2), lockedResults });
-    const first = matches.find((m) => m.matchNumber === 1)!;
-    const second = matches.find((m) => m.matchNumber === 2)!;
-    expect(first).toMatchObject({ goalsHome: 7, goalsAway: 3, locked: true });
-    expect(second).toMatchObject({ goalsHome: 0, goalsAway: 4, locked: true });
-    expect(matches.find((m) => m.matchNumber === 3)!.locked).toBe(false);
+  it('simulates exactly the fixtures it is given', () => {
+    const remainder = fixtures.filter((f) => f.matchNumber > 2);
+    const { matches } = simulateSeason(teams, remainder, { rng: testRng(2) });
+    expect(matches).toHaveLength(378);
+    expect(matches.some((m) => m.matchNumber <= 2)).toBe(false);
+    expect(matches.every((m) => m.locked === false)).toBe(true);
   });
 
   it('accumulates in-season Elo drift', () => {
@@ -165,5 +160,92 @@ describe('runMonteCarlo', () => {
     const first = result.matchDistributions.find((d) => d.matchNumber === 1)!;
     expect(first.outcomes.draw).toBe(10);
     expect(first.scorelines).toEqual([{ goalsHome: 5, goalsAway: 5, n: 10 }]);
+  });
+
+  it('still describes all 380 fixtures when some are locked', async () => {
+    const runs = 20;
+    const lockedResults = new Map([
+      [1, { goalsHome: 3, goalsAway: 0 }],
+      [2, { goalsHome: 1, goalsAway: 1 }],
+      [11, { goalsHome: 0, goalsAway: 2 }],
+    ]);
+    const result = await runMonteCarlo(teams, fixtures, {
+      runs,
+      reservoirSize: 4,
+      rng: testRng(31),
+      lockedResults,
+    });
+
+    // The persisted shape is the same whether a fixture was simulated or banked.
+    expect(result.matchDistributions).toHaveLength(380);
+    for (const dist of result.matchDistributions) {
+      expect(dist.outcomes.homeWin + dist.outcomes.draw + dist.outcomes.awayWin).toBe(runs);
+      expect(dist.outcomes.total).toBe(runs);
+      expect(dist.scorelines.reduce((sum, s) => sum + s.n, 0)).toBe(runs);
+    }
+    expect(result.matchDistributions.find((d) => d.matchNumber === 1)!.outcomes.homeWin).toBe(runs);
+    expect(result.matchDistributions.find((d) => d.matchNumber === 11)!.outcomes.awayWin).toBe(runs);
+
+    for (const season of result.sampledSeasons) {
+      expect(season.matches).toHaveLength(380);
+      expect(season.matches.map((m) => m.matchNumber)).toEqual(
+        [...season.matches.map((m) => m.matchNumber)].sort((a, b) => a - b),
+      );
+      const locked = season.matches.filter((m) => m.locked);
+      expect(locked).toHaveLength(3);
+      expect(locked.find((m) => m.matchNumber === 2)).toMatchObject({
+        goalsHome: 1,
+        goalsAway: 1,
+      });
+    }
+  });
+
+  it('banks locked results into the table instead of replaying them', async () => {
+    // Same season, two ways of saying "match 1 finished 3-0": as a lock, or by handing the
+    // simulator only the remainder. Identical seeds must give identical projections.
+    const lockedResults = new Map([[1, { goalsHome: 3, goalsAway: 0 }]]);
+    const banked = await runMonteCarlo(teams, fixtures, {
+      runs: 25,
+      reservoirSize: 0,
+      rng: testRng(33),
+      lockedResults,
+    });
+
+    const remainderOnly = await runMonteCarlo(
+      teams,
+      fixtures.filter((f) => f.matchNumber !== 1),
+      { runs: 25, reservoirSize: 0, rng: testRng(33) },
+    );
+
+    const first = fixtures.find((f) => f.matchNumber === 1)!;
+    for (const team of banked.teams) {
+      const other = remainderOnly.teams.find((t) => t.teamId === team.teamId)!;
+      const bonus =
+        team.teamId === first.teamHomeId ? 3 : team.teamId === first.teamAwayId ? 0 : 0;
+      expect(team.averagePoints).toBeCloseTo(other.averagePoints + bonus, 6);
+    }
+  });
+
+  it('does not let a locked fixture drift a rating', async () => {
+    // Base Elo already prices real results in, so banking one must leave the simulated
+    // remainder bit-identical to simulating that remainder on its own.
+    const lockedResults = new Map([[1, { goalsHome: 9, goalsAway: 0 }]]);
+    const withLock = await runMonteCarlo(teams, fixtures, {
+      runs: 5,
+      reservoirSize: 3,
+      rng: testRng(35),
+      lockedResults,
+      eloDeltaWeight: 1,
+    });
+    const withoutLock = await runMonteCarlo(
+      teams,
+      fixtures.filter((f) => f.matchNumber !== 1),
+      { runs: 5, reservoirSize: 3, rng: testRng(35), eloDeltaWeight: 1 },
+    );
+
+    for (const [index, season] of withLock.sampledSeasons.entries()) {
+      const simulated = season.matches.filter((m) => !m.locked);
+      expect(simulated).toEqual(withoutLock.sampledSeasons[index]!.matches);
+    }
   });
 });

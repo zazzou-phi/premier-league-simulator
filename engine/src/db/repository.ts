@@ -302,13 +302,9 @@ export class Repository {
       })
       .run();
 
-    // Every simulation must agree with reality on a locked fixture.
-    this.db
-      .update(schema.simulationMatches)
-      .set({ goalsHome, goalsAway, status: 'played' })
-      .where(eq(schema.simulationMatches.matchNumber, matchNumber))
-      .run();
-
+    // Deliberately the only write. Stored simulations are never rewritten by reality —
+    // every read path overlays actuals on top of them instead, so a simulation stays a
+    // record of what it simulated. See buildSeasonStateFrom and SeasonRunner.withActuals.
     return row;
   }
 
@@ -341,10 +337,14 @@ export class Repository {
     return row;
   }
 
+  /**
+   * A new simulation starts empty, even for fixtures that already have a real result.
+   * Reality is overlaid at read time rather than copied in, so there is never a second
+   * copy of a scoreline to fall out of step with `actual_match_results`.
+   */
   createSimulation(name: string): Simulation {
     const fixtures = this.getFixtures();
     if (fixtures.length === 0) throw new ValidationError('No fixtures seeded');
-    const actuals = this.getActualResultsByMatch();
     const timestamp = nowIso();
 
     return this.db.transaction((tx) => {
@@ -355,16 +355,15 @@ export class Repository {
         .get();
 
       for (const fixture of fixtures) {
-        const actual = actuals.get(fixture.matchNumber);
         tx.insert(schema.simulationMatches)
           .values({
             simulationId: inserted.id,
             matchNumber: fixture.matchNumber,
             teamHomeId: fixture.teamHomeId,
             teamAwayId: fixture.teamAwayId,
-            goalsHome: actual?.goalsHome ?? null,
-            goalsAway: actual?.goalsAway ?? null,
-            status: actual ? 'played' : 'scheduled',
+            goalsHome: null,
+            goalsAway: null,
+            status: 'scheduled',
           })
           .run();
       }
@@ -1027,6 +1026,14 @@ function assertValidScore(goalsHome: number, goalsAway: number): void {
   }
 }
 
+/**
+ * Overlay real results on top of a simulation's own rows.
+ *
+ * A locked fixture takes both its scoreline and its status from `actual_match_results`, not
+ * from the stored row — the stored row keeps whatever the simulation produced. Standings fall
+ * out of the overlaid matches in {@link finalizeSeasonState}, so the table agrees with reality
+ * without anything having been rewritten on disk.
+ */
 function buildSeasonStateFrom(
   simulationId: number,
   teams: Team[],
@@ -1041,17 +1048,21 @@ function buildSeasonStateFrom(
     const teamAway = teamsById.get(row.teamAwayId);
     if (!fixture || !teamHome || !teamAway) return [];
 
+    const actual = actuals.get(row.matchNumber);
+
     return [
       {
         fixture,
         teamHome,
         teamAway,
-        result: {
-          goalsHome: row.goalsHome,
-          goalsAway: row.goalsAway,
-          status: row.status,
-        },
-        locked: actuals.has(row.matchNumber),
+        result: actual
+          ? { goalsHome: actual.goalsHome, goalsAway: actual.goalsAway, status: 'played' as const }
+          : {
+              goalsHome: row.goalsHome,
+              goalsAway: row.goalsAway,
+              status: row.status,
+            },
+        locked: actual != null,
       },
     ];
   });
