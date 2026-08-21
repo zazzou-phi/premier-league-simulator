@@ -27,17 +27,13 @@ arrow keys, roving `tabIndex`).
 ### Picks
 
 - League table + fixture list for the active prediction (`PicksView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
-- Per-match outcome/scoreline distribution modal. Its header line is the **best pick and what it
-  is worth** (`rankExpectedPoints`), and each outcome bar carries that outcome's best candidate
-  and expected points, so a near-miss draw is visible rather than implied.
-- Pick strategy switch: `likeliestScore` | `likeliestResult` | `maxPoints` | `calibrated` |
-  `random`, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
-  header menu. The selected strategy's one-line description (`PICK_STRATEGY_DESCRIPTIONS`) sits
-  under the buttons, so the season-level trade-off is visible before choosing.
-- Selecting *Max points* reveals `ScoringRulesControl` beneath the buttons: the exact-score and
-  correct-result payoff, committed as a pair on blur / Enter / **Apply** rather than per keystroke,
-  since only the ratio means anything. It PATCHes the prediction, so it retunes the batch on
-  screen rather than the global setting. Absent in public mode alongside the strategy switch.
+- Per-match outcome/scoreline distribution modal. Its header line is the **likeliest scoreline and
+  how often it came up** (`rankScorelineCandidates`), and each outcome bar carries that outcome's
+  own modal scoreline, so a near-miss draw is visible rather than implied.
+- Pick strategy switch: `plausible` | `calibrated` | `random`, in that order with the default
+  leading, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
+  header menu. The per-strategy descriptions (`PICK_STRATEGY_DESCRIPTIONS`) live in the help modal
+  rather than under the buttons, so switching between them is not a wall of prose.
 - Prediction manager: list / switch / rename / delete, plus **Accuracy** — grades the
   selected projection against results recorded since it ran (`PredictionAccuracy.tsx`).
   Rows show `from MD<n>` when the batch carries provenance. Public mode never reaches it:

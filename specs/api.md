@@ -26,11 +26,6 @@ Base URL in private web: proxied as `/api` → `http://127.0.0.1:${API_PORT}`.
 |--------|------|------|-------|
 | GET/PUT | `/api/v1/settings/upset-variance` | `{ value }` | `0…1` |
 | GET/PUT | `/api/v1/settings/season-elo-delta-weight` | `{ value }` | `0…5` |
-| GET/PUT | `/api/v1/settings/scoring-rules` | `{ exactScore?, correctResult? }` | `0…1000` each |
-
-The predictor payoff drives the `maxPoints` strategy. Either field may be sent alone; the other
-keeps its stored value. `exactScore` below `correctResult` is rejected (400) — it would invert the
-mode into preferring an outcome's *least* likely scoreline.
 
 ## Actual results
 
@@ -82,7 +77,7 @@ With `Accept: application/x-ndjson`, streams:
 | GET | `/api/v1/predictions/accuracy-history` | Grade per projection in season order — **registered before `/:id`** |
 | GET | `/api/v1/predictions` | Paginated list |
 | GET | `/api/v1/predictions/:id` | Metadata |
-| PATCH | `/api/v1/predictions/:id` | `{ name?, pickStrategy?, exactScore?, correctResult? }` — the payoff is seeded from settings when the batch runs and retunable per batch thereafter, same validation as the settings route |
+| PATCH | `/api/v1/predictions/:id` | `{ name?, pickStrategy? }` — the strategy is re-selectable after the fact, so retuning a batch never means re-running it |
 | DELETE | `/api/v1/predictions/:id` | |
 | GET | `/api/v1/predictions/:id/state` | Picked `SeasonState` |
 | GET | `/api/v1/predictions/:id/projections` | `{ runs, teams }` |

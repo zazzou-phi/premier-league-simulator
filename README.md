@@ -123,17 +123,22 @@ How each fixture picks its scoreline is configurable:
 
 | Strategy | Behaviour |
 |----------|-----------|
-| `likeliestScore` | Modal scoreline within each outcome, then the most frequent of the three |
-| `likeliestResult` | Most frequent outcome, then its most frequent scoreline |
-| `maxPoints` | The pick maximising expected points under a predictor game's payoff |
-| `calibrated` (default) | Picks the whole season at once so W/D/L counts match what the simulation expects |
+| `plausible` (default) | The calibrated solve aimed at one sampled season, so clubs spread the way a real table does |
+| `calibrated` | Picks the whole season at once so W/D/L counts match what the simulation expects |
 | `random` | Replays one whole season from the reservoir |
 
-The first three decide each fixture from its own histogram, and that is why they distort the
-season: a draw is almost never the single likeliest outcome, so `likeliestResult` returns **zero**
-draws across 380 fixtures, while draw mass concentrates on 1–1 and 0–0, so `likeliestScore`
-returns a draw for about **70%** of them. `calibrated` fixes this by solving the season as one
-constrained assignment. See [specs/monte-carlo.md](specs/monte-carlo.md).
+All three decide the season as a whole. The per-fixture rules that used to sit alongside them are
+gone, because deciding each fixture from its own histogram cannot help but distort the season: a
+draw is almost never the single likeliest outcome, so picking the likeliest result returned **zero**
+draws across 380 fixtures, while draw mass concentrates on 1–1 and 0–0, so picking the likeliest
+scoreline returned a draw for about **70%** of them. `calibrated` fixes this by solving the season
+as one constrained assignment.
+
+`plausible` runs that same solve, but aims it at a season the batch actually produced rather than
+at the average of all of them. Targeting means leaves every club within a draw or two of the
+league average — per-club draws land at sd 0.81 where a real season sits near 2.7 — so it borrows
+the draw profile of whichever sampled season comes closest to the league total `calibrated` would
+have hit. See [specs/monte-carlo.md](specs/monte-carlo.md).
 
 ## Running it through a season
 

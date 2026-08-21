@@ -362,58 +362,6 @@ select:focus-visible,
 }
 
 /* What the selected strategy actually does. Wraps onto its own full-width line. */
-.pick-strategy-description {
-  flex-basis: 100%;
-  margin: 0;
-  max-width: 46ch;
-  text-align: right;
-  font-size: 0.7rem;
-  line-height: 1.4;
-}
-
-/* Predictor payoff, shown only while the strategy it drives is selected. */
-.scoring-rules {
-  flex-basis: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.2rem;
-}
-
-.scoring-rules-fields {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.scoring-rules-field {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-}
-
-.scoring-rules-field input {
-  width: 3.5rem;
-  padding: 0.15rem 0.3rem;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.scoring-rules-field input:disabled {
-  opacity: 0.6;
-}
-
-.scoring-rules-hint {
-  max-width: 30rem;
-  margin: 0;
-  font-size: 0.7rem;
-  text-align: right;
-}
 
 /* Segmented control. Sized by content, so all three tabs fit in both modes. */
 .view-switcher {

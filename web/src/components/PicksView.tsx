@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { SeasonState, Team } from '@shared/engine/types.js';
-import { PICK_STRATEGY_DESCRIPTIONS, PICK_STRATEGY_HINT, PICK_STRATEGY_OPTIONS } from '../lib/pickStrategy.js';
+import { PICK_STRATEGY_HINT, PICK_STRATEGY_OPTIONS } from '../lib/pickStrategy.js';
 import type { PickStrategy } from '../lib/pickStrategy.js';
 import { filterMatchesByTeam } from '../lib/matchFilters.js';
 import { FixtureList } from './FixtureList.js';
 import { LeagueTable } from './LeagueTable.js';
-import { ScoringRulesControl } from './ScoringRulesControl.js';
 import { SeasonLayout } from './SeasonLayout.js';
 
 interface Props {
@@ -20,9 +19,7 @@ interface Props {
   savingPickStrategy?: boolean;
   /** Absent in public mode, where the mode is fixed by the published snapshot. */
   onPickStrategyChange?: (strategy: PickStrategy) => void;
-  scoringRules: { exactScore: number; correctResult: number };
   /** Absent in public mode, alongside `onPickStrategyChange`. */
-  onScoringRulesChange?: (points: { exactScore: number; correctResult: number }) => void;
   selectedMatchNumber: number | null;
   onSelectMatch: (matchNumber: number | null) => void;
   onOpenMatch: (matchNumber: number) => void;
@@ -38,8 +35,6 @@ export function PicksView({
   pickStrategy,
   savingPickStrategy = false,
   onPickStrategyChange,
-  scoringRules,
-  onScoringRulesChange,
   selectedMatchNumber,
   onSelectMatch,
   onOpenMatch,
@@ -97,18 +92,6 @@ export function PicksView({
           </button>
         ))}
       </div>
-      <p className="pick-strategy-description muted">
-        {PICK_STRATEGY_DESCRIPTIONS[pickStrategy]}
-      </p>
-      {/* The payoff only means anything to the strategy it drives, so it appears with it. */}
-      {pickStrategy === 'maxPoints' && onScoringRulesChange && (
-        <ScoringRulesControl
-          exactScore={scoringRules.exactScore}
-          correctResult={scoringRules.correctResult}
-          disabled={savingPickStrategy}
-          onChange={onScoringRulesChange}
-        />
-      )}
     </div>
   );
 

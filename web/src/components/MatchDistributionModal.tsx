@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import {
   outcomeFromScoreline,
-  rankExpectedPoints,
-  type ExpectedPointsCandidate,
+  rankScorelineCandidates,
+  type ScorelineCandidate,
 } from '@shared/engine/pickStrategy.js';
 import type { MatchDistribution, ScorelineCount } from '@shared/simulation/monteCarlo.js';
 import type { ResolvedMatch } from '@shared/engine/types.js';
@@ -17,12 +17,7 @@ interface Props {
   distribution: MatchDistribution | null;
   loading?: boolean;
   error?: string | null;
-  scoringRules: { exactScore: number; correctResult: number };
   onClose: () => void;
-}
-
-function formatPoints(value: number): string {
-  return value.toFixed(2);
 }
 
 function formatPct(count: number, total: number): string {
@@ -59,9 +54,9 @@ interface OutcomeBarProps {
   scorelines: ScorelineCount[];
   baseColor: string;
   actualScoreline: Pick<ScorelineCount, 'goalsHome' | 'goalsAway'> | null;
-  /** This outcome's best candidate pick, or null when no run produced the outcome. */
-  candidate: ExpectedPointsCandidate | null;
-  /** True when `candidate` is the highest-scoring pick across all three outcomes. */
+  /** This outcome's modal scoreline, or null when no run produced the outcome. */
+  candidate: ScorelineCandidate | null;
+  /** True when `candidate` is the likeliest scoreline across all three outcomes. */
   best: boolean;
 }
 
@@ -92,10 +87,9 @@ function OutcomeBar({
         {candidate && (
           <span
             className={`outcome-bar-ev${best ? ' outcome-bar-ev-best' : ''}`}
-            title={`Best pick for this outcome: ${candidate.goalsHome}–${candidate.goalsAway}, worth ${formatPoints(candidate.expectedPoints)} points on average`}
+            title={`Likeliest scoreline for ${label}: ${candidate.goalsHome}–${candidate.goalsAway}, in ${candidate.n.toLocaleString()} of ${allTotal.toLocaleString()} runs`}
           >
-            {candidate.goalsHome}–{candidate.goalsAway} · {formatPoints(candidate.expectedPoints)}{' '}
-            pts
+            {candidate.goalsHome}–{candidate.goalsAway}
           </span>
         )}
         <span className="outcome-bar-summary">
@@ -135,21 +129,17 @@ export function MatchDistributionModal({
   distribution,
   loading = false,
   error = null,
-  scoringRules,
   onClose,
 }: Props) {
   const scorelines = distribution?.scorelines ?? [];
   const total = distribution?.outcomes.total ?? 0;
 
   const candidates = useMemo(
-    () =>
-      distribution && total > 0
-        ? rankExpectedPoints(distribution.outcomes, scorelines, scoringRules)
-        : [],
-    [distribution, scorelines, total, scoringRules],
+    () => (distribution && total > 0 ? rankScorelineCandidates(scorelines) : []),
+    [distribution, scorelines, total],
   );
   const bestCandidate = candidates[0] ?? null;
-  const candidateFor = (outcome: MatchOutcome): ExpectedPointsCandidate | null =>
+  const candidateFor = (outcome: MatchOutcome): ScorelineCandidate | null =>
     candidates.find((c) => c.outcome === outcome) ?? null;
 
   const played = match.result.status === 'played';
@@ -168,12 +158,11 @@ export function MatchDistributionModal({
       </p>
       {bestCandidate && (
         <p className="muted match-distribution-meta">
-          Best pick: <strong>
+          Likeliest scoreline:{' '}
+          <strong>
             {bestCandidate.goalsHome}–{bestCandidate.goalsAway}
           </strong>{' '}
-          · {formatPoints(bestCandidate.expectedPoints)} pts on average, scoring{' '}
-          {scoringRules.exactScore} for an exact score and {scoringRules.correctResult} for
-          the result
+          · {formatPct(bestCandidate.n, total)} of {total.toLocaleString()} runs
         </p>
       )}
       {actualScoreline ? (

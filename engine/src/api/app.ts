@@ -1,10 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import {
-  parsePickStrategy,
-  SCORING_POINTS_MAX,
-  type ScoringRules,
-} from '../engine/pickStrategy.js';
+import { parsePickStrategy } from '../engine/pickStrategy.js';
 import { getDefaultFixturesCsvPath, loadFixtures } from '../data/fixturesCsv.js';
 import { SEASON_ELO_DELTA_WEIGHT_MAX } from '../engine/seasonElo.js';
 import { MONTE_CARLO_MAX_RUNS, runMonteCarlo } from '../simulation/monteCarlo.js';
@@ -24,39 +20,6 @@ function numberInRange(value: unknown, label: string, min: number, max: number):
     throw new ApiError(`${label} must be a number between ${min} and ${max}`, 400);
   }
   return parsed;
-}
-
-interface ScoringRulesBody {
-  exactScore?: number;
-  correctResult?: number;
-}
-
-/**
- * Validate a predictor payoff, taking either side from `current` when the body omits it.
- *
- * An exact score paying less than a bare correct result inverts the `maxPoints` strategy — it
- * would start preferring an outcome's *least* likely scoreline — so reject rather than clamp.
- */
-function validateScoringRules(
-  body: ScoringRulesBody,
-  current: ScoringRules,
-): ScoringRules {
-  const exactScore = numberInRange(
-    body.exactScore ?? current.exactScore,
-    'exactScore',
-    0,
-    SCORING_POINTS_MAX,
-  );
-  const correctResult = numberInRange(
-    body.correctResult ?? current.correctResult,
-    'correctResult',
-    0,
-    SCORING_POINTS_MAX,
-  );
-  if (exactScore < correctResult) {
-    throw new ApiError('exactScore must be at least correctResult', 400);
-  }
-  return { exactScore, correctResult };
 }
 
 export function createApiApp(repo: Repository): Hono {
@@ -114,31 +77,6 @@ export function createApiApp(repo: Repository): Hono {
     const value = numberInRange(body.value, 'value', 0, SEASON_ELO_DELTA_WEIGHT_MAX);
     return c.json({
       value: repo.updateSettings({ seasonEloDeltaWeight: value }).seasonEloDeltaWeight,
-    });
-  });
-
-  app.get('/api/v1/settings/scoring-rules', (c) => {
-    const settings = repo.getSettings();
-    return c.json({
-      exactScore: settings.exactScorePoints,
-      correctResult: settings.correctResultPoints,
-    });
-  });
-
-  app.put('/api/v1/settings/scoring-rules', async (c) => {
-    const body = await c.req.json<ScoringRulesBody>();
-    const current = repo.getSettings();
-    const points = validateScoringRules(body, {
-      exactScore: current.exactScorePoints,
-      correctResult: current.correctResultPoints,
-    });
-    const updated = repo.updateSettings({
-      exactScorePoints: points.exactScore,
-      correctResultPoints: points.correctResult,
-    });
-    return c.json({
-      exactScore: updated.exactScorePoints,
-      correctResult: updated.correctResultPoints,
     });
   });
 
@@ -324,28 +262,12 @@ export function createApiApp(repo: Repository): Hono {
 
   app.patch('/api/v1/predictions/:id', async (c) => {
     const id = intParam(c.req.param('id'), 'id');
-    const body = await c.req.json<
-      { name?: string; pickStrategy?: string } & ScoringRulesBody
-    >();
-
-    // The payoff is snapshotted per batch, but pick strategy is re-selectable after the fact,
-    // so its parameter has to be too — otherwise retuning would mean re-running the batch.
-    const retunes = body.exactScore !== undefined || body.correctResult !== undefined;
-    const current = repo.getPrediction(id);
-    const points = retunes
-      ? validateScoringRules(body, {
-          exactScore: current.exactScorePoints,
-          correctResult: current.correctResultPoints,
-        })
-      : null;
+    const body = await c.req.json<{ name?: string; pickStrategy?: string }>();
 
     return c.json(
       repo.updatePrediction(id, {
         ...(body.name?.trim() ? { name: body.name.trim() } : {}),
         ...(body.pickStrategy ? { pickStrategy: parsePickStrategy(body.pickStrategy) } : {}),
-        ...(points
-          ? { exactScorePoints: points.exactScore, correctResultPoints: points.correctResult }
-          : {}),
       }),
     );
   });

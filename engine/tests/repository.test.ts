@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { MatchLockedError, NotFoundError, ValidationError } from '../src/db/errors.js';
 import type { Repository } from '../src/db/repository.js';
 import { DEFAULT_UPSET_VARIANCE } from '../src/engine/matchSimulator.js';
+import { PICK_STRATEGIES } from '../src/engine/pickStrategy.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../src/engine/seasonElo.js';
 import { runMonteCarlo } from '../src/simulation/monteCarlo.js';
 import { SeasonRunner } from '../src/simulation/runner.js';
@@ -317,7 +318,7 @@ describe('predictions', () => {
   it('builds a picked season for every pick strategy', async () => {
     const { prediction } = await seedPrediction(25);
 
-    for (const strategy of ['likeliestScore', 'likeliestResult', 'random', 'maxPoints', 'calibrated'] as const) {
+    for (const strategy of PICK_STRATEGIES) {
       repo.updatePrediction(prediction.id, { pickStrategy: strategy });
       const state = repo.buildPredictionState(prediction.id);
       expect(state.matches).toHaveLength(380);

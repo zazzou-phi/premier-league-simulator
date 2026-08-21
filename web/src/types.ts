@@ -27,9 +27,6 @@ export interface Prediction {
   name: string;
   runs: number;
   pickStrategy: PickStrategy;
-  /** Predictor-game payoff the `maxPoints` strategy optimises against on this batch. */
-  exactScorePoints: number;
-  correctResultPoints: number;
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */
   asOfMatchday: number | null;
   lockedCount: number;
