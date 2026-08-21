@@ -26,9 +26,6 @@ export const appSettings = sqliteTable('app_settings', {
   id: integer('id').primaryKey(),
   upsetVariance: real('upset_variance').notNull(),
   seasonEloDeltaWeight: real('season_elo_delta_weight').notNull(),
-  /** Predictor-game payoff driving the `maxPoints` strategy. */
-  exactScorePoints: real('exact_score_points').notNull().default(3),
-  correctResultPoints: real('correct_result_points').notNull().default(1),
 });
 
 export const simulations = sqliteTable('simulations', {
@@ -95,15 +92,9 @@ export const predictions = sqliteTable('predictions', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
   runs: integer('runs').notNull(),
-  pickStrategy: text('pick_strategy').notNull().$type<PickStrategy>().default('calibrated'),
+  pickStrategy: text('pick_strategy').notNull().$type<PickStrategy>().default('plausible'),
   upsetVariance: real('upset_variance').notNull(),
   seasonEloDeltaWeight: real('season_elo_delta_weight').notNull(),
-  /**
-   * Predictor-game payoff the `maxPoints` strategy optimises against on this batch. Seeded
-   * from settings when the batch runs, then retunable per batch like `pickStrategy` itself.
-   */
-  exactScorePoints: real('exact_score_points').notNull().default(3),
-  correctResultPoints: real('correct_result_points').notNull().default(1),
   elapsedMs: integer('elapsed_ms').notNull().default(0),
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */
   asOfMatchday: integer('as_of_matchday'),

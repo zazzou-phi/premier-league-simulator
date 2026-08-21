@@ -1,14 +1,16 @@
 import type Database from 'better-sqlite3';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { gradePrediction, type AccuracyReport } from '../engine/accuracy.js';
-import { calibratedPicksFor } from '../engine/calibratedPicks.js';
+import {
+  calibratedPicksFor,
+  plausiblePicksFor,
+  type SampledSeason,
+} from '../engine/calibratedPicks.js';
 import {
   choosePick,
   DEFAULT_PICK_STRATEGY,
-  DEFAULT_SCORING_RULES,
   parsePickStrategy,
   type PickStrategy,
-  type ScoringRules,
   type ScorelineCount,
 } from '../engine/pickStrategy.js';
 import { DEFAULT_UPSET_VARIANCE } from '../engine/matchSimulator.js';
@@ -37,9 +39,7 @@ export interface Prediction {
   pickStrategy: PickStrategy;
   upsetVariance: number;
   seasonEloDeltaWeight: number;
-  /** Predictor-game payoff the `maxPoints` strategy optimises against on this batch. */
-  exactScorePoints: number;
-  correctResultPoints: number;
+  /** Predictor-game payoff picks are scored against on this batch. */
   elapsedMs: number;
   /** Lowest matchday still unplayed when the batch ran; null for pre-provenance rows. */
   asOfMatchday: number | null;
@@ -87,8 +87,6 @@ export interface Page<T> {
 export interface AppSettings {
   upsetVariance: number;
   seasonEloDeltaWeight: number;
-  exactScorePoints: number;
-  correctResultPoints: number;
 }
 
 function nowIso(): string {
@@ -116,12 +114,7 @@ function mapFixture(row: typeof schema.fixtures.$inferSelect): Fixture {
   };
 }
 
-function scoringRulesOf(prediction: Prediction): ScoringRules {
-  return {
-    exactScore: prediction.exactScorePoints,
-    correctResult: prediction.correctResultPoints,
-  };
-}
+
 
 function mapPrediction(row: typeof schema.predictions.$inferSelect): Prediction {
   return {
@@ -131,8 +124,6 @@ function mapPrediction(row: typeof schema.predictions.$inferSelect): Prediction 
     pickStrategy: parsePickStrategy(row.pickStrategy),
     upsetVariance: row.upsetVariance,
     seasonEloDeltaWeight: row.seasonEloDeltaWeight,
-    exactScorePoints: row.exactScorePoints,
-    correctResultPoints: row.correctResultPoints,
     elapsedMs: row.elapsedMs,
     asOfMatchday: row.asOfMatchday,
     lockedCount: row.lockedCount,
@@ -246,15 +237,11 @@ export class Repository {
       return {
         upsetVariance: DEFAULT_UPSET_VARIANCE,
         seasonEloDeltaWeight: DEFAULT_SEASON_ELO_DELTA_WEIGHT,
-        exactScorePoints: DEFAULT_SCORING_RULES.exactScore,
-        correctResultPoints: DEFAULT_SCORING_RULES.correctResult,
       };
     }
     return {
       upsetVariance: row.upsetVariance,
       seasonEloDeltaWeight: row.seasonEloDeltaWeight,
-      exactScorePoints: row.exactScorePoints,
-      correctResultPoints: row.correctResultPoints,
     };
   }
 
@@ -488,6 +475,13 @@ export class Repository {
 
   // ---------------------------------------------------------- predictions
 
+  /**
+   * Saved batches, most recently *run* first.
+   *
+   * Ordered on `createdAt` rather than `updatedAt` so that renaming an old batch, or switching
+   * its pick strategy, does not promote it over newer runs — the first item is what the app
+   * opens on, and that should be the last simulation run.
+   */
   listPredictions(page = 1, pageSize = 25): Page<Prediction> {
     const total = (
       this.db.select({ n: sql<number>`count(*)` }).from(schema.predictions).get() ?? { n: 0 }
@@ -495,7 +489,7 @@ export class Repository {
     const items = this.db
       .select()
       .from(schema.predictions)
-      .orderBy(sql`${schema.predictions.updatedAt} DESC`)
+      .orderBy(sql`${schema.predictions.createdAt} DESC`)
       .limit(pageSize)
       .offset((page - 1) * pageSize)
       .all()
@@ -509,11 +503,12 @@ export class Repository {
     return mapPrediction(row);
   }
 
+  /** The batch an export ships: the last one run, matching what the app opens on. */
   getActivePrediction(): Prediction | null {
     const row = this.db
       .select()
       .from(schema.predictions)
-      .orderBy(sql`${schema.predictions.updatedAt} DESC`)
+      .orderBy(sql`${schema.predictions.createdAt} DESC`)
       .limit(1)
       .get();
     return row ? mapPrediction(row) : null;
@@ -524,18 +519,12 @@ export class Repository {
     patch: {
       name?: string;
       pickStrategy?: PickStrategy;
-      exactScorePoints?: number;
-      correctResultPoints?: number;
     },
   ): Prediction {
     this.getPrediction(id);
     const set: Record<string, unknown> = { updatedAt: nowIso() };
     if (patch.name !== undefined) set.name = patch.name;
     if (patch.pickStrategy !== undefined) set.pickStrategy = patch.pickStrategy;
-    if (patch.exactScorePoints !== undefined) set.exactScorePoints = patch.exactScorePoints;
-    if (patch.correctResultPoints !== undefined) {
-      set.correctResultPoints = patch.correctResultPoints;
-    }
     this.db.update(schema.predictions).set(set).where(eq(schema.predictions.id, id)).run();
     return this.getPrediction(id);
   }
@@ -576,8 +565,6 @@ export class Repository {
           pickStrategy: DEFAULT_PICK_STRATEGY,
           upsetVariance: settings.upsetVariance,
           seasonEloDeltaWeight: settings.seasonEloDeltaWeight,
-          exactScorePoints: settings.exactScorePoints,
-          correctResultPoints: settings.correctResultPoints,
           elapsedMs: result.elapsedMs,
           asOfMatchday,
           lockedCount: lockedMatches.length,
@@ -836,6 +823,32 @@ export class Repository {
     );
   }
 
+  /**
+   * Every season in the batch's reservoir, in sample order. `plausible` ranks these to find the
+   * draw profile it aims at, where `random` replays just the one {@link setActiveSample} names.
+   */
+  private getSampledSeasons(predictionId: number): SampledSeason[] {
+    const rows = this.db
+      .select()
+      .from(schema.predictionSampledSeasons)
+      .where(eq(schema.predictionSampledSeasons.predictionId, predictionId))
+      .all();
+
+    const bySample = new Map<number, Map<number, { goalsHome: number; goalsAway: number }>>();
+    for (const row of rows) {
+      let season = bySample.get(row.sampleIndex);
+      if (!season) {
+        season = new Map();
+        bySample.set(row.sampleIndex, season);
+      }
+      season.set(row.matchNumber, { goalsHome: row.goalsHome, goalsAway: row.goalsAway });
+    }
+
+    return [...bySample.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, season]) => season);
+  }
+
   countSampledSeasons(predictionId: number): number {
     const row = this.db
       .select({ n: sql<number>`count(distinct sample_index)` })
@@ -862,6 +875,20 @@ export class Repository {
       .run();
   }
 
+  /** The season-wide assignment a strategy picks from, or null for the per-fixture rules. */
+  private seasonPicksFor(
+    predictionId: number,
+    strategy: PickStrategy,
+    fixtures: Fixture[],
+    distributions: ReturnType<Repository['getPredictionDistributions']>,
+  ): Map<number, { goalsHome: number; goalsAway: number }> | null {
+    if (strategy === 'calibrated') return calibratedPicksFor(fixtures, distributions);
+    if (strategy === 'plausible') {
+      return plausiblePicksFor(fixtures, distributions, this.getSampledSeasons(predictionId));
+    }
+    return null;
+  }
+
   /** Collapse a prediction's distributions into a single representative season. */
   buildPredictionState(predictionId: number): SeasonState {
     const prediction = this.getPrediction(predictionId);
@@ -873,11 +900,12 @@ export class Repository {
     const sample =
       prediction.pickStrategy === 'random' ? this.getActiveSampleResults(predictionId) : null;
     // Season-wide, so it is solved once for the whole fixture list rather than per fixture.
-    const calibrated =
-      prediction.pickStrategy === 'calibrated'
-        ? calibratedPicksFor(fixtures, distributions)
-        : null;
-    const rules = scoringRulesOf(prediction);
+    const seasonPicks = this.seasonPicksFor(
+      predictionId,
+      prediction.pickStrategy,
+      fixtures,
+      distributions,
+    );
 
     const matches: ResolvedMatch[] = fixtures.map((fixture) => {
       const teamHome = teamsById.get(fixture.teamHomeId)!;
@@ -898,13 +926,8 @@ export class Repository {
       const pick = distribution
         ? choosePick({
             strategy: prediction.pickStrategy,
-            outcomeCounts: distribution.outcomes,
-            scorelines: distribution.scorelines,
-            homeElo: teamHome.elo,
-            awayElo: teamAway.elo,
             savedSample: sample?.get(fixture.matchNumber) ?? null,
-            calibratedPick: calibrated?.get(fixture.matchNumber) ?? null,
-            rules,
+            seasonPick: seasonPicks?.get(fixture.matchNumber) ?? null,
           })
         : null;
 
@@ -942,7 +965,10 @@ export class Repository {
           prediction.pickStrategy === 'random'
             ? this.getActiveSampleResults(predictionId)
             : null,
-        rules: scoringRulesOf(prediction),
+        sampledSeasons:
+          prediction.pickStrategy === 'plausible'
+            ? this.getSampledSeasons(predictionId)
+            : null,
       },
       prediction.runs,
     );

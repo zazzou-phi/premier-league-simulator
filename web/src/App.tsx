@@ -20,7 +20,6 @@ import { TeamRatingsModal } from './components/TeamRatingsModal.js';
 import type { AppView } from './lib/appView.js';
 import {
   DEFAULT_PICK_STRATEGY,
-  DEFAULT_SCORING_RULES,
   formatPickStrategy,
   type PickStrategy,
 } from './lib/pickStrategy.js';
@@ -156,8 +155,6 @@ export function App() {
               name: meta.predictionName ?? 'Season',
               runs: meta.runs,
               pickStrategy: DEFAULT_PICK_STRATEGY,
-              exactScorePoints: DEFAULT_SCORING_RULES.exactScore,
-              correctResultPoints: DEFAULT_SCORING_RULES.correctResult,
               asOfMatchday: meta.asOfMatchday ?? null,
               lockedCount: 0,
               createdAt: meta.exportedAt,
@@ -195,15 +192,6 @@ export function App() {
   }, [toast]);
 
   const pickStrategy = projections.prediction?.pickStrategy ?? DEFAULT_PICK_STRATEGY;
-
-  const scoringRules = useMemo(
-    () => ({
-      exactScore: projections.prediction?.exactScorePoints ?? DEFAULT_SCORING_RULES.exactScore,
-      correctResult:
-        projections.prediction?.correctResultPoints ?? DEFAULT_SCORING_RULES.correctResult,
-    }),
-    [projections.prediction],
-  );
 
   // Same rule the engine uses for naming projections, so header and CLI never disagree.
   const nextMatchday = useMemo(
@@ -262,26 +250,6 @@ export function App() {
       setToast(`Scorelines picked by ${formatPickStrategy(strategy).toLowerCase()}`);
     } catch (err) {
       setError(errorMessage(err, 'Failed to update the pick strategy'));
-    } finally {
-      setSavingPickStrategy(false);
-    }
-  };
-
-  const handleScoringRulesChange = async (points: {
-    exactScore: number;
-    correctResult: number;
-  }) => {
-    const prediction = projections.prediction;
-    if (!prediction) return;
-    setError(null);
-    setSavingPickStrategy(true);
-    try {
-      const updated = await api.setPredictionScoringRules(prediction.id, points);
-      const picks = await api.getPredictionState(prediction.id).catch(() => null);
-      setProjections((prev) => ({ ...prev, prediction: updated, picks }));
-      setToast(`Predictor scoring set to ${points.exactScore}/${points.correctResult}`);
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to update predictor scoring'));
     } finally {
       setSavingPickStrategy(false);
     }
@@ -470,10 +438,6 @@ export function App() {
                   ? undefined
                   : (mode) => void handlePickStrategyChange(mode)
               }
-              scoringRules={scoringRules}
-              onScoringRulesChange={
-                publicMode ? undefined : (points) => void handleScoringRulesChange(points)
-              }
               selectedMatchNumber={selectedMatchNumber}
               onSelectMatch={setSelectedMatchNumber}
               onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
@@ -554,7 +518,6 @@ export function App() {
           distribution={distribution.data}
           loading={distribution.loading}
           error={distribution.error}
-          scoringRules={scoringRules}
           onClose={() => setDistribution(null)}
         />
       )}

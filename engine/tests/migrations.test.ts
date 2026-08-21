@@ -43,7 +43,7 @@ describe('pick strategy migration', () => {
   }
 
   it('renames consensus_mode to pick_strategy', () => {
-    const id = insertPrediction('likeliestResult');
+    const id = insertPrediction('calibrated');
     simulateConsensusModeColumn();
 
     initSchema(sqlite);
@@ -54,46 +54,58 @@ describe('pick strategy migration', () => {
     const names = new Set(columns.map((column) => column.name));
     expect(names.has('pick_strategy')).toBe(true);
     expect(names.has('consensus_mode')).toBe(false);
-    expect(strategyOf(id)).toBe('likeliestResult');
+    expect(strategyOf(id)).toBe('calibrated');
   });
 
-  it('maps every pre-rename strategy name onto its current one', () => {
-    const ids = {
-      scoreline: insertPrediction('scoreline', 'Scoreline'),
-      outcome: insertPrediction('outcome', 'Outcome'),
-      expectedPoints: insertPrediction('expectedPoints', 'Expected points'),
-      sample: insertPrediction('sample', 'Sample'),
-    };
+  it('maps the surviving pre-rename name onto its current one', () => {
+    const id = insertPrediction('sample', 'Sample');
 
     initSchema(sqlite);
 
-    expect(strategyOf(ids.scoreline)).toBe('likeliestScore');
-    expect(strategyOf(ids.outcome)).toBe('likeliestResult');
-    expect(strategyOf(ids.expectedPoints)).toBe('maxPoints');
-    expect(strategyOf(ids.sample)).toBe('random');
+    expect(strategyOf(id)).toBe('random');
   });
 
-  it('moves legacy scoreline batches onto the default of the build that introduced the step', () => {
-    const id = insertPrediction('scoreline');
+  it('moves every withdrawn strategy onto the default', () => {
+    const ids = [
+      'maxPoints',
+      'expectedPoints',
+      'likeliestScore',
+      'likeliestResult',
+      'scoreline',
+      'outcome',
+    ].map((name) => insertPrediction(name, name));
+
+    initSchema(sqlite);
+
+    for (const id of ids) expect(strategyOf(id)).toBe(DEFAULT_PICK_STRATEGY);
+  });
+
+  it('moves batches off the superseded calibrated default, once', () => {
+    const id = insertPrediction('calibrated', 'Ran under the old default');
     simulateLegacyDatabase();
 
     initSchema(sqlite);
+    expect(strategyOf(id)).toBe('plausible');
 
-    expect(strategyOf(id)).toBe('likeliestResult');
+    // Choosing calibrated deliberately afterwards must survive every later open.
+    sqlite.prepare(`UPDATE predictions SET pick_strategy = 'calibrated' WHERE id = ?`).run(id);
+    initSchema(sqlite);
+    initSchema(sqlite);
+    expect(strategyOf(id)).toBe('calibrated');
   });
 
-  it('leaves a deliberate switch back to the likeliest score alone on later opens', () => {
-    const id = insertPrediction('scoreline');
+  it('leaves a deliberate choice of a current strategy alone on later opens', () => {
+    const id = insertPrediction('likeliestScore');
     simulateLegacyDatabase();
     initSchema(sqlite);
-    expect(strategyOf(id)).toBe('likeliestResult');
+    expect(strategyOf(id)).toBe(DEFAULT_PICK_STRATEGY);
 
-    // The user picks the likeliest score again. Reopening must not undo that.
-    sqlite.prepare(`UPDATE predictions SET pick_strategy = 'likeliestScore' WHERE id = ?`).run(id);
+    // The user switches to calibrated. Reopening must not undo that.
+    sqlite.prepare(`UPDATE predictions SET pick_strategy = 'calibrated' WHERE id = ?`).run(id);
     initSchema(sqlite);
     initSchema(sqlite);
 
-    expect(strategyOf(id)).toBe('likeliestScore');
+    expect(strategyOf(id)).toBe('calibrated');
   });
 
   it('remaps strategies that no longer exist on every open', () => {
@@ -107,60 +119,70 @@ describe('pick strategy migration', () => {
   });
 
   it('records the migration so a fresh database is never backfilled', () => {
-    expect(sqlite.pragma('user_version', { simple: true })).toBe(2);
+    expect(sqlite.pragma('user_version', { simple: true })).toBe(3);
 
     // A batch created after the migration keeps whatever strategy it was given.
-    const id = insertPrediction('likeliestScore');
+    const id = insertPrediction('random');
     initSchema(sqlite);
 
-    expect(strategyOf(id)).toBe('likeliestScore');
+    expect(strategyOf(id)).toBe('random');
   });
 });
 
-describe('predictor points migration', () => {
-  /** Strip the payoff columns so the next initSchema sees a pre-maxPoints database. */
-  function dropScoringRulesColumns(table: string): void {
-    sqlite.exec(`ALTER TABLE ${table} DROP COLUMN exact_score_points`);
-    sqlite.exec(`ALTER TABLE ${table} DROP COLUMN correct_result_points`);
+describe('predictor payoff removal', () => {
+  /** Put the payoff columns back, so the next initSchema sees a database that still has them. */
+  function addScoringRulesColumns(table: string): void {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN exact_score_points REAL NOT NULL DEFAULT 3`);
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN correct_result_points REAL NOT NULL DEFAULT 1`);
   }
 
-  it('adds the payoff columns to predictions carried over from before the mode', () => {
-    const id = insertPrediction('likeliestResult');
-    dropScoringRulesColumns('predictions');
+  const columnsOf = (table: string) =>
+    new Set(
+      (sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
+        (column) => column.name,
+      ),
+    );
+
+  it('drops the payoff columns from predictions, leaving the batch itself intact', () => {
+    const id = insertPrediction('calibrated', 'Carried over');
+    addScoringRulesColumns('predictions');
 
     initSchema(sqlite);
 
+    const columns = columnsOf('predictions');
+    expect(columns.has('exact_score_points')).toBe(false);
+    expect(columns.has('correct_result_points')).toBe(false);
+
     const row = sqlite
-      .prepare(
-        `SELECT exact_score_points AS exact, correct_result_points AS result
-           FROM predictions WHERE id = ?`,
-      )
-      .get(id) as { exact: number; result: number };
-    expect(row).toEqual({ exact: 3, result: 1 });
+      .prepare(`SELECT name, pick_strategy AS strategy FROM predictions WHERE id = ?`)
+      .get(id) as { name: string; strategy: string };
+    expect(row).toEqual({ name: 'Carried over', strategy: 'calibrated' });
   });
 
-  it('adds the payoff columns to existing settings without touching the other values', () => {
+  it('drops them from settings without disturbing the other values', () => {
     sqlite
       .prepare(
         `INSERT INTO app_settings (id, upset_variance, season_elo_delta_weight) VALUES (1, 0.35, 2)`,
       )
       .run();
-    dropScoringRulesColumns('app_settings');
+    addScoringRulesColumns('app_settings');
 
     initSchema(sqlite);
 
+    expect(columnsOf('app_settings').has('exact_score_points')).toBe(false);
     const row = sqlite
       .prepare(
-        `SELECT upset_variance AS upset, exact_score_points AS exact, correct_result_points AS result
+        `SELECT upset_variance AS upset, season_elo_delta_weight AS weight
            FROM app_settings WHERE id = 1`,
       )
-      .get() as { upset: number; exact: number; result: number };
-    expect(row).toEqual({ upset: 0.35, exact: 3, result: 1 });
+      .get() as { upset: number; weight: number };
+    expect(row).toEqual({ upset: 0.35, weight: 2 });
   });
 
   it('is idempotent across repeated opens', () => {
-    dropScoringRulesColumns('predictions');
+    addScoringRulesColumns('predictions');
     initSchema(sqlite);
     expect(() => initSchema(sqlite)).not.toThrow();
+    expect(columnsOf('predictions').has('exact_score_points')).toBe(false);
   });
 });

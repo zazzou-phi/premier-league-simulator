@@ -38,6 +38,7 @@ export interface CalibratedFixture {
 export function calibratedPicksFor(
   fixtures: Array<{ matchNumber: number; teamHomeId: number; teamAwayId: number }>,
   distributions: Map<number, { outcomes: OutcomeCounts; scorelines: ScorelineCount[] }>,
+  options: CalibratedPickOptions = {},
 ): Map<number, { goalsHome: number; goalsAway: number }> {
   return buildCalibratedPicks(
     fixtures.flatMap((fixture) => {
@@ -53,7 +54,96 @@ export function calibratedPicksFor(
         },
       ];
     }),
+    options,
   );
+}
+
+
+/** A fixture list paired with the batch's distributions, as every caller here holds them. */
+type FixtureRef = { matchNumber: number; teamHomeId: number; teamAwayId: number };
+type Distributions = Map<number, { outcomes: OutcomeCounts; scorelines: ScorelineCount[] }>;
+/** One simulated season from the batch's reservoir, keyed by match number. */
+export type SampledSeason = ReadonlyMap<number, { goalsHome: number; goalsAway: number }>;
+
+/** How many draws each club takes in one sampled season. */
+export function drawTargetsFromSeason(
+  fixtures: FixtureRef[],
+  season: SampledSeason,
+): Map<number, number> {
+  const targets = new Map<number, number>();
+  const bump = (teamId: number, by: number) =>
+    targets.set(teamId, (targets.get(teamId) ?? 0) + by);
+
+  for (const fixture of fixtures) {
+    bump(fixture.teamHomeId, 0);
+    bump(fixture.teamAwayId, 0);
+    const result = season.get(fixture.matchNumber);
+    if (result && result.goalsHome === result.goalsAway) {
+      bump(fixture.teamHomeId, 1);
+      bump(fixture.teamAwayId, 1);
+    }
+  }
+  return targets;
+}
+
+/** Draws the batch expects across the whole fixture list. */
+function expectedLeagueDraws(fixtures: FixtureRef[], distributions: Distributions): number {
+  let total = 0;
+  for (const fixture of fixtures) {
+    const counts = distributions.get(fixture.matchNumber)?.outcomes;
+    if (!counts) continue;
+    const runs = counts.homeWin + counts.draw + counts.awayWin;
+    if (runs > 0) total += counts.draw / runs;
+  }
+  return total;
+}
+
+/**
+ * The calibrated solve aimed at a season that could actually happen.
+ *
+ * `calibratedPicksFor` targets each club's *mean* draws, which no single season ever matches:
+ * the table it emits spreads clubs over about a third of the range a real one does, because a
+ * mean has no variance in it. This aims the same solve at one of the seasons in the batch's
+ * reservoir instead — real draw counts, with real spread.
+ *
+ * Which season is decided on league total alone: the one whose draws come closest to what the
+ * batch expects, ties going to the earliest sample. Reservoir order is stable and the
+ * comparison is strict, so the strategy is deterministic given the batch. It keeps the
+ * league-level calibration its sibling guarantees and relaxes the per-club distribution around
+ * it, which is the only part that was ever too even.
+ *
+ * The candidates are the sampled seasons alone. Including the mean-targeted solve would let the
+ * strategy quietly collapse back into `calibrated` on batches where no sample beat it, which is
+ * the one thing a caller choosing this strategy has ruled out. With no reservoir to draw on
+ * there is nothing to be plausible about, and it falls back to the mean.
+ */
+export function plausiblePicksFor(
+  fixtures: FixtureRef[],
+  distributions: Distributions,
+  sampledSeasons: readonly SampledSeason[],
+): Map<number, { goalsHome: number; goalsAway: number }> {
+  if (sampledSeasons.length === 0) return calibratedPicksFor(fixtures, distributions);
+
+  const expected = expectedLeagueDraws(fixtures, distributions);
+  let chosen: Map<number, number> | null = null;
+  let closest = Number.POSITIVE_INFINITY;
+
+  for (const season of sampledSeasons) {
+    const drawTargets = drawTargetsFromSeason(fixtures, season);
+    // Each draw is counted by both its clubs, so the vector sums to twice the league total.
+    let doubled = 0;
+    for (const target of drawTargets.values()) doubled += target;
+
+    const levelError = Math.abs(doubled / 2 - expected);
+    if (levelError < closest) {
+      closest = levelError;
+      chosen = drawTargets;
+    }
+  }
+
+  return chosen
+    ? calibratedPicksFor(fixtures, distributions, { drawTargets: chosen })
+    : calibratedPicksFor(fixtures, distributions);
 }
 
 /** Stands in for log 0. Finite so it survives being added to a bias. */
@@ -126,12 +216,26 @@ function outcomeOf(slot: Slot, drawBias: number, awayBias: number): MatchOutcome
   return home >= away ? 'homeWin' : 'awayWin';
 }
 
+export interface CalibratedPickOptions {
+  /**
+   * Per-team draw targets replacing the expectations read off the distributions.
+   *
+   * The default targets are each team's *mean* draws, so the picked table is under-dispersed:
+   * every club lands within a draw or two of the league average, where a real season spreads
+   * them over roughly three times that range. Passing a target vector sampled from the batch
+   * instead — one simulated season's per-team draw counts — keeps the solve exactly as it is
+   * but aims it at a plausible season rather than the average of all of them.
+   */
+  drawTargets?: ReadonlyMap<number, number>;
+}
+
 /**
  * Pick one scoreline per fixture so the season's outcome counts match the simulation's own
- * expectations. Deterministic: no randomness, and every sort is total.
+ * expectations. Deterministic given its targets: no randomness, and every sort is total.
  */
 export function buildCalibratedPicks(
   fixtures: CalibratedFixture[],
+  options: CalibratedPickOptions = {},
 ): Map<number, { goalsHome: number; goalsAway: number }> {
   const slots: Slot[] = [];
 
@@ -172,7 +276,7 @@ export function buildCalibratedPicks(
   }
 
   // Each draw is counted by both its teams, so the per-team targets must sum to an even number.
-  const expectedByTeam = teamIds.map((id) => expectedDraws.get(id)!);
+  const expectedByTeam = teamIds.map((id) => options.drawTargets?.get(id) ?? expectedDraws.get(id)!);
   const drawSlots = 2 * Math.round(expectedByTeam.reduce((sum, value) => sum + value, 0) / 2);
   const rounded = largestRemainder(expectedByTeam, drawSlots);
   const drawTargets = new Map(teamIds.map((id, index) => [id, rounded[index]!]));

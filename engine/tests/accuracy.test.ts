@@ -110,7 +110,7 @@ describe('gradePrediction', () => {
   ) =>
     gradePrediction(
       {
-        pickStrategy: 'likeliestScore',
+        pickStrategy: 'calibrated',
         fixtures: [fixture],
         teamsById,
         distributions: new Map([[1, distribution]]),

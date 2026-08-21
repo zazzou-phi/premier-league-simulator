@@ -1,10 +1,13 @@
-import { calibratedPicksFor } from './calibratedPicks.js';
+import {
+  calibratedPicksFor,
+  plausiblePicksFor,
+  type SampledSeason,
+} from './calibratedPicks.js';
 import {
   choosePick,
   outcomeFromScoreline,
   type PickStrategy,
   type MatchOutcome,
-  type ScoringRules,
   type ScorelineCount,
 } from './pickStrategy.js';
 import type { Fixture, Team } from './types.js';
@@ -98,8 +101,8 @@ export interface GradeablePrediction {
   lockedAtRunTime: Set<number>;
   /** Result for each fixture from the active sampled season; used by the `random` strategy. */
   activeSample?: Map<number, { goalsHome: number; goalsAway: number }> | null;
-  /** Predictor-game payoff; used by the `maxPoints` strategy. */
-  rules?: ScoringRules;
+  /** The batch's whole reservoir; `plausible` ranks these to choose its draw profile. */
+  sampledSeasons?: readonly SampledSeason[] | null;
 }
 
 export function outcomeOf(goalsHome: number, goalsAway: number): MatchOutcome {
@@ -211,10 +214,12 @@ export function gradePrediction(input: GradeablePrediction, runs: number): Accur
   // Solved over the whole fixture list, including the locked ones. Their distributions are
   // degenerate, so they pin themselves and contribute their known result to the targets — which
   // is what keeps a batch's picks stable as results land.
-  const calibrated =
+  const seasonPicks =
     input.pickStrategy === 'calibrated'
       ? calibratedPicksFor(input.fixtures, input.distributions)
-      : null;
+      : input.pickStrategy === 'plausible'
+        ? plausiblePicksFor(input.fixtures, input.distributions, input.sampledSeasons ?? [])
+        : null;
 
   for (const fixture of input.fixtures) {
     if (input.lockedAtRunTime.has(fixture.matchNumber)) {
@@ -240,13 +245,8 @@ export function gradePrediction(input: GradeablePrediction, runs: number): Accur
 
     const predictedScoreline = choosePick({
       strategy: input.pickStrategy,
-      outcomeCounts: distribution.outcomes,
-      scorelines: distribution.scorelines,
-      homeElo: teamHome.elo,
-      awayElo: teamAway.elo,
       savedSample: input.activeSample?.get(fixture.matchNumber) ?? null,
-      calibratedPick: calibrated?.get(fixture.matchNumber) ?? null,
-      rules: input.rules,
+      seasonPick: seasonPicks?.get(fixture.matchNumber) ?? null,
     });
 
     const scorelineHits = distribution.scorelines.find(

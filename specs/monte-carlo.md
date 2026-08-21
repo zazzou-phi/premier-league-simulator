@@ -91,15 +91,16 @@ the same batches:
 
 | Strategy | scoreline flips | outcome flips |
 |---|---|---|
-| `likeliestScore` | 11.6% | 6.5% |
-| `likeliestResult` | 39.7% | **0.8%** |
+| `likeliestScore` *(withdrawn)* | 11.6% | 6.5% |
+| `likeliestResult` *(withdrawn)* | 39.7% | **0.8%** |
 | `calibrated` | 34.3% | 6.7% |
 
-`likeliestResult` picks the outcome mode, and outcome modes are well separated (median top-two
-gap 23pp), so it almost never flips. `calibrated` solves the season under a constraint on the
+`likeliestResult` picked the outcome mode, and outcome modes are well separated (median top-two
+gap 23pp), so it almost never flipped. `calibrated` solves the season under a constraint on the
 W/D/L counts, so when two fixtures are near-tied for which of them gets a draw, the constraint
 must pick one — and that choice flips easily. This is the price of the calibration and is worth
-knowing when a pick changes between two projections of the same week.
+knowing when a pick changes between two projections of the same week. `plausible` inherits it,
+and adds the reservoir's own variation on top: a different batch samples different seasons.
 
 ### Choosing the default
 
@@ -128,34 +129,35 @@ Per team, derived from histograms / averages:
 
 A prediction collapses distributions into one representative `SeasonState`. The strategy is stored on the prediction (`pickStrategy`). Actual locked results always override picked scorelines.
 
-| Strategy | Scope | Behaviour |
-|----------|-------|-----------|
-| `likeliestScore` | per fixture | Modal scoreline within each outcome, then the most frequent of those three candidates |
-| `likeliestResult` | per fixture | Most frequent outcome, then its most frequent scoreline (ties: win beats draw; two wins prefer higher Elo) |
-| `maxPoints` | per fixture | Of those same three candidates, the one maximising expected predictor-game points |
-| `calibrated` (default) | season-wide | Assignment whose outcome counts match the simulation's own expectations |
-| `random` | season-wide | Replay one whole season from the reservoir (`prediction_active_sample`) |
+| Strategy | Behaviour |
+|----------|-----------|
+| `plausible` (default) | The calibrated solve aimed at one sampled season's draw profile rather than at the mean |
+| `calibrated` | Assignment whose outcome counts match the simulation's own expectations |
+| `random` | Replay one whole season from the reservoir (`prediction_active_sample`) |
 
-The two season-wide strategies are resolved by the caller and passed into `choosePick` per fixture
-(`calibratedPick`, `savedSample`), so the per-fixture seam holds for all five.
+All three are season-wide: the caller resolves the whole season and passes `choosePick` the answer
+for one fixture (`seasonPick` for the two solved ones, `savedSample` for `random`). `choosePick` is
+therefore a lookup rather than a decision, kept as the seam so callers need not know which source
+applies.
 
 `random` exists so the UI can show a **coherent** season rather than stitching independent per-fixture modal draws.
 
-## Why the per-fixture strategies distort W/D/L
+## Why the per-fixture strategies were withdrawn
 
-Every per-fixture rule picks the *mode* of a distribution, and the mode of a marginal is not a draw
-from it. Measured over one 5,000-run batch on a full 380-fixture season, against the batch's own
-expectation of 167 home / 85 draw / 128 away:
+`likeliestScore` and `likeliestResult` decided each fixture from its own histogram, and both were
+withdrawn: every per-fixture rule picks the *mode* of a distribution, and the mode of a marginal is
+not a draw from it. Measured over one 5,000-run batch on a full 380-fixture season, against the
+batch's own expectation of 167 home / 85 draw / 128 away:
 
-| Strategy | H | D | A |
-|---|---|---|---|
-| `likeliestScore` | 83 | **265** | 32 |
-| `likeliestResult` | 243 | **0** | 137 |
-| `maxPoints` (3/1) | 242 | **0** | 138 |
-| `calibrated` | 167 | **85** | 128 |
+| Strategy | H | D | A | per-club draws sd |
+|---|---|---|---|---|
+| `likeliestScore` *(withdrawn)* | 83 | **265** | 32 | 7.98 |
+| `likeliestResult` *(withdrawn)* | 243 | **0** | 137 | 0.00 |
+| `calibrated` | 167 | **85** | 128 | 0.81 |
+| `plausible` | 168 | **84** | 128 | 2.62 |
 
-Both failures come from the same place, in opposite directions. A draw is essentially never the
-single likeliest outcome — 22% against ~44% home — so `likeliestResult` returns *zero* draws, not
+Both failures came from the same place, in opposite directions. A draw is essentially never the
+single likeliest outcome — 22% against ~44% home — so `likeliestResult` returned *zero* draws, not
 merely few. Conversely draw mass concentrates on 1–1 and 0–0 while win mass spreads across 1–0,
 2–0, 2–1, so the modal scoreline is a draw in about 70% of fixtures.
 
@@ -169,7 +171,8 @@ realisation looks like that. The most likely season has no draws in it; no real 
 same distinction turns up as Viterbi (MAP sequence) versus posterior-marginal decoding in HMMs, and
 as the standard Bayesian caution that in high dimensions the mode is not a representative point.
 
-So `likeliestResult` is not misbehaving. It is doing exactly what a MAP point estimate does.
+So `likeliestResult` was not misbehaving. It was doing exactly what a MAP point estimate does —
+which is why the fix was to stop picking fixture by fixture, not to tune the rule.
 
 ## Calibrated picks
 
@@ -283,37 +286,57 @@ is ~8.5. The 7–14 spread across a real season is sampling noise, which only `r
 The same caveat applies to points: any modal table is over-dispersed (Arsenal reads 100 against a
 mean simulated 82), so `averagePoints` in the projections remains the honest central estimate.
 
-## Expected-points picks
+## Why `calibrated` alone is still too even
 
-For a predictor game paying `exactScore` for a perfect scoreline and `correctResult` for a right
-result with the wrong scoreline — the higher of the two, not both — a pick is worth:
+`calibrated` matches the league's counts and each club's *mean* draws, and a mean has no variance
+in it. Every club therefore lands within a draw or two of the league average — per-club draws come
+out at sd 0.81 above, where ten real seasons average 2.70 (range 1.69–3.44). No single season has
+ever looked like the average of all of them.
 
-```
-correctResult · P(outcome) + (exactScore − correctResult) · P(scoreline)
-```
+`plausible` runs the identical solve against the seasons in the batch's reservoir, using a
+season's per-club draw counts as the targets, and returns that assignment. The season is chosen on
+league total alone — the one whose draws come closest to what the batch expects, ties going to the
+earliest sample. Reservoir order is stable and the comparison is strict, so the strategy is
+deterministic given the batch.
 
-Searching only the three modal-per-outcome candidates is exact, not an approximation: within one
-outcome the `P(outcome)` term is constant, so the best pick there is that outcome's modal scoreline,
-and a scoreline no run produced scores `P(scoreline) = 0`. Scored in raw run counts.
+The level has to be the criterion rather than something traded away. An earlier version ranked the
+candidates by what they were worth under a predictor payoff, and that does not pick a typical
+season, it picks the emptiest one: a draw is rarely a fixture's modal outcome, so a sample's draw
+count and its expected points ran at about **r = −0.89**, and the winner landed ten draws under
+the batch's own expectation.
 
-`likeliestScore` and `likeliestResult` are the degenerate ends of the same formula —
-`correctResult = 0` gives one, `exactScore = correctResult` the other.
+The candidates are the sampled seasons alone. Including the mean-targeted solve would let the
+strategy collapse back into `calibrated` on batches where no sample beat it, which is the one thing
+a caller choosing it has ruled out. With no reservoir, it falls back to the mean.
 
-The payoff lives in `app_settings` (`exact_score_points`, `correct_result_points`, defaulting to
-3/1) and is snapshotted onto each prediction like `upsetVariance`, so a stored pick can be traced
-to the scoring rule it was optimising.
+Measured against `calibrated` on the 5,000-run batch above, the league counts hold (168/84/128
+against 167/85/128) while the per-club spread roughly triples. `random` reaches the same realism by
+replaying a sampled season outright, but forfeits the likelihood ordering within it.
 
-Draws arrive only once the exact-score premium is steep enough to be worth chasing, and the default
-3/1 is not steep enough — measured on the same batch as above:
+## The withdrawn predictor payoff
 
-| `exactScore` (at `correctResult = 1`) | 3 | 4 | 5 | 6 | 8 | 10 | 15 |
-|---|---|---|---|---|---|---|---|
-| Draws picked | 0 | 2 | 10 | 37 | 85 | 118 | 164 |
+Two things used to hang off a scoring rule — `exactScore` for a perfect scoreline, `correctResult`
+for a right result with the wrong one — and both have gone.
 
-So at its default this strategy behaves like `likeliestResult`, not like `likeliestScore`. Use
-`calibrated` for a realistic season; `maxPoints` answers a different question — what to submit to a
-predictor game under a given payoff.
+A `maxPoints` strategy maximised `correctResult · P(outcome) + (exactScore − correctResult) ·
+P(scoreline)` per fixture. At the default 3/1 it picked **zero** draws across a season, which is
+the `likeliestResult` failure above with extra steps; draws only arrived once the premium was
+steep enough to chase them (2 at 4/1, 37 at 6/1, 85 at 8/1), by which point it was picking a season
+nobody would submit. Stored batches naming it fall onto the default.
+
+Once it was gone the payoff had nothing left to move. Within a fixed outcome the `P(outcome)` term
+is constant, so the best scoreline there is that outcome's modal one **at any premium** — the
+payoff can only ever trade one outcome for another, and every remaining strategy pins its outcomes
+by count constraints or by frequency. Sweeping `exactScore` from 1 to 100 moved zero fixtures in
+four of the five strategies, and in `plausible` only flipped which sampled season won a tie. So the
+rule, its two columns on `app_settings` and `predictions`, and its API routes were removed;
+`migrateDropScoringRuleColumns` drops the columns from existing databases.
+
+What survives is the frequency ranking the per-fixture distribution view needs:
+`rankScorelineCandidates` returns one candidate per outcome — that outcome's modal scoreline —
+most frequent first, so its first entry is the fixture's likeliest scoreline outright. No payoff
+is involved.
 
 ## Active prediction
 
-For export and default UI selection, the active prediction is the most recently `updatedAt` prediction (`getActivePrediction`).
+For export and default UI selection, the active prediction is the most recently *created* one (`getActivePrediction`) — the last simulation run. `listPredictions` orders the same way, so renaming an old batch or switching its strategy never promotes it over newer runs.

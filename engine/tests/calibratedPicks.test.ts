@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildCalibratedPicks, type CalibratedFixture } from '../src/engine/calibratedPicks.js';
-import { choosePick, outcomeFromScoreline, type MatchOutcome } from '../src/engine/pickStrategy.js';
+import {
+  buildCalibratedPicks,
+  drawTargetsFromSeason,
+  expectedSeasonPoints,
+  plausiblePicksFor,
+  type CalibratedFixture,
+  type SampledSeason,
+} from '../src/engine/calibratedPicks.js';
+import { outcomeFromScoreline, type MatchOutcome } from '../src/engine/pickStrategy.js';
 
 const RUNS = 10_000;
 
@@ -127,19 +134,16 @@ describe('buildCalibratedPicks', () => {
     expect(Math.max(...perTeam)).toBeLessThanOrEqual(14);
   });
 
-  it('gives draws where the per-fixture strategies give none at all', () => {
-    const likeliestResult = fixtures.filter((f) => {
-      const pick = choosePick({
-        strategy: 'likeliestResult',
-        outcomeCounts: f.outcomeCounts,
-        scorelines: f.scorelines,
-        homeElo: 1500,
-        awayElo: 1500,
-      })!;
-      return outcomeFromScoreline(pick) === 'draw';
+  it('gives draws where picking each fixture on its own would give none', () => {
+    // The withdrawn per-fixture rules took each fixture's likeliest outcome. A draw is never
+    // that, which is the failure the season-wide solve exists to avoid — so reproduce the rule
+    // here rather than keep a strategy around to demonstrate it.
+    const likeliestOutcomeIsDraw = fixtures.filter((f) => {
+      const { homeWin, draw, awayWin } = f.outcomeCounts;
+      return draw > homeWin && draw > awayWin;
     });
 
-    expect(likeliestResult).toHaveLength(0);
+    expect(likeliestOutcomeIsDraw).toHaveLength(0);
     expect(outcomeCounts(fixtures, buildCalibratedPicks(fixtures)).draw).toBeGreaterThan(70);
   });
 
@@ -168,5 +172,169 @@ describe('buildCalibratedPicks', () => {
 
   it('returns nothing for an empty fixture list', () => {
     expect(buildCalibratedPicks([]).size).toBe(0);
+  });
+});
+
+/** The batch shape `plausiblePicksFor` reads, derived from the same fixtures. */
+function distributionsOf(fixtures: CalibratedFixture[]) {
+  return new Map(
+    fixtures.map((f) => [f.matchNumber, { outcomes: f.outcomeCounts, scorelines: f.scorelines }]),
+  );
+}
+
+/**
+ * A simulated season over `fixtures`, each match drawn against its own outcome split.
+ *
+ * Seeded and deterministic, so the reservoir is the same on every run. Sampling each fixture at
+ * its own draw probability rather than a flat rate is what makes the reservoir scatter around
+ * the batch's expectation the way a real one does — including the draw-light seasons that a
+ * points-only ranking would reach for.
+ */
+function sampledSeason(fixtures: CalibratedFixture[], seed: number): SampledSeason {
+  let state = seed * 2_654_435_761 + 1;
+  const next = () => {
+    state = (state * 1_103_515_245 + 12_345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+  return new Map(
+    fixtures.map((f) => {
+      const counts = f.outcomeCounts;
+      const drawShare = counts.draw / (counts.homeWin + counts.draw + counts.awayWin);
+      return next() < drawShare
+        ? [f.matchNumber, { goalsHome: 1, goalsAway: 1 }]
+        : [f.matchNumber, { goalsHome: 1, goalsAway: 0 }];
+    }),
+  );
+}
+
+describe('plausiblePicksFor', () => {
+  const fixtures = league(20);
+  const distributions = distributionsOf(fixtures);
+  const reservoir = Array.from({ length: 12 }, (_, i) => sampledSeason(fixtures, i + 1));
+
+  it("counts every club's draws in a sampled season, zeros included", () => {
+    const season: SampledSeason = new Map([
+      [fixtures[0]!.matchNumber, { goalsHome: 1, goalsAway: 1 }],
+      [fixtures[1]!.matchNumber, { goalsHome: 2, goalsAway: 0 }],
+    ]);
+    const targets = drawTargetsFromSeason(fixtures, season);
+
+    expect(targets.size).toBe(20);
+    expect(targets.get(fixtures[0]!.teamHomeId)).toBe(1);
+    expect(targets.get(fixtures[0]!.teamAwayId)).toBe(1);
+    // Every club appears, so a side that drew nothing is a 0 rather than a missing key.
+    expect([...targets.values()].filter((v) => v === 0).length).toBeGreaterThan(0);
+  });
+
+  it('lands on one sampled season, not on the average of them', () => {
+    const picks = plausiblePicksFor(fixtures, distributions, reservoir);
+    const realised = drawsByTeam(fixtures, picks);
+
+    const deviation = (season: SampledSeason) => {
+      const targets = drawTargetsFromSeason(fixtures, season);
+      const diffs = [...targets].map(([teamId, target]) =>
+        Math.abs((realised.get(teamId) ?? 0) - target),
+      );
+      return {
+        mean: diffs.reduce((a, b) => a + b, 0) / diffs.length,
+        worst: Math.max(...diffs),
+      };
+    };
+    const deviations = reservoir.map(deviation).sort((a, b) => a.mean - b.mean);
+
+    // The biases solve a dual over integer counts, so the targets are aimed at rather than
+    // guaranteed — but the season it settles on comes out within a single draw of every club.
+    expect(deviations[0]!.worst).toBeLessThanOrEqual(1);
+    expect(deviations[0]!.mean).toBeLessThan(0.5);
+    // And it is unmistakably that one season rather than a blend: the next-closest candidate
+    // sits several times further from the table that came out.
+    expect(deviations[1]!.mean).toBeGreaterThan(deviations[0]!.mean * 3);
+  });
+
+
+  it('spreads clubs wider than the mean-targeted solve', () => {
+    const spread = (picks: Map<number, { goalsHome: number; goalsAway: number }>) => {
+      const perTeam = [...drawsByTeam(fixtures, picks).values()];
+      const mean = perTeam.reduce((a, b) => a + b, 0) / perTeam.length;
+      return Math.sqrt(perTeam.reduce((a, b) => a + (b - mean) ** 2, 0) / perTeam.length);
+    };
+
+    const calibrated = spread(buildCalibratedPicks(fixtures));
+    const plausible = spread(plausiblePicksFor(fixtures, distributions, reservoir));
+    expect(plausible).toBeGreaterThan(calibrated * 1.5);
+  });
+
+  /** Draws the batch expects across the whole fixture list, and each sample's own total. */
+  const expectedDraws = fixtures.reduce((sum, f) => {
+    const counts = f.outcomeCounts;
+    return sum + counts.draw / (counts.homeWin + counts.draw + counts.awayWin);
+  }, 0);
+  const totalOf = (season: SampledSeason) =>
+    [...drawTargetsFromSeason(fixtures, season).values()].reduce((a, b) => a + b, 0) / 2;
+
+  it('holds the league draw total the batch expects', () => {
+    const picks = plausiblePicksFor(fixtures, distributions, reservoir);
+    const realised = [...picks.values()].filter((p) => p.goalsHome === p.goalsAway).length;
+
+    // The reservoir has draw-light seasons in it, and they are the ones worth the most under
+    // any payoff — a draw is rarely a fixture's modal outcome. Ranking on points alone would
+    // take one of those and land the league well under its own expectation.
+    const cheapest = Math.min(...reservoir.map(totalOf));
+    expect(cheapest).toBeLessThan(expectedDraws - 2);
+    expect(Math.abs(realised - expectedDraws)).toBeLessThanOrEqual(2);
+  });
+
+  it('breaks a level tie by sample order', () => {
+    // Two seasons with the same league total — so neither can win on level — but opposite
+    // draw profiles, drawn from opposite ends of the fixture list.
+    const drawCount = Math.round(expectedDraws);
+    const seasonOf = (drawn: CalibratedFixture[]): SampledSeason => {
+      const ids = new Set(drawn.map((f) => f.matchNumber));
+      return new Map(
+        fixtures.map((f) =>
+          ids.has(f.matchNumber)
+            ? [f.matchNumber, { goalsHome: 1, goalsAway: 1 }]
+            : [f.matchNumber, { goalsHome: 1, goalsAway: 0 }],
+        ),
+      );
+    };
+    const first = seasonOf(fixtures.slice(0, drawCount));
+    const second = seasonOf(fixtures.slice(-drawCount));
+    expect(totalOf(first)).toBe(totalOf(second));
+
+    const deviationFrom = (season: SampledSeason, picks: ReturnType<typeof plausiblePicksFor>) => {
+      const realised = drawsByTeam(fixtures, picks);
+      const targets = drawTargetsFromSeason(fixtures, season);
+      const diffs = [...targets].map(([teamId, target]) =>
+        Math.abs((realised.get(teamId) ?? 0) - target),
+      );
+      return diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    };
+
+    const forwards = plausiblePicksFor(fixtures, distributions, [first, second]);
+    expect(deviationFrom(first, forwards)).toBeLessThan(deviationFrom(second, forwards));
+
+    // Reverse the reservoir and the tie goes the other way — order is the whole rule.
+    const backwards = plausiblePicksFor(fixtures, distributions, [second, first]);
+    expect(deviationFrom(second, backwards)).toBeLessThan(deviationFrom(first, backwards));
+  });
+
+  it('falls back to the mean-targeted solve with no reservoir to draw on', () => {
+    const picks = plausiblePicksFor(fixtures, distributions, []);
+    const calibrated = buildCalibratedPicks(fixtures);
+
+    expect(picks.size).toBe(calibrated.size);
+    for (const [matchNumber, pick] of calibrated) {
+      expect(picks.get(matchNumber)).toEqual(pick);
+    }
+  });
+
+  it('is deterministic', () => {
+    const first = plausiblePicksFor(fixtures, distributions, reservoir);
+    const second = plausiblePicksFor(fixtures, distributions, reservoir);
+
+    for (const [matchNumber, pick] of first) {
+      expect(second.get(matchNumber)).toEqual(pick);
+    }
   });
 });

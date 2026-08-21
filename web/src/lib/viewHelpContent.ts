@@ -1,6 +1,10 @@
 import type { AppView } from './appView.js';
 import { APP_VIEW_LABELS } from './appView.js';
-import { PICK_STRATEGY_HINT } from './pickStrategy.js';
+import {
+  PICK_STRATEGY_DESCRIPTIONS,
+  PICK_STRATEGY_HINT,
+  PICK_STRATEGY_OPTIONS,
+} from './pickStrategy.js';
 import { SEASON_FORM_HINT } from './seasonForm.js';
 import { UPSET_FACTOR_HINT } from './upsetVariance.js';
 
@@ -27,6 +31,9 @@ function picksHelp(publicMode: boolean): ViewHelp {
     {
       title: 'Picked scorelines',
       paragraphs: [PICK_STRATEGY_HINT],
+      bullets: PICK_STRATEGY_OPTIONS.map(
+        (option) => `${option.label} — ${PICK_STRATEGY_DESCRIPTIONS[option.value]}`,
+      ),
     },
     {
       title: 'Table zones',

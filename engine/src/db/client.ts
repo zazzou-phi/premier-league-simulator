@@ -40,9 +40,7 @@ export function initSchema(sqlite: Database.Database): void {
     CREATE TABLE IF NOT EXISTS app_settings (
       id INTEGER PRIMARY KEY,
       upset_variance REAL NOT NULL,
-      season_elo_delta_weight REAL NOT NULL,
-      exact_score_points REAL NOT NULL DEFAULT 3,
-      correct_result_points REAL NOT NULL DEFAULT 1
+      season_elo_delta_weight REAL NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS simulations (
@@ -84,11 +82,9 @@ export function initSchema(sqlite: Database.Database): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       runs INTEGER NOT NULL,
-      pick_strategy TEXT NOT NULL DEFAULT 'calibrated',
+      pick_strategy TEXT NOT NULL DEFAULT 'plausible',
       upset_variance REAL NOT NULL,
       season_elo_delta_weight REAL NOT NULL,
-      exact_score_points REAL NOT NULL DEFAULT 3,
-      correct_result_points REAL NOT NULL DEFAULT 1,
       elapsed_ms INTEGER NOT NULL DEFAULT 0,
       as_of_matchday INTEGER,
       locked_count INTEGER NOT NULL DEFAULT 0,
@@ -157,22 +153,25 @@ export function initSchema(sqlite: Database.Database): void {
   migrateDropTeamRatingColumns(sqlite);
   migratePickStrategies(sqlite);
   migratePredictionProvenance(sqlite);
-  migrateScoringRules(sqlite);
+  migrateDropScoringRuleColumns(sqlite);
 }
 
 /**
- * Add the predictor-game payoff columns to tables created before the `maxPoints` strategy.
- * Existing rows take the defaults, which is right: they predate the mode and never used it.
+ * Drop the predictor-game payoff columns.
+ *
+ * The payoff scored a pick against a scoring rule, and the strategy that traded outcomes on it
+ * has been withdrawn — within one outcome the modal scoreline wins at any premium, so once the
+ * outcome was fixed the payoff could not move a pick. Nothing reads these columns now.
  */
-function migrateScoringRules(sqlite: Database.Database): void {
+function migrateDropScoringRuleColumns(sqlite: Database.Database): void {
   for (const table of ['app_settings', 'predictions']) {
     const columns = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
     const names = new Set(columns.map((column) => column.name));
-    if (!names.has('exact_score_points')) {
-      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN exact_score_points REAL NOT NULL DEFAULT 3`);
+    if (names.has('exact_score_points')) {
+      sqlite.exec(`ALTER TABLE ${table} DROP COLUMN exact_score_points`);
     }
-    if (!names.has('correct_result_points')) {
-      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN correct_result_points REAL NOT NULL DEFAULT 1`);
+    if (names.has('correct_result_points')) {
+      sqlite.exec(`ALTER TABLE ${table} DROP COLUMN correct_result_points`);
     }
   }
 }
@@ -202,16 +201,16 @@ function migrateDropTeamRatingColumns(sqlite: Database.Database): void {
 }
 
 /**
- * Schema revisions applied by `migratePickStrategies`, tracked in `PRAGMA user_version`.
- * Bump when adding a step below; existing databases run only the steps they have not seen.
+ * Schema revision marker for `migratePickStrategies`, tracked in `PRAGMA user_version`.
+ *
+ * Most steps below are pure translations, safe to re-run. The exception is moving batches off a
+ * superseded default: that must happen once and never again, or it would revert a later
+ * deliberate choice on the next restart. Bump this when adding another such step.
  */
-const PICK_STRATEGY_SCHEMA_VERSION = 2;
+const PICK_STRATEGY_SCHEMA_VERSION = 3;
 
 /** Pre-rename strategy names, in the order the value migration maps them. */
 const RENAMED_STRATEGIES: Array<[legacy: string, current: PickStrategy]> = [
-  ['scoreline', 'likeliestScore'],
-  ['outcome', 'likeliestResult'],
-  ['expectedPoints', 'maxPoints'],
   ['sample', 'random'],
 ];
 
@@ -238,20 +237,23 @@ function migratePickStrategies(sqlite: Database.Database): void {
 
   const version = sqlite.pragma('user_version', { simple: true }) as number;
 
-  // Pre-redesign batches defaulted to `scoreline`, which collapses most fixtures to 1–1 and
-  // produces a table full of draws. Move them onto the mode the app then defaulted to. Guarded
-  // rather than unconditional: past this point `scoreline` is a deliberate user choice, and
-  // re-running would silently revert it on the next restart.
-  if (version < 1) {
+  // Batches from before `plausible` existed sit on `calibrated` because that was the default when
+  // they ran, not because anyone picked it. Move them onto the current default. Guarded rather
+  // than unconditional: past this point `calibrated` is a deliberate choice, and re-running would
+  // silently revert it on the next restart.
+  if (version < 3) {
     sqlite
-      .prepare(`UPDATE predictions SET pick_strategy = 'outcome' WHERE pick_strategy = 'scoreline'`)
+      .prepare(
+        `UPDATE predictions SET pick_strategy = 'plausible' WHERE pick_strategy = 'calibrated'`,
+      )
       .run();
   }
 
   const rename = sqlite.prepare(`UPDATE predictions SET pick_strategy = ? WHERE pick_strategy = ?`);
   for (const [legacy, current] of RENAMED_STRATEGIES) rename.run(current, legacy);
 
-  // Catch-all for strategies that have been removed outright, such as the old floor/rounded pair.
+  // Catch-all for strategies removed outright: the old floor/rounded pair, `maxPoints`, and the
+  // per-fixture `likeliestScore`/`likeliestResult` pair whose W/D/L could never match the batch's.
   const placeholders = PICK_STRATEGIES.map(() => '?').join(', ');
   sqlite
     .prepare(`UPDATE predictions SET pick_strategy = ? WHERE pick_strategy NOT IN (${placeholders})`)
