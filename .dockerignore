@@ -11,3 +11,5 @@ data/premier-league.db
 data/premier-league.db-wal
 data/premier-league.db-shm
 web/public/data
+tailscale
+export

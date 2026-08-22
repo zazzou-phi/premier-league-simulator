@@ -4,11 +4,35 @@ import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 
 export type { PublicBootstrap, PublicMeta } from '@shared/export/publicSnapshot.js';
+// The in-season loop's shapes are the engine's; the browser only ever reads them off the wire,
+// so every import here stays type-only — `season/weekRun.ts` itself is node-only code.
+export type {
+  WeekExportSummary,
+  WeekProgressEvent,
+  WeekProjectionSummary,
+  WeekRunEvent,
+  WeekRunResult,
+  WeekStep,
+  WeekStepEvent,
+  WeekStepResult,
+  WeekStepResultEvent,
+} from '@shared/season/weekRun.js';
 export type { AccuracyHistoryPoint, TeamEloSnapshot };
 
 export interface ApiErrorBody {
   error: string;
   code?: string;
+}
+
+/** A failed request that carried a machine-readable `code`, so a caller can offer the fix. */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
 }
 
 // Sourced from `@shared/engine/accuracy.js` rather than the repository, so the web build

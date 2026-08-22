@@ -6,6 +6,9 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 
+tailscale/state/
+export/
+
 premier-league-simulator.tar.gz
 deploy-docker.sh
 

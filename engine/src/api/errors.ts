@@ -1,5 +1,7 @@
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { MatchLockedError, NotFoundError, ValidationError } from '../db/errors.js';
+import { RemoteFetchError } from '../data/fetchRemote.js';
+import { RemoteResultsChangedError } from '../season/weekRun.js';
 
 export class ApiError extends Error {
   constructor(
@@ -18,6 +20,9 @@ export function toApiError(error: unknown): ApiError {
   if (error instanceof NotFoundError) return new ApiError(error.message, 404, error.code);
   if (error instanceof MatchLockedError) return new ApiError(error.message, 409, error.code);
   if (error instanceof ValidationError) return new ApiError(error.message, 400, error.code);
+  if (error instanceof RemoteResultsChangedError) return new ApiError(error.message, 409, error.code);
+  // The upstream feed, not this server, is the thing that failed — and the message names it.
+  if (error instanceof RemoteFetchError) return new ApiError(error.message, 502, error.code);
   return new ApiError('Internal server error', 500);
 }
 

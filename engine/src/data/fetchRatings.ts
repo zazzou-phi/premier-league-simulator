@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { parse } from 'csv-parse/sync';
 import type { Repository } from '../db/repository.js';
 import { identityForClub } from './clubNames.js';
+import { fetchRemoteText } from './fetchRemote.js';
 import {
   getDefaultTeamsCsvPath,
   loadTeamsCsvRecords,
@@ -55,11 +56,7 @@ export function toTeamSeeds(rows: ClubEloRow[]): TeamSeed[] {
 
 export async function fetchClubEloCsv(date = new Date()): Promise<string> {
   const day = date.toISOString().slice(0, 10);
-  const response = await fetch(`${CLUBELO_BASE_URL}/${day}`);
-  if (!response.ok) {
-    throw new Error(`clubelo request failed: ${response.status} ${response.statusText}`);
-  }
-  return response.text();
+  return fetchRemoteText(`${CLUBELO_BASE_URL}/${day}`, 'clubelo ratings');
 }
 
 export function teamSeedsToCsv(teams: TeamSeed[]): string {

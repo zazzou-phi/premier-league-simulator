@@ -5,6 +5,13 @@ import { getDefaultFixturesCsvPath, loadFixtures } from '../data/fixturesCsv.js'
 import { SEASON_ELO_DELTA_WEIGHT_MAX } from '../engine/seasonElo.js';
 import { MONTE_CARLO_MAX_RUNS, runMonteCarlo } from '../simulation/monteCarlo.js';
 import { SeasonRunner } from '../simulation/runner.js';
+import {
+  countWeekSteps,
+  runWeek,
+  WEEK_RUN_DEFAULT_RUNS,
+  type WeekRunEvent,
+  type WeekRunOptions,
+} from '../season/weekRun.js';
 import type { Repository } from '../db/repository.js';
 import { ApiError, errorBody, toApiError } from './errors.js';
 
@@ -236,6 +243,89 @@ export function createApiApp(repo: Repository): Hono {
           send({ type: 'error', ...errorBody(error) });
         } finally {
           controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: { 'content-type': 'application/x-ndjson; charset=utf-8' },
+    });
+  });
+
+  // ---------------------------------------------------------------- week loop
+
+  // The loop syncs from two remotes and rewrites the tracked CSVs, so two overlapping runs
+  // would race over the same files. One at a time, refused rather than queued.
+  let weekRunInFlight = false;
+
+  app.post('/api/v1/week', async (c) => {
+    const body = await c.req.json<{
+      runs?: number;
+      name?: string;
+      dryRun?: boolean;
+      skipRatings?: boolean;
+      skipExport?: boolean;
+      force?: boolean;
+    }>().catch(() => ({}) as Record<string, never>);
+
+    const runs = Math.floor(
+      numberInRange(body.runs ?? WEEK_RUN_DEFAULT_RUNS, 'runs', 1, MONTE_CARLO_MAX_RUNS),
+    );
+    const options: WeekRunOptions = {
+      runs,
+      name: body.name,
+      dryRun: body.dryRun === true,
+      skipRatings: body.skipRatings === true,
+      skipExport: body.skipExport === true,
+      force: body.force === true,
+    };
+
+    if (weekRunInFlight) {
+      throw new ApiError('A week run is already in progress', 409, 'WEEK_RUN_IN_PROGRESS');
+    }
+
+    const wantsStream = c.req.header('accept')?.includes('application/x-ndjson');
+
+    if (!wantsStream) {
+      weekRunInFlight = true;
+      try {
+        return c.json(await runWeek(repo, options));
+      } finally {
+        weekRunInFlight = false;
+      }
+    }
+
+    weekRunInFlight = true;
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        // The run writes to the database and the tracked CSVs, so it has to finish on its own
+        // terms: a reader who closed the tab must not abort it half-way through the loop.
+        const send = (payload: unknown) => {
+          try {
+            controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+          } catch {
+            // The reader is gone. Keep running; there is simply no one to tell.
+          }
+        };
+
+        try {
+          send({ type: 'started', steps: countWeekSteps(options), runs, dryRun: options.dryRun });
+          const result = await runWeek(repo, {
+            ...options,
+            onEvent: (event: WeekRunEvent) => send(event),
+          });
+          send({ type: 'result', ...result });
+        } catch (error) {
+          if (toApiError(error).status === 500) console.error(error);
+          send({ type: 'error', ...errorBody(error) });
+        } finally {
+          weekRunInFlight = false;
+          try {
+            controller.close();
+          } catch {
+            // Already closed by a reader who left; nothing to release.
+          }
         }
       },
     });

@@ -1,0 +1,47 @@
+# Homelab deployment: the app has no published ports and is reached only over the tailnet,
+# through a Tailscale sidecar whose network namespace it shares.
+#
+#   docker compose -f docker-compose.homelab.yml up -d
+#
+# TS_AUTHKEY comes from .env (gitignored) rather than this file:
+#
+#   echo 'TS_AUTHKEY=tskey-auth-…' > .env
+services:
+  premier-league-simulator-ts:
+    image: tailscale/tailscale
+    container_name: premier-league-simulator-ts
+    cap_add:
+      - net_admin
+      - sys_module
+    volumes:
+      - ./tailscale/state:/var/lib/tailscale
+      - ./serveconfig:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:?set TS_AUTHKEY in .env}
+      # - TS_EXTRA_ARGS=--advertise-tags=tag:container --reset
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve-config.json
+      - TS_USERSPACE=false
+    hostname: premier-league-simulator
+    restart: unless-stopped
+
+  premier-league-simulator:
+    image: premier-league-simulator-app:latest
+    container_name: premier-league-simulator
+    # Shares the sidecar's netns, so serve-config.json proxies to 127.0.0.1:2627 and the API
+    # on 3123 stays reachable only from inside that namespace.
+    network_mode: "service:premier-league-simulator-ts"
+    depends_on:
+      - premier-league-simulator-ts
+    volumes:
+      # SQLite plus the tracked CSVs the loop rewrites — the recoverable record of each week.
+      - ./data:/app/data
+      # The public snapshot has no reader inside the container (the image serves the private
+      # build), so the week loop writes it here for you to collect and commit.
+      - ./export:/app/export
+    environment:
+      NODE_ENV: production
+      PUBLIC_SNAPSHOT_DIR: /app/export
+    restart: unless-stopped

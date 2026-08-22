@@ -1,5 +1,5 @@
 import type { Hono } from 'hono';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApiApp } from '../src/api/app.js';
 import type { Repository } from '../src/db/repository.js';
 import { DEFAULT_UPSET_VARIANCE } from '../src/engine/matchSimulator.js';
@@ -395,6 +395,74 @@ describe('monte carlo and predictions', () => {
       await json(`/api/v1/predictions/${predictionId}/matches/1/distribution`)
     ).json();
     expect(distribution.outcomes.draw).toBe(10);
+  });
+});
+
+describe('week loop', () => {
+  // The loop pulls the weekend from fixturedownload; a dry run is the one shape that touches
+  // no disk, so the route can be exercised with only that fetch stubbed out.
+  function stubFixtureDownload(): void {
+    const header = 'Match Number,Round Number,Date,Location,Home Team,Away Team,Result';
+    const rows = repo
+      .getFixtures()
+      .filter((fixture) => fixture.matchday === 1)
+      .map((f) => `${f.matchNumber},1,16/08/2024 20:00,Stadium,Home,Away,2 - 1`);
+    vi.stubGlobal('fetch', async () => new Response([header, ...rows].join('\n')));
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('streams each step and a final result as NDJSON', async () => {
+    stubFixtureDownload();
+
+    const res = await app.request('/api/v1/week', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/x-ndjson' },
+      body: JSON.stringify({ dryRun: true, skipRatings: true, skipExport: true, runs: 10 }),
+    });
+    expect(res.headers.get('content-type')).toContain('application/x-ndjson');
+
+    const lines = (await res.text()).trim().split('\n').map((line) => JSON.parse(line));
+    expect(lines[0]).toMatchObject({ type: 'started', steps: 4, runs: 10, dryRun: true });
+    expect(lines.filter((l) => l.type === 'step').map((l) => l.step)).toEqual([
+      'results',
+      'ratings',
+      'grading',
+      'projection',
+    ]);
+
+    const final = lines.at(-1);
+    expect(final.type).toBe('result');
+    expect(final.results.applied).toBe(10);
+    expect(final.projection.skipped).toBe('dry-run');
+
+    // A dry run reports what would change and changes nothing.
+    expect(repo.getActualResultsByMatch().size).toBe(0);
+    expect(repo.listPredictions(1, 10).total).toBe(0);
+  });
+
+  it('reports a remote correction to a recorded result as a conflict', async () => {
+    repo.setActualResult(1, 0, 0);
+    stubFixtureDownload();
+
+    const res = await post('/api/v1/week', { skipRatings: true, skipExport: true, runs: 10 });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: 'REMOTE_RESULTS_CHANGED' });
+  });
+
+  it('validates the run count', async () => {
+    expect((await post('/api/v1/week', { runs: 0 })).status).toBe(400);
+    expect((await post('/api/v1/week', { runs: 1_000_000 })).status).toBe(400);
+  });
+
+  it('blames the upstream feed when it cannot be reached', async () => {
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('fetch failed')));
+
+    const res = await post('/api/v1/week', { skipRatings: true, skipExport: true, runs: 10 });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toMatchObject({ code: 'REMOTE_UNREACHABLE' });
   });
 });
 
