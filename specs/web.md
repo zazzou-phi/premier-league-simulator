@@ -150,7 +150,7 @@ when a zero-height panel gains height.
 ## Clients
 
 - `web/src/api/client.ts` — private vs public API façade
-- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`
+- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`, `distributions.json` (cached; a snapshot exported before the file existed degrades to "not revealed yet")
 
 ## Simulation UI note
 

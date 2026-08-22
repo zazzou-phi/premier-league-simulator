@@ -34,15 +34,42 @@ describe('hasKickedOff', () => {
 });
 
 describe('redactUnrevealed', () => {
-  it('hides predictions for fixtures that have not kicked off', async () => {
+  it('publishes the next round before it is played, without moving the table', async () => {
     const prediction = await seedPrediction();
     const full = repo.buildPredictionState(prediction.id);
     expect(full.matchesPlayed).toBe(380);
 
+    // Long before any kickoff: nothing has been played, so the next round is matchday 1.
     const redacted = redactUnrevealed(full, new Date('2020-01-01T00:00:00Z'));
+
+    const revealed = redacted.matches.filter((m) => m.result.goalsHome != null);
+    expect(revealed).toHaveLength(10);
+    expect(revealed.every((m) => m.fixture.matchday === 1)).toBe(true);
+
+    // Shown as a forecast only — a match nobody has played cannot put points on the board.
     expect(redacted.matchesPlayed).toBe(0);
-    expect(redacted.matches.every((m) => m.result.goalsHome === null)).toBe(true);
     expect(redacted.standings.every((row) => row.played === 0)).toBe(true);
+  });
+
+  it('moves the reveal on to the round after the one just recorded', async () => {
+    for (const fixture of repo.getFixtures().filter((f) => f.matchday === 1)) {
+      repo.setActualResult(fixture.matchNumber, 1, 0);
+    }
+    const prediction = await seedPrediction();
+
+    const redacted = redactUnrevealed(
+      repo.buildPredictionState(prediction.id),
+      new Date('2020-01-01T00:00:00Z'),
+    );
+
+    const revealedMatchdays = new Set(
+      redacted.matches.filter((m) => m.result.goalsHome != null).map((m) => m.fixture.matchday),
+    );
+    expect([...revealedMatchdays].sort((a, b) => a - b)).toEqual([1, 2]);
+
+    // Matchday 2 is a forecast; only the recorded matchday 1 counts.
+    expect(redacted.matchesPlayed).toBe(10);
+    expect(redacted.standings.every((row) => row.played === 1)).toBe(true);
   });
 
   it('keeps everything once the season is over', async () => {
@@ -54,10 +81,9 @@ describe('redactUnrevealed', () => {
     expect(redacted.matchesPlayed).toBe(380);
   });
 
-  it('reveals only the matchdays already played', async () => {
+  it('counts a kicked-off round in the table even when no result was recorded', async () => {
     const prediction = await seedPrediction();
-    const fixtures = repo.getFixtures();
-    const matchdayTwoStart = fixtures.find((f) => f.matchday === 2)!;
+    const matchdayTwoStart = repo.getFixtures().find((f) => f.matchday === 2)!;
 
     const redacted = redactUnrevealed(
       repo.buildPredictionState(prediction.id),
@@ -65,8 +91,6 @@ describe('redactUnrevealed', () => {
     );
 
     expect(redacted.matchesPlayed).toBe(10);
-    const revealed = redacted.matches.filter((m) => m.result.goalsHome != null);
-    expect(revealed.every((m) => m.fixture.matchday === 1)).toBe(true);
     expect(redacted.standings.every((row) => row.played === 1)).toBe(true);
   });
 
@@ -103,7 +127,7 @@ describe('buildPublicSnapshot', () => {
     expect(snapshot.meta.runs).toBe(15);
     expect(snapshot.meta.asOfMatchday).toBe(1);
     expect(snapshot.bootstrap.eloHistory).toEqual([]);
-    expect(snapshot.meta.revealPolicy).toBe('kickoff');
+    expect(snapshot.meta.revealPolicy).toBe('next-round');
     expect(snapshot.leagueState?.matches).toHaveLength(380);
     expect(snapshot.projections?.teams).toHaveLength(20);
   });
@@ -114,11 +138,40 @@ describe('buildPublicSnapshot', () => {
     expect(snapshot.leagueState?.matchesPlayed).toBe(0);
   });
 
+  it('exports a distribution for every revealed match and no others', async () => {
+    await seedPrediction();
+    const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
+
+    const revealed = snapshot
+      .leagueState!.matches.filter((m) => m.result.goalsHome != null)
+      .map((m) => m.fixture.matchNumber);
+    expect(snapshot.distributions.map((d) => d.matchNumber).sort((a, b) => a - b)).toEqual(
+      [...revealed].sort((a, b) => a - b),
+    );
+    expect(snapshot.distributions).toHaveLength(10);
+
+    // The spread behind a shown pick, not a bare count.
+    const first = snapshot.distributions[0]!;
+    expect(first.outcomes.homeWin + first.outcomes.draw + first.outcomes.awayWin).toBe(20);
+    expect(first.scorelines.length).toBeGreaterThan(0);
+  });
+
+  it('withholds distributions for matches it did not reveal', async () => {
+    await seedPrediction();
+    const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
+
+    const hidden = snapshot.leagueState!.matches.filter((m) => m.result.goalsHome == null);
+    const exported = new Set(snapshot.distributions.map((d) => d.matchNumber));
+    expect(hidden).toHaveLength(370);
+    expect(hidden.some((m) => exported.has(m.fixture.matchNumber))).toBe(false);
+  });
+
   it('writes the expected file set', async () => {
     await seedPrediction();
     const files = snapshotToFiles(buildPublicSnapshot(repo));
     expect(Object.keys(files).sort()).toEqual([
       'bootstrap.json',
+      'distributions.json',
       'league-state.json',
       'meta.json',
       'projections.json',

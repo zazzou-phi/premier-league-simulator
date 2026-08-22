@@ -154,7 +154,7 @@ describe('runWeek', () => {
       exportDir,
     });
 
-    expect(result.export).toEqual({ dir: exportDir, revealPolicy: 'kickoff' });
+    expect(result.export).toEqual({ dir: exportDir, revealPolicy: 'next-round' });
     const meta = JSON.parse(await readFile(join(exportDir, 'meta.json'), 'utf8')) as {
       predictionId: number;
     };

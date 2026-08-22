@@ -240,11 +240,21 @@ cd engine
 npm run export:public
 ```
 
-This writes `meta.json`, `bootstrap.json`, `league-state.json` and `projections.json`.
+This writes `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json` and
+`distributions.json`.
 
-Exports use a **kickoff reveal policy**: predictions for fixtures that have not kicked off
-yet are blanked out and the published table is recomputed from revealed matches only, so
-the snapshot cannot leak future predictions. Recorded real results are always included.
+Exports use a **next-round reveal policy**: the upcoming round is published in advance — a
+forecast is worth more before kickoff than after it — while every later round is blanked, so
+the snapshot still cannot be read as a season-long script. Recorded real results are always
+included.
+
+The published table is a narrower set on purpose: it counts only matches that are recorded or
+have kicked off, so showing next weekend's picks never puts points on the board for games
+nobody has played. A snapshot can show MD8 predictions above an MD7 table.
+
+`distributions.json` carries the outcome and scoreline spread behind each revealed match, which
+is what makes the per-fixture distribution modal work on the public site. Unrevealed fixtures
+carry no distribution and their scores are not clickable.
 
 Build it with `npm run build:public` in `web/`.
 

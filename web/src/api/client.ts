@@ -325,9 +325,10 @@ const publicApi: LeagueApi = {
   getPredictionState: async () => staticApi.getSeasonState(),
   getPredictionProjections: async () => staticApi.getProjections(),
   getPredictionAccuracy: async () => unavailable(),
-  // Grading needs per-fixture distributions, which the static snapshot deliberately omits.
+  // The snapshot carries distributions only for revealed matches, which is not enough to grade
+  // a whole batch — the trend stays a private-mode view.
   getAccuracyHistory: async () => [],
-  getMatchDistribution: async () => unavailable(),
+  getMatchDistribution: async (_id, matchNumber) => staticApi.getMatchDistribution(matchNumber),
 
   getUpsetVariance: async () => ({ value: DEFAULT_UPSET_VARIANCE }),
   setUpsetVariance: async (value) => ({ value }),
