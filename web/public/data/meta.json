@@ -1,7 +1,8 @@
 {
-  "exportedAt": "2026-08-01T00:40:18.786Z",
+  "exportedAt": "2026-08-22T15:31:41.106Z",
   "revealPolicy": "kickoff",
-  "predictionId": 7,
-  "predictionName": "Baseline 5k",
-  "runs": 5000
+  "predictionId": 13,
+  "predictionName": "10k with drift",
+  "asOfMatchday": 1,
+  "runs": 10000
 }
