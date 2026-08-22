@@ -1,14 +1,11 @@
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { openDatabase } from './db/client.js';
 import { Repository } from './db/repository.js';
 import { writePublicSnapshot } from './export/writePublicSnapshot.js';
-
-const here = dirname(fileURLToPath(import.meta.url));
-const defaultOut = resolve(join(here, '../../web/public/data'));
+import { getDefaultSnapshotDir } from './season/weekRun.js';
 
 function parseArgs(argv: string[]): { out: string; dbPath?: string } {
-  let out = defaultOut;
+  let out = getDefaultSnapshotDir();
   let dbPath: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--out' && argv[i + 1]) out = resolve(argv[++i]!);

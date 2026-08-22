@@ -6,6 +6,7 @@ import { isPublicMode } from '../config/appMode.js';
 import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
 import { staticApi } from './staticClient.js';
+import { ApiRequestError } from '../types.js';
 import type {
   ApiErrorBody,
   MonteCarloRunResult,
@@ -14,6 +15,8 @@ import type {
   PredictionListPage,
   ProjectionsResponse,
   SettingValue,
+  WeekRunEvent,
+  WeekRunResult,
 } from '../types.js';
 
 /** Either side of the predictor payoff may be sent alone; the other keeps its stored value. */
@@ -22,6 +25,31 @@ export interface MonteCarloOptions {
   name?: string;
   onProgress?: (completed: number, total: number) => void;
 }
+
+/**
+ * The in-season loop, streamed. `onEvent` sees the run as it happens — one event per step, plus
+ * Monte Carlo progress while the projection runs — and `started` reports how many steps to
+ * expect, since the browser cannot import the engine's node-only step count.
+ */
+export interface WeekRunOptions {
+  runs?: number;
+  name?: string;
+  dryRun?: boolean;
+  skipRatings?: boolean;
+  skipExport?: boolean;
+  /** Accept a remote scoreline that overwrites one already recorded here. */
+  force?: boolean;
+  onEvent?: (event: WeekStreamEvent) => void;
+}
+
+export interface WeekStartedEvent {
+  type: 'started';
+  steps: number;
+  runs: number;
+  dryRun: boolean;
+}
+
+export type WeekStreamEvent = WeekRunEvent | WeekStartedEvent;
 
 export interface LeagueApi {
   listTeams(): Promise<Team[]>;
@@ -37,6 +65,7 @@ export interface LeagueApi {
   clearActualResult(matchNumber: number): Promise<void>;
 
   runMonteCarlo(runs: number, options?: MonteCarloOptions): Promise<MonteCarloRunResult>;
+  runWeek(options?: WeekRunOptions): Promise<WeekRunResult>;
 
   listPredictions(page?: number, pageSize?: number): Promise<PredictionListPage>;
   renamePrediction(id: number, name: string): Promise<Prediction>;
@@ -62,12 +91,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-    throw new Error(body?.error ?? `Request failed (${res.status})`);
-  }
+  await throwIfNotOk(res);
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+async function throwIfNotOk(res: Response): Promise<void> {
+  if (res.ok) return;
+  const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+  throw new ApiRequestError(body?.error ?? `Request failed (${res.status})`, body?.code);
 }
 
 /** Upper bound on a progress repaint yield, ~2 frames at 60Hz. */
@@ -81,6 +113,62 @@ function isProgressLine(value: unknown): value is { completed: number; total: nu
   if (typeof value !== 'object' || value === null) return false;
   const line = value as { completed?: unknown; total?: unknown };
   return typeof line.completed === 'number' && typeof line.total === 'number';
+}
+
+/**
+ * Progress repaints are starved without yielding, since the stream resolves in microtasks that
+ * never let the browser reach a paint. A bare rAF would deadlock the read loop whenever the
+ * browser is not painting (an occluded or minimised window still reports visibilityState
+ * "visible"), so it is raced with a timer.
+ */
+function yieldFrame(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(settle, FRAME_YIELD_TIMEOUT_MS);
+    requestAnimationFrame(settle);
+  });
+}
+
+/** POST asking for the streaming form of a long-running endpoint. */
+async function postNdjson(path: string, body: unknown): Promise<Response> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
+    body: JSON.stringify(body),
+  });
+  await throwIfNotOk(res);
+  if (!res.body) throw new Error(`${path} returned no response body`);
+  return res;
+}
+
+/** Read an NDJSON response line by line, handing each parsed line to `handle` in order. */
+async function readNdjson(res: Response, handle: (event: unknown) => Promise<void>): Promise<void> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const handleLine = async (line: string) => {
+    if (!line.trim()) return;
+    await handle(JSON.parse(line) as unknown);
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      await handleLine(line);
+    }
+  }
+  if (buffer.trim()) await handleLine(buffer);
 }
 
 const privateApi: LeagueApi = {
@@ -102,51 +190,14 @@ const privateApi: LeagueApi = {
     request<void>(`/api/v1/actual-results/${matchNumber}`, { method: 'DELETE' }),
 
   runMonteCarlo: async (runs, options = {}) => {
-    const res = await fetch('/api/v1/simulate/monte-carlo', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/x-ndjson',
-      },
-      body: JSON.stringify({
-        runs,
-        upsetVariance: options.upsetVariance,
-        name: options.name,
-      }),
+    const res = await postNdjson('/api/v1/simulate/monte-carlo', {
+      runs,
+      upsetVariance: options.upsetVariance,
+      name: options.name,
     });
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-      throw new Error(body?.error ?? `Request failed (${res.status})`);
-    }
-    if (!res.body) {
-      throw new Error('Monte Carlo run returned no response body');
-    }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
     let result: MonteCarloRunResult | null = null;
-
-    // Progress repaints are starved without yielding, since the stream resolves in
-    // microtasks that never let the browser reach a paint. A bare rAF would deadlock
-    // the read loop whenever the browser is not painting (an occluded or minimised
-    // window still reports visibilityState "visible"), so it is raced with a timer.
-    const yieldFrame = () =>
-      new Promise<void>((resolve) => {
-        let settled = false;
-        const settle = () => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          resolve();
-        };
-        const timer = setTimeout(settle, FRAME_YIELD_TIMEOUT_MS);
-        requestAnimationFrame(settle);
-      });
-
-    const handleLine = async (line: string) => {
-      if (!line.trim()) return;
-      const event: unknown = JSON.parse(line);
+    await readNdjson(res, async (event) => {
       if (isMonteCarloResult(event)) {
         result = event;
         return;
@@ -155,23 +206,50 @@ const privateApi: LeagueApi = {
         options.onProgress?.(event.completed, event.total);
         await yieldFrame();
       }
-    };
+    });
 
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (const line of lines) {
-        await handleLine(line);
-      }
-    }
-    if (buffer.trim()) {
-      await handleLine(buffer);
-    }
     if (!result) {
       throw new Error('Monte Carlo run ended without a result');
+    }
+    return result;
+  },
+
+  runWeek: async (options = {}) => {
+    const res = await postNdjson('/api/v1/week', {
+      runs: options.runs,
+      name: options.name,
+      dryRun: options.dryRun,
+      skipRatings: options.skipRatings,
+      skipExport: options.skipExport,
+      force: options.force,
+    });
+
+    // The run is already streaming by the time most things can go wrong, so a failure arrives
+    // as a line rather than a status — including the conflict the caller can retry with force.
+    let failure: ApiRequestError | null = null;
+    let result: WeekRunResult | null = null;
+
+    await readNdjson(res, async (event) => {
+      const line = event as { type?: string } & Record<string, unknown>;
+      if (line.type === 'error') {
+        failure = new ApiRequestError(
+          typeof line.error === 'string' ? line.error : 'The week run failed',
+          typeof line.code === 'string' ? line.code : undefined,
+        );
+        return;
+      }
+      if (line.type === 'result') {
+        const { type: _type, ...rest } = line;
+        result = rest as unknown as WeekRunResult;
+        return;
+      }
+      options.onEvent?.(line as WeekStreamEvent);
+      if (line.type === 'progress') await yieldFrame();
+    });
+
+    if (failure) throw failure;
+    if (!result) {
+      throw new Error('The week run ended without a result');
     }
     return result;
   },
@@ -238,6 +316,7 @@ const publicApi: LeagueApi = {
   clearActualResult: async () => unavailable(),
 
   runMonteCarlo: async () => unavailable(),
+  runWeek: async () => unavailable(),
 
   listPredictions: async () => ({ items: [], total: 0 }),
   renamePrediction: async () => unavailable(),

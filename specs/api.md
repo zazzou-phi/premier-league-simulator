@@ -70,6 +70,39 @@ With `Accept: application/x-ndjson`, streams:
 1. `{ type: 'progress', … }` updates while running
 2. Final `{ type: 'result', predictionId, runs, elapsedMs, teams }`
 
+## Week loop
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/api/v1/week` | `{ runs?, name?, dryRun?, skipRatings?, skipExport?, force? }` |
+
+The in-season loop — results → Elo → grade previous → project → export — as `week-cli.ts` runs
+it. Both call `season/weekRun.ts`, which owns the step order; neither renders it for the other.
+Defaults: 10,000 runs, everything enabled, snapshot to `getDefaultSnapshotDir()` —
+`web/public/data`, or `PUBLIC_SNAPSHOT_DIR` when set. The API takes no output directory of its
+own: a request cannot choose where the server writes on its disk.
+
+Default JSON response: the whole `WeekRunResult` (`results`, `ratings`, `graded`, `projection`,
+`export`, `dryRun`). With `Accept: application/x-ndjson`, streams:
+
+1. `{ type: 'started', steps, runs, dryRun }` — how many steps to expect
+2. `{ type: 'step', step, index, total, label }` when each step begins
+3. `{ type: 'progress', step: 'projection', completed, total }` while the batch runs
+4. `{ type: 'step-result', step, … }` with what that step reported
+5. Final `{ type: 'result', …WeekRunResult }`, or `{ type: 'error', error, code }`
+
+Both remote pulls time out after 20s (`data/fetchRemote.ts`) and surface as 502
+`REMOTE_UNREACHABLE` with the source and URL in the message — Node's ~5-minute default would
+otherwise hold the lock below for that long, which is exactly how a firewall that drops
+clubelo's plain HTTP fails.
+
+One run at a time: a second request while one is in flight is refused with 409
+`WEEK_RUN_IN_PROGRESS`, since two runs would race over the same CSVs. A remote scoreline that
+changes a result already recorded is refused with 409 `REMOTE_RESULTS_CHANGED` (as an error
+*line* on the streaming path, which is already 200 by then) until the caller re-sends with
+`force: true`. Writes finish even if the reader disconnects — enqueue failures are swallowed
+rather than aborting the loop half-way.
+
 ## Predictions
 
 | Method | Path | Notes |
@@ -101,6 +134,7 @@ With `Accept: application/x-ndjson`, streams:
 | Upset variance | 0–1 |
 | Season Elo weight | 0–5 |
 | MC runs | 1–100_000 |
+| Week runs | 1–100_000 (default 10_000) |
 
 ## Accuracy
 

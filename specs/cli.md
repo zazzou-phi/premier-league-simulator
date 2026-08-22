@@ -45,3 +45,12 @@ Engine tests (`engine/tests/`) protect:
 - Public snapshot redaction / kickoff reveal
 
 After model, API, or persistence changes: `cd engine && npm test`.
+
+## The week loop
+
+`week-cli.ts` is a terminal rendering of `season/weekRun.ts`, which owns the steps and their
+order. `POST /api/v1/week` renders the same run for the browser (see [api.md](api.md) and the
+`Run Week` button in [web.md](web.md)), so the loop cannot drift between the two front ends.
+`--out` is CLI-only. Both front ends otherwise write the snapshot to `getDefaultSnapshotDir()`:
+`web/public/data`, or `PUBLIC_SNAPSHOT_DIR` when set — the seam a container uses, since it has
+no checkout to write back to. `npm run export:public` resolves its default the same way.

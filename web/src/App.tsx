@@ -7,13 +7,14 @@ import type {
   SeasonState,
   Team,
 } from '@shared/engine/types.js';
-import { api, isPublicMode } from './api/client.js';
+import { api, isPublicMode, type WeekRunOptions } from './api/client.js';
 import { loadPublicMeta } from './api/staticClient.js';
 import { ActualResultsView } from './components/ActualResultsView.js';
 import { PicksView } from './components/PicksView.js';
 import { Header } from './components/Header.js';
 import { MatchDistributionModal } from './components/MatchDistributionModal.js';
 import { MonteCarloModal } from './components/MonteCarloModal.js';
+import { WeekRunModal } from './components/WeekRunModal.js';
 import { PredictionManagerModal } from './components/PredictionManagerModal.js';
 import { ProjectionsView } from './components/ProjectionsView.js';
 import { TeamRatingsModal } from './components/TeamRatingsModal.js';
@@ -25,9 +26,10 @@ import {
 } from './lib/pickStrategy.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from './lib/seasonForm.js';
 import { DEFAULT_UPSET_VARIANCE } from './lib/upsetVariance.js';
-import type { MonteCarloRunResult, Prediction, PublicMeta } from './types.js';
+import { applyWeekEvent, IDLE_WEEK_RUN, STARTED_WEEK_RUN, type WeekRunState } from './lib/weekRunLog.js';
+import { ApiRequestError, type MonteCarloRunResult, type Prediction, type PublicMeta } from './types.js';
 
-type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | null;
+type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | 'week' | null;
 
 /**
  * The default projection name is `Monte Carlo {runs}`, so appending the run count
@@ -110,6 +112,7 @@ export function App() {
     result: null,
     error: null,
   });
+  const [weekRun, setWeekRun] = useState<WeekRunState>(IDLE_WEEK_RUN);
   const [distribution, setDistribution] = useState<DistributionState | null>(null);
 
   const loadProjection = useCallback(async (prediction: Prediction) => {
@@ -311,6 +314,44 @@ export function App() {
     }
   };
 
+  const handleRunWeek = async (options: WeekRunOptions) => {
+    setWeekRun(STARTED_WEEK_RUN);
+    try {
+      const result = await api.runWeek({
+        ...options,
+        onEvent: (event) => setWeekRun((prev) => applyWeekEvent(prev, event)),
+      });
+      setWeekRun((prev) => ({ ...prev, running: false, progress: null, result }));
+      if (result.dryRun) return;
+
+      // The run just moved everything the shell is showing: results, ratings and the batch.
+      const [teamList, results] = await Promise.all([
+        api.listTeams(),
+        api.listActualResults().catch(() => actualResults),
+      ]);
+      setTeams(teamList);
+      setActualResults(results);
+
+      const predictionId = result.projection.predictionId;
+      if (predictionId != null) {
+        const page = await api.listPredictions(1, 200).catch(() => null);
+        const prediction = page?.items.find((item) => item.id === predictionId) ?? null;
+        if (prediction) await loadProjection(prediction);
+      }
+      setToast(
+        `Week advanced — ${result.results.applied} result${result.results.applied === 1 ? '' : 's'} locked`,
+      );
+    } catch (err) {
+      setWeekRun((prev) => ({
+        ...prev,
+        running: false,
+        progress: null,
+        error: errorMessage(err, 'Failed to advance the week'),
+        errorCode: err instanceof ApiRequestError ? (err.code ?? null) : null,
+      }));
+    }
+  };
+
   const handleOpenMatchDistribution = async (matchNumber: number) => {
     const predictionId = projections.prediction?.id;
     if (predictionId == null) return;
@@ -337,6 +378,11 @@ export function App() {
   const openMonteCarlo = () => {
     setMonteCarlo({ running: false, progress: null, result: null, error: null });
     setModal('monteCarlo');
+  };
+
+  const openWeekRun = () => {
+    setWeekRun(IDLE_WEEK_RUN);
+    setModal('week');
   };
 
   // An empty view should say what to do next, and let the reader do it from here.
@@ -385,8 +431,10 @@ export function App() {
         recordedResultCount={actualResults.length}
         nextMatchday={nextMatchday}
         monteCarloRunning={monteCarlo.running}
+        weekRunning={weekRun.running}
         onAppViewChange={switchAppView}
         onOpenMonteCarlo={openMonteCarlo}
+        onOpenWeekRun={openWeekRun}
         onOpenPredictions={() => setModal('predictions')}
         onOpenRatings={() => setModal('ratings')}
       />
@@ -505,6 +553,22 @@ export function App() {
             if (!monteCarlo.running) setModal(null);
           }}
           onRun={(runs, name) => void handleRunMonteCarlo(runs, name)}
+          onOpenProjections={() => {
+            setModal(null);
+            switchAppView('projections');
+          }}
+        />
+      )}
+
+      {modal === 'week' && (
+        <WeekRunModal
+          state={weekRun}
+          teams={teams}
+          nextMatchday={nextMatchday}
+          onClose={() => {
+            if (!weekRun.running) setModal(null);
+          }}
+          onRun={(options) => void handleRunWeek(options)}
           onOpenProjections={() => {
             setModal(null);
             switchAppView('projections');

@@ -13,8 +13,10 @@ interface Props {
   /** Lowest matchday still unplayed, or null once the season is complete. */
   nextMatchday: number | null;
   monteCarloRunning?: boolean;
+  weekRunning?: boolean;
   onAppViewChange: (view: AppView) => void;
   onOpenMonteCarlo: () => void;
+  onOpenWeekRun: () => void;
   onOpenPredictions: () => void;
   onOpenRatings: () => void;
 }
@@ -26,8 +28,10 @@ export function Header({
   recordedResultCount,
   nextMatchday,
   monteCarloRunning = false,
+  weekRunning = false,
   onAppViewChange,
   onOpenMonteCarlo,
+  onOpenWeekRun,
   onOpenPredictions,
   onOpenRatings,
 }: Props) {
@@ -131,6 +135,21 @@ export function Header({
           onClick={onOpenMonteCarlo}
         >
           {monteCarloRunning ? 'Simulating…' : 'Monte Carlo'}
+        </button>
+      )}
+      {/* The week loop starts from the weekend's results, so it is offered in every view —
+          unlike Monte Carlo, which only makes sense where a projection is on screen. It shrinks
+          to an icon on narrow screens, where a second worded button costs the app title. */}
+      {!publicMode && (
+        <button
+          type="button"
+          className={`btn ${narrow ? 'header-icon-btn header-week-btn' : ''}`}
+          disabled={weekRunning}
+          aria-label={narrow ? 'Run Week' : undefined}
+          title="Sync results, refresh Elo, grade, re-project and export"
+          onClick={onOpenWeekRun}
+        >
+          {narrow ? <span aria-hidden="true">⟳</span> : weekRunning ? 'Running…' : 'Run Week'}
         </button>
       )}
       {optionsMenu}

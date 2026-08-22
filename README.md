@@ -285,6 +285,28 @@ steps with your own host baked in; both it and the tarball are gitignored.
 | `PORT` | `2627` | Web server port (also change the compose mapping) |
 | `API_PORT` | `3123` | Engine API port inside the container |
 | `DB_PATH` | `/app/data/premier-league.db` | SQLite location |
+| `PUBLIC_SNAPSHOT_DIR` | `web/public/data` | Where the week loop writes the public snapshot |
+
+`PUBLIC_SNAPSHOT_DIR` matters in a container: the image serves the **private** build, so
+nothing inside it reads the snapshot, and the checkout it would normally write back to is not
+there. Point it at a mounted volume to collect the JSON for committing.
+
+#### Behind Tailscale
+
+[`docker-compose.homelab.yml`](docker-compose.homelab.yml) runs the same image with no
+published ports, reachable only over the tailnet: a `tailscale/tailscale` sidecar holds the
+network namespace, the app joins it with `network_mode: service:…`, and
+[`serveconfig/serve-config.json`](serveconfig/serve-config.json) terminates HTTPS and proxies
+to `127.0.0.1:2627`. Put the auth key in a gitignored `.env` — the compose file refuses to
+start without it:
+
+```bash
+echo 'TS_AUTHKEY=tskey-auth-…' > .env
+docker compose -f docker-compose.homelab.yml up -d
+```
+
+The app is then at `https://premier-league-simulator.<your-tailnet>.ts.net`. `./data` holds
+SQLite and the CSVs the week loop rewrites; `./export` collects the public snapshots.
 
 ### Public site (GitHub Pages)
 
@@ -296,6 +318,9 @@ To update what visitors see: run `npm run week` (or `npm run export:public`) in 
 commit the regenerated `web/public/data/*.json`, and push.
 
 ## Data
+
+Both weekly pulls time out after 20 seconds rather than waiting out Node's default, so a
+network that blocks clubelo's plain HTTP fails quickly and by name instead of hanging the run.
 
 Club Elo ratings come from [clubelo.com](http://clubelo.com), filtered to the English
 top flight (`Country=ENG`, `Level=1`). Fixtures come from

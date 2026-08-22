@@ -83,7 +83,8 @@ arrow keys, roving `tabIndex`).
 
 ## Header controls
 
-- View tab bar, Monte Carlo button (private, projection views), `More ▾` menu, view help.
+- View tab bar, Monte Carlo button (private, projection views), `Run Week` button (private, every
+  view), `More ▾` menu, view help.
 - The `More` menu holds the same two entries in every view and mode — `Team Ratings` and
   `Manage Projections` — with unavailable entries disabled and explained rather than hidden. It
   also carries the **theme** control (System / Light / Dark), which keeps the menu open while
@@ -95,8 +96,20 @@ arrow keys, roving `tabIndex`).
   `DEFAULT_SEASON_ELO_DELTA_WEIGHT`. The modal also carries 1k/5k/25k run presets and a run-time
   estimate derived from the last completed batch's ms-per-run (`lib/runRate.ts`, `localStorage`).
 
-Public header omits the Monte Carlo button and the pick-strategy control; the footer can show the
-export timestamp from `meta.json`.
+- **`Run Week` is `npm run week` in the browser** (`WeekRunModal`, `POST /api/v1/week`). It is
+  offered in every private view because the loop starts from the weekend's results, not from a
+  projection, and it collapses to a `⟳` icon button on narrow screens, where a second worded
+  button costs the app title. The modal takes a run count (1k/10k/25k presets and the same
+  ms-per-run estimate as Monte Carlo), a projection name, and three toggles — dry run, skip the
+  Club Elo refresh, skip the public snapshot. The steps, their order and their wording all
+  arrive from the server as the run streams (`lib/weekRunLog.ts` folds the events into a log),
+  so the browser draws the loop rather than holding a second copy of it. A `REMOTE_RESULTS_CHANGED`
+  conflict is surfaced with a `Re-run and accept the changes` button, the force retry; a
+  `REMOTE_UNREACHABLE` failure on the Elo step offers `Re-run without the Club Elo refresh`,
+  since that is the only optional step and the weekend is already synced by then.
+
+Public header omits the Monte Carlo button, the `Run Week` button and the pick-strategy control;
+the footer can show the export timestamp from `meta.json`.
 
 ## Theme and typography
 
