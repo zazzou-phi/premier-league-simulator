@@ -208,6 +208,10 @@ export function FixtureList({
                 const selected = num === selectedMatchNumber;
                 const played = match.result.status === 'played';
                 const actual = actualByMatch.get(num);
+                // A distribution only exists behind a scoreline the batch actually shows. In
+                // the public snapshot the unrevealed rounds are blank, so those rows are inert
+                // rather than a click that fails.
+                const canOpen = onOpenMatch != null && played;
 
                 return (
                   <div
@@ -239,11 +243,11 @@ export function FixtureList({
                         played={played}
                         actual={actual}
                         actionLabel={
-                          onOpenMatch
+                          canOpen
                             ? `Outcome distribution: ${match.teamHome.name} vs ${match.teamAway.name}`
                             : undefined
                         }
-                        onClick={onOpenMatch ? () => onOpenMatch(num) : undefined}
+                        onClick={canOpen ? () => onOpenMatch!(num) : undefined}
                       />
                     </span>
                     <span

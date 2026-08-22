@@ -26,8 +26,9 @@ Rules that must hold across features. Violating these breaks domain correctness 
 
 ## Public export
 
-11. Kickoff reveal: blank unrevealed predictions before publish.
-12. Recompute the published table from revealed (and locked) matches only — standings must not imply future results.
+11. Next-round reveal: publish predictions up to and including the next round to be played, and blank every round beyond it. A fixture already locked or kicked off stays revealed, so the set only ever grows.
+12. Recompute the published table from **locked or kicked-off** matches only — never from the round revealed ahead of kickoff. Standings must not imply results nobody has played.
+12a. Publish a per-fixture distribution only for a match whose scoreline is published. The two sets are the same set.
 13. Public build is static: no API, no SQLite.
 
 ## Data pipelines

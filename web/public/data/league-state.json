@@ -317,9 +317,9 @@
         "elo": 1777.31
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 0,
+        "status": "played"
       },
       "locked": false
     },
@@ -347,9 +347,9 @@
         "elo": 1920.97
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 0,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -377,9 +377,9 @@
         "elo": 1871.97
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 0,
+        "status": "played"
       },
       "locked": false
     },
@@ -407,9 +407,9 @@
         "elo": 1910.8
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 0,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -437,9 +437,9 @@
         "elo": 1831.1
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },

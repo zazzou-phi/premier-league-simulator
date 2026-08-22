@@ -27,7 +27,7 @@ Elo is the strength input to the match model. Editable via API in private mode (
 
 `matchNumber` (PK), `matchday`, `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `teamHomeId`, `teamAwayId`.
 
-Kickoffs are UK wall-clock times (`Europe/London`, including BST). Used by the public kickoff-reveal policy.
+Kickoffs are UK wall-clock times (`Europe/London`, including BST). Used by the public next-round reveal policy, whose kicked-off clause decides what counts toward the published table.
 
 ### Simulation
 
