@@ -93,8 +93,11 @@ Default JSON response: the whole `WeekRunResult` (`results`, `ratings`, `graded`
 
 Both remote pulls time out after 20s (`data/fetchRemote.ts`) and surface as 502
 `REMOTE_UNREACHABLE` with the source and URL in the message — Node's ~5-minute default would
-otherwise hold the lock below for that long, which is exactly how a firewall that drops
-clubelo's plain HTTP fails.
+otherwise hold the lock below for that long, which is exactly how an upstream that accepts a
+connection and then answers nothing fails. `api.clubelo.com` has done precisely that since
+22 August 2026, so the ratings step returns this error on every run until the caller passes
+`skipRatings`. Note that the host still resolves: `*.clubelo.com` is a wildcard record, so DNS
+success says nothing about whether anything is listening.
 
 One run at a time: a second request while one is in flight is refused with 409
 `WEEK_RUN_IN_PROGRESS`, since two runs would race over the same CSVs. A remote scoreline that

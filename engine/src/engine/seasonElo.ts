@@ -1,24 +1,46 @@
 import type { Team } from './types.js';
 
+/**
+ * Step size of an Elo update, in rating points per unit of surprise.
+ *
+ * Held at 20 after `npm run fit:elo-k` re-fitted it for prediction rather than for final-table
+ * dispersion: 25 tops the sweep but beats 20 by only +0.00088 log-likelihood per match
+ * (SE 0.00085, t = 1.04), which is not a result.
+ */
 export const DEFAULT_SEASON_ELO_K = 20;
 
 /**
  * How much a simulated run of form moves a club off its base Elo. Defaults to a full-weight
  * Elo update.
  *
- * Only *simulated* results drift a rating. Real ones contribute nothing: `fetch:ratings`
- * refreshes each club's base rating from clubelo weekly and that rating has already priced
- * them in, so drifting on them again would count the same form twice. A batch projecting from
- * matchday 12 therefore starts every club at today's clubelo number and lets only matchdays
- * 12–38 move it.
+ * Real and simulated results both drift a rating. A batch projecting from matchday 12 starts
+ * every club at its last clubelo rating, replays matchdays 1–11 through {@link matchEloDelta}
+ * to price in what actually happened, and lets matchdays 12–38 move it from there.
  *
- * An earlier revision defaulted this to 0, on walk-forward evidence that drift was neither
- * significant (chi2(2) = 4.11, p = 0.13) nor useful (-0.00085 log-likelihood per match over
- * 152 matchday origins). That measurement accumulated drift over *real, already-observed*
- * results to predict the *next* matchday — which is exactly the double-count described above,
- * and says nothing about how a counterfactual season should evolve from its origin.
+ * Real results used to be excluded. That was right while `fetch:ratings` refreshed the base
+ * from clubelo weekly, because the refreshed number had already priced them in and drifting on
+ * them again would have counted the same form twice. `api.clubelo.com` stopped answering on
+ * 22 August 2026, so the base no longer refreshes and the exclusion left real form priced in
+ * by nothing at all.
  *
- * The question drift actually answers is whether simulated *final tables* are as spread out as
+ * `npm run fit:elo-k` measures the replacement directly: freeze the base at each season's
+ * opening rating, let drift be the only in-season update, and score the next matchday
+ * walk-forward over five seasons. Drift is worth +0.0228 log-likelihood per match against a
+ * frozen base with drift off (paired over 152 origins, SE 0.0059, t = 3.84), which recovers
+ * essentially all of the 0.0226 the live clubelo feed was worth. Losing the feed costs
+ * approximately nothing, provided drift is fed real results.
+ *
+ * That sweep also declined to move two things. K = 25 nominally beats K = 20 but only at
+ * t = 1.04, and scaling the update by winning margin is worth t = 0.04 — see
+ * {@link movMultiplier}, which exists but stays off. Both are noise on five seasons.
+ *
+ * An earlier revision defaulted this weight to 0, on walk-forward evidence that drift was
+ * neither significant (chi2(2) = 4.11, p = 0.13) nor useful (-0.00085 log-likelihood per match
+ * over 152 origins). That measurement is still correct and still not applicable: it let drift
+ * accumulate over real results *on top of* a live clubelo base, which is the double-count
+ * described above rather than a test of drift on its own.
+ *
+ * Drift also answers a second question — whether simulated *final tables* are as spread out as
  * real ones. Against the five completed seasons in `engine/src/fitting`, weight 0 is
  * under-dispersed: SD of points across the 20 clubs comes out at 16.0 against a historical
  * 18.0, about 3.2 standard errors low. Weight 1 closes half of that (17.0) at no cost to the
@@ -28,7 +50,8 @@ export const DEFAULT_SEASON_ELO_K = 20;
  * default: part of the residual gap is clubelo's pre-season ratings being shrunk toward the
  * mean, and tuning drift to absorb that would be fitting a confound on five seasons.
  *
- * Calibrated to final-table dispersion, then, not to per-match likelihood.
+ * Weight 1 is therefore supported twice over: by final-table dispersion, and now by
+ * out-of-sample per-match likelihood as well.
  */
 export const DEFAULT_SEASON_ELO_DELTA_WEIGHT = 1;
 export const SEASON_ELO_DELTA_WEIGHT_MAX = 5;
@@ -54,17 +77,75 @@ export function effectiveElo(
   return baseElo + deltaWeight * delta;
 }
 
+/**
+ * How much the winning margin scales an Elo update.
+ *
+ * `none` is a pure 1/0.5/0 result: a 5-0 and a 1-0 move a rating identically. It is the
+ * default, and the sweep in `npm run fit:elo-k` is why — scaling by margin is worth +0.00004
+ * log-likelihood per match (SE 0.00082, t = 0.04), and the `linear` ladder measures slightly
+ * worse than ignoring the margin altogether.
+ *
+ * That is less surprising than it first looks. The engine does not consume Elo directly: it
+ * feeds a Poisson GLM on the rating gap, and the margin is already reaching the lambdas
+ * through the training data. Scaling the Elo update re-encodes something the model has another
+ * route to. The schemes are kept because the question is worth re-asking on more than five
+ * seasons, not because either is currently switched on.
+ *
+ * - `linear` — the World Football Elo ladder: 1 up to a one-goal win, 1.5 at two, `(11+d)/8`
+ *   beyond. Cheap and bounded, but the steps are asserted rather than fitted.
+ * - `log` — `ln(d+1)`, damped by the favourite's rating edge. The damping is the important
+ *   half: without it a strong club inflates by running up scores against weak ones, and the
+ *   rating chases margin instead of strength.
+ */
+export type MovScheme = 'none' | 'linear' | 'log';
+
+export const DEFAULT_MOV_SCHEME: MovScheme = 'none';
+
+/**
+ * Multiplier on the Elo update for a winning margin of `goalDiff`.
+ *
+ * `winnerEloEdge` is the winner's rating minus the loser's, *after* the result is known — so
+ * it is positive when the favourite won and negative on an upset. The `log` damping divides
+ * by that edge, which shrinks a favourite's gain for a rout and leaves an underdog's intact.
+ */
+export function movMultiplier(
+  scheme: MovScheme,
+  goalDiff: number,
+  winnerEloEdge: number,
+): number {
+  const d = Math.abs(goalDiff);
+  if (scheme === 'none' || d <= 1) return 1;
+
+  if (scheme === 'linear') return d === 2 ? 1.5 : (11 + d) / 8;
+
+  return Math.log(d + 1) * (2.2 / (0.001 * winnerEloEdge + 2.2));
+}
+
+export interface MatchEloDeltaOptions {
+  k?: number;
+  movScheme?: MovScheme;
+}
+
 export function matchEloDelta(
   homeElo: number,
   awayElo: number,
   goalsHome: number,
   goalsAway: number,
   k: number = DEFAULT_SEASON_ELO_K,
+  options: Omit<MatchEloDeltaOptions, 'k'> = {},
 ): [number, number] {
+  const { movScheme = DEFAULT_MOV_SCHEME } = options;
+
   const expectedHome = expectedScore(homeElo, awayElo);
   const actualHome = goalsHome > goalsAway ? 1 : goalsHome === goalsAway ? 0.5 : 0;
-  const homeDelta = k * (actualHome - expectedHome);
-  const awayDelta = k * (1 - actualHome - (1 - expectedHome));
+
+  // A draw has no winner to take the edge from, and `movMultiplier` returns 1 there anyway.
+  const winnerEloEdge =
+    goalsHome > goalsAway ? homeElo - awayElo : goalsAway > goalsHome ? awayElo - homeElo : 0;
+  const scale = movMultiplier(movScheme, goalsHome - goalsAway, winnerEloEdge);
+
+  const homeDelta = scale * k * (actualHome - expectedHome);
+  const awayDelta = scale * k * (1 - actualHome - (1 - expectedHome));
   return [homeDelta, awayDelta];
 }
 
@@ -72,6 +153,7 @@ export function computeEloDeltasFromMatches(
   teams: Team[] | Map<number, Team>,
   matches: EloMatchInput[],
   k: number = DEFAULT_SEASON_ELO_K,
+  movScheme: MovScheme = DEFAULT_MOV_SCHEME,
 ): Map<number, number> {
   const teamsById = teams instanceof Map ? teams : new Map(teams.map((team) => [team.id, team]));
   const deltas = new Map<number, number>();
@@ -89,6 +171,7 @@ export function computeEloDeltasFromMatches(
       match.goalsHome,
       match.goalsAway,
       k,
+      { movScheme },
     );
     deltas.set(home.id, (deltas.get(home.id) ?? 0) + homeDelta);
     deltas.set(away.id, (deltas.get(away.id) ?? 0) + awayDelta);

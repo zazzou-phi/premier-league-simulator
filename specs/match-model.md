@@ -114,17 +114,51 @@ After every match, both teams receive a standard Elo update (`matchEloDelta`, K 
 Effective Elo for simulation: `base + weight × delta`. **Weight default `1`**, allowed `0…5`
 (`app_settings.season_elo_delta_weight`).
 
-### What drifts, and what does not
+### What drifts
 
-Only *simulated* matches move a rating. Locked fixtures are not simulated at all — they are
-banked into the run's starting table — so they contribute no delta, and `SeasonRunner` likewise
-seeds drift only from a simulation's own earlier results.
+Every played scoreline moves a rating, real or simulated alike. Locked fixtures are still not
+*simulated* — they are banked into the run's starting table rather than replayed — but their
+scorelines are now replayed through `matchEloDelta` to seed the drift the remainder starts
+from. `runMonteCarlo` computes that seed once, since the locked half is identical in every run;
+`SeasonRunner` derives it from rows already overlaid with real results.
 
-That asymmetry is the point. `fetch:ratings` overwrites each club's base Elo with clubelo's
-*current* rating, which already reflects every real result so far this season; applying
-`matchEloDelta` on top of those same results would count the same form twice. A batch
-projecting from matchday 12 therefore starts every club at today's clubelo number and lets only
-matchdays 12–38 move it.
+A batch projecting from matchday 12 therefore starts every club at its last clubelo rating,
+replays matchdays 1–11 to price in what happened, and lets matchdays 12–38 move it from there.
+
+Real results were excluded until 26 August 2026. That was correct while `fetch:ratings`
+overwrote each club's base Elo with clubelo's *current* rating, which already reflected every
+result so far — applying `matchEloDelta` on top would have counted the same form twice.
+`api.clubelo.com` stopped answering on 22 August 2026 (see `specs/api.md`), so the base no
+longer refreshes and the exclusion left real form priced in by nothing at all.
+
+### What the frozen-anchor fit measures
+
+`npm run fit:elo-k` freezes the base at each season's opening clubelo rating, lets drift be the
+only in-season update, and scores the following matchday walk-forward across 2021/22–2025/26.
+Because every candidate sees identical origins, the comparisons below are **paired** — origin
+variance is large and common to all of them, so the ranking alone would prove nothing.
+
+| Reference | Mean out-of-sample log-likelihood per match |
+|---|---|
+| Live clubelo, no drift — the pre-outage engine | −2.99066 |
+| Frozen anchor, no drift — `--no-ratings` with drift off | −3.01321 |
+| Headroom the feed was worth | 0.02256 |
+
+| Paired comparison | Mean diff | SE | t |
+|---|---|---|---|
+| Drift vs no drift, at the best setting | **+0.02281** | 0.00594 | **3.84** |
+| K = 25 vs K = 20 | +0.00088 | 0.00085 | 1.04 |
+| Margin-of-victory (`log`) vs `none` | +0.00004 | 0.00082 | 0.04 |
+| Margin-of-victory (`linear`) vs `none` | −0.00116 | 0.00147 | −0.79 |
+
+Drift on real results recovers essentially the whole headroom: a frozen anchor plus drift
+*matches* the live feed over these five seasons. That is the evidence for the switch.
+
+The same sweep declined two changes. K stays at 20 — 25 tops the raw ranking but at t = 1.04.
+Margin-of-victory scaling stays off; `movMultiplier` implements `linear` and `log` schemes, and
+neither is distinguishable from ignoring the margin. The likely reason is that the engine never
+consumes Elo directly — it feeds a Poisson GLM on the rating gap, and margin information
+already reaches the lambdas through the training data.
 
 ### Why the weight is 1
 
@@ -136,11 +170,13 @@ An earlier revision defaulted the weight to `0`, on this evidence:
 | Implied weight, home / away | 0.145 / 0.401 — mutually inconsistent, both far below `1` |
 | Walk-forward, 152 matchday origins | drift **cost** 0.00085 log-likelihood per match |
 
-Those numbers are correct, and they measure the wrong thing. `rollingOriginEvaluation`
-accumulates drift over *real, already-observed* results and asks whether it sharpens the *next*
-matchday's per-match likelihood. Since clubelo already contains those results, that is a test of
-whether to double-count — and the answer is rightly no. It says nothing about how a
-counterfactual season should evolve from its origin, which is the only thing drift now does.
+Those numbers are correct, and they measure a different thing. `rollingOriginEvaluation`
+accumulates drift over real results *on top of a live clubelo base* and asks whether it sharpens
+the next matchday. Since that base already contains those results, it is a test of whether to
+double-count — and the answer is rightly no. `anchoredWalkForward` asks the question that
+matters now, with the base frozen so drift is the only thing pricing form in, and gets the
+opposite answer (t = 3.84). The two are consistent: the first says do not add drift to a live
+feed, the second says drift can stand in for one.
 
 The question drift actually answers is whether simulated **final tables** are as spread out as
 real ones. Simulating full seasons at K = 20 from `data/teams.csv` (1,500 seasons per weight):

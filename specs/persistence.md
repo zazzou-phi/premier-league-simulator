@@ -42,6 +42,8 @@ Validation: 380 fixtures; each team 19 home / 19 away; unique home–away pairs.
 
 `npm run fetch:results` pulls finished scores from the remote fixturedownload CSV into `actual_match_results` and refreshes `data/fixtures.csv`. It also refreshes Club Elo from `api.clubelo.com` into the DB and `data/teams.csv` (matched by `clubelo_name`; ids stay fixed), and appends a dated `team_elo_history` snapshot. Flags: `--dry-run`, `--db`, `--no-ratings`.
 
+That upstream has been unreachable since 22 August 2026, so the ratings half currently fails and `--no-ratings` is the working path; `team_elo_history` is consequently still empty. Ratings stay at the values seeded on 3 August 2026, and in-season Elo drift prices real results in on top of them — see `specs/match-model.md`.
+
 Does **not** re-run Monte Carlo or public export — those are separate steps. `npm run week`
 chains all of them in the required order and refuses to continue when the remote has changed
 a result already recorded (override with `--force`).
