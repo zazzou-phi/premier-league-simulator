@@ -171,7 +171,7 @@
         "goalsAway": 0,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -197,11 +197,11 @@
         "elo": 1915.32
       },
       "result": {
-        "goalsHome": 0,
-        "goalsAway": 2,
+        "goalsHome": 2,
+        "goalsAway": 0,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -227,11 +227,11 @@
         "elo": 1803.82
       },
       "result": {
-        "goalsHome": 1,
-        "goalsAway": 1,
+        "goalsHome": 2,
+        "goalsAway": 0,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -257,11 +257,11 @@
         "elo": 1735.93
       },
       "result": {
-        "goalsHome": 1,
+        "goalsHome": 2,
         "goalsAway": 1,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -287,11 +287,11 @@
         "elo": 1797.39
       },
       "result": {
-        "goalsHome": 1,
-        "goalsAway": 0,
+        "goalsHome": 0,
+        "goalsAway": 1,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -317,11 +317,11 @@
         "elo": 1777.31
       },
       "result": {
-        "goalsHome": 1,
+        "goalsHome": 3,
         "goalsAway": 0,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -347,11 +347,11 @@
         "elo": 1920.97
       },
       "result": {
-        "goalsHome": 0,
-        "goalsAway": 1,
+        "goalsHome": 4,
+        "goalsAway": 0,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -377,11 +377,11 @@
         "elo": 1871.97
       },
       "result": {
-        "goalsHome": 1,
-        "goalsAway": 0,
+        "goalsHome": 2,
+        "goalsAway": 1,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -407,11 +407,11 @@
         "elo": 1910.8
       },
       "result": {
-        "goalsHome": 0,
-        "goalsAway": 1,
+        "goalsHome": 2,
+        "goalsAway": 2,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -437,11 +437,11 @@
         "elo": 1831.1
       },
       "result": {
-        "goalsHome": 1,
-        "goalsAway": 1,
+        "goalsHome": 2,
+        "goalsAway": 3,
         "status": "played"
       },
-      "locked": false
+      "locked": true
     },
     {
       "fixture": {
@@ -467,9 +467,9 @@
         "elo": 1803.43
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 0,
+        "status": "played"
       },
       "locked": false
     },
@@ -497,9 +497,9 @@
         "elo": 2063.76
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 0,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -527,9 +527,9 @@
         "elo": 1842.01
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 2,
+        "status": "played"
       },
       "locked": false
     },
@@ -557,9 +557,9 @@
         "elo": 1532.88
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 0,
+        "status": "played"
       },
       "locked": false
     },
@@ -587,9 +587,9 @@
         "elo": 1970.85
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 0,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -617,9 +617,9 @@
         "elo": 1836.59
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -647,9 +647,9 @@
         "elo": 1822.17
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 2,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -677,9 +677,9 @@
         "elo": 1640
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 2,
+        "goalsAway": 0,
+        "status": "played"
       },
       "locked": false
     },
@@ -707,9 +707,9 @@
         "elo": 1813.1
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 0,
+        "goalsAway": 1,
+        "status": "played"
       },
       "locked": false
     },
@@ -737,9 +737,9 @@
         "elo": 1837.53
       },
       "result": {
-        "goalsHome": null,
-        "goalsAway": null,
-        "status": "scheduled"
+        "goalsHome": 1,
+        "goalsAway": 2,
+        "status": "played"
       },
       "locked": false
     },
@@ -11546,6 +11546,25 @@
   ],
   "standings": [
     {
+      "teamId": 7,
+      "team": {
+        "id": 7,
+        "name": "Brighton & Hove Albion",
+        "shortName": "BHA",
+        "crest": null,
+        "elo": 1842.01
+      },
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 4,
+      "goalsAgainst": 0,
+      "goalDifference": 4,
+      "points": 3,
+      "position": 1
+    },
+    {
       "teamId": 1,
       "team": {
         "id": 1,
@@ -11562,64 +11581,26 @@
       "goalsAgainst": 0,
       "goalDifference": 3,
       "points": 3,
-      "position": 1
-    },
-    {
-      "teamId": 4,
-      "team": {
-        "id": 4,
-        "name": "Manchester United",
-        "shortName": "MUN",
-        "crest": null,
-        "elo": 1915.32
-      },
-      "played": 1,
-      "won": 1,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 2,
-      "goalsAgainst": 0,
-      "goalDifference": 2,
-      "points": 3,
       "position": 2
     },
     {
-      "teamId": 11,
+      "teamId": 9,
       "team": {
-        "id": 11,
-        "name": "Nottingham Forest",
-        "shortName": "NFO",
+        "id": 9,
+        "name": "Brentford",
+        "shortName": "BRE",
         "crest": null,
-        "elo": 1822.17
+        "elo": 1836.59
       },
       "played": 1,
       "won": 1,
       "drawn": 0,
       "lost": 0,
-      "goalsFor": 1,
+      "goalsFor": 3,
       "goalsAgainst": 0,
-      "goalDifference": 1,
+      "goalDifference": 3,
       "points": 3,
       "position": 3
-    },
-    {
-      "teamId": 13,
-      "team": {
-        "id": 13,
-        "name": "Crystal Palace",
-        "shortName": "CRY",
-        "crest": null,
-        "elo": 1803.82
-      },
-      "played": 1,
-      "won": 0,
-      "drawn": 1,
-      "lost": 0,
-      "goalsFor": 1,
-      "goalsAgainst": 1,
-      "goalDifference": 0,
-      "points": 1,
-      "position": 4
     },
     {
       "teamId": 14,
@@ -11631,14 +11612,52 @@
         "elo": 1803.43
       },
       "played": 1,
-      "won": 0,
-      "drawn": 1,
+      "won": 1,
+      "drawn": 0,
       "lost": 0,
-      "goalsFor": 1,
-      "goalsAgainst": 1,
-      "goalDifference": 0,
-      "points": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 0,
+      "goalDifference": 2,
+      "points": 3,
+      "position": 4
+    },
+    {
+      "teamId": 20,
+      "team": {
+        "id": 20,
+        "name": "Hull City",
+        "shortName": "HUL",
+        "crest": null,
+        "elo": 1532.88
+      },
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 2,
+      "goalsAgainst": 0,
+      "goalDifference": 2,
+      "points": 3,
       "position": 5
+    },
+    {
+      "teamId": 10,
+      "team": {
+        "id": 10,
+        "name": "Chelsea",
+        "shortName": "CHE",
+        "crest": null,
+        "elo": 1831.1
+      },
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 3,
+      "goalsAgainst": 2,
+      "goalDifference": 1,
+      "points": 3,
+      "position": 6
     },
     {
       "teamId": 19,
@@ -11650,14 +11669,128 @@
         "elo": 1640
       },
       "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 2,
+      "goalsAgainst": 1,
+      "goalDifference": 1,
+      "points": 3,
+      "position": 7
+    },
+    {
+      "teamId": 2,
+      "team": {
+        "id": 2,
+        "name": "Manchester City",
+        "shortName": "MCI",
+        "crest": null,
+        "elo": 1970.85
+      },
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 2,
+      "goalsAgainst": 1,
+      "goalDifference": 1,
+      "points": 3,
+      "position": 8
+    },
+    {
+      "teamId": 15,
+      "team": {
+        "id": 15,
+        "name": "Leeds United",
+        "shortName": "LEE",
+        "crest": null,
+        "elo": 1797.39
+      },
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "goalsFor": 1,
+      "goalsAgainst": 0,
+      "goalDifference": 1,
+      "points": 3,
+      "position": 9
+    },
+    {
+      "teamId": 5,
+      "team": {
+        "id": 5,
+        "name": "Liverpool",
+        "shortName": "LIV",
+        "crest": null,
+        "elo": 1910.8
+      },
+      "played": 1,
       "won": 0,
       "drawn": 1,
       "lost": 0,
-      "goalsFor": 1,
-      "goalsAgainst": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 2,
       "goalDifference": 0,
       "points": 1,
-      "position": 6
+      "position": 10
+    },
+    {
+      "teamId": 8,
+      "team": {
+        "id": 8,
+        "name": "Newcastle United",
+        "shortName": "NEW",
+        "crest": null,
+        "elo": 1837.53
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 1,
+      "lost": 0,
+      "goalsFor": 2,
+      "goalsAgainst": 2,
+      "goalDifference": 0,
+      "points": 1,
+      "position": 11
+    },
+    {
+      "teamId": 12,
+      "team": {
+        "id": 12,
+        "name": "Fulham",
+        "shortName": "FUL",
+        "crest": null,
+        "elo": 1813.1
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 2,
+      "goalsAgainst": 3,
+      "goalDifference": -1,
+      "points": 0,
+      "position": 12
+    },
+    {
+      "teamId": 6,
+      "team": {
+        "id": 6,
+        "name": "Bournemouth",
+        "shortName": "BOU",
+        "crest": null,
+        "elo": 1871.97
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 1,
+      "goalsAgainst": 2,
+      "goalDifference": -1,
+      "points": 0,
+      "position": 13
     },
     {
       "teamId": 17,
@@ -11670,212 +11803,22 @@
       },
       "played": 1,
       "won": 0,
-      "drawn": 1,
-      "lost": 0,
+      "drawn": 0,
+      "lost": 1,
       "goalsFor": 1,
-      "goalsAgainst": 1,
-      "goalDifference": 0,
-      "points": 1,
-      "position": 7
-    },
-    {
-      "teamId": 3,
-      "team": {
-        "id": 3,
-        "name": "Aston Villa",
-        "shortName": "AVL",
-        "crest": null,
-        "elo": 1920.97
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 8
-    },
-    {
-      "teamId": 6,
-      "team": {
-        "id": 6,
-        "name": "Bournemouth",
-        "shortName": "BOU",
-        "crest": null,
-        "elo": 1871.97
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 9
-    },
-    {
-      "teamId": 9,
-      "team": {
-        "id": 9,
-        "name": "Brentford",
-        "shortName": "BRE",
-        "crest": null,
-        "elo": 1836.59
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 10
-    },
-    {
-      "teamId": 7,
-      "team": {
-        "id": 7,
-        "name": "Brighton & Hove Albion",
-        "shortName": "BHA",
-        "crest": null,
-        "elo": 1842.01
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 11
-    },
-    {
-      "teamId": 10,
-      "team": {
-        "id": 10,
-        "name": "Chelsea",
-        "shortName": "CHE",
-        "crest": null,
-        "elo": 1831.1
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 12
-    },
-    {
-      "teamId": 12,
-      "team": {
-        "id": 12,
-        "name": "Fulham",
-        "shortName": "FUL",
-        "crest": null,
-        "elo": 1813.1
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 13
-    },
-    {
-      "teamId": 5,
-      "team": {
-        "id": 5,
-        "name": "Liverpool",
-        "shortName": "LIV",
-        "crest": null,
-        "elo": 1910.8
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
+      "goalsAgainst": 2,
+      "goalDifference": -1,
       "points": 0,
       "position": 14
     },
     {
-      "teamId": 2,
+      "teamId": 11,
       "team": {
-        "id": 2,
-        "name": "Manchester City",
-        "shortName": "MCI",
+        "id": 11,
+        "name": "Nottingham Forest",
+        "shortName": "NFO",
         "crest": null,
-        "elo": 1970.85
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 15
-    },
-    {
-      "teamId": 8,
-      "team": {
-        "id": 8,
-        "name": "Newcastle United",
-        "shortName": "NEW",
-        "crest": null,
-        "elo": 1837.53
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 16
-    },
-    {
-      "teamId": 16,
-      "team": {
-        "id": 16,
-        "name": "Tottenham Hotspur",
-        "shortName": "TOT",
-        "crest": null,
-        "elo": 1777.31
-      },
-      "played": 0,
-      "won": 0,
-      "drawn": 0,
-      "lost": 0,
-      "goalsFor": 0,
-      "goalsAgainst": 0,
-      "goalDifference": 0,
-      "points": 0,
-      "position": 17
-    },
-    {
-      "teamId": 15,
-      "team": {
-        "id": 15,
-        "name": "Leeds United",
-        "shortName": "LEE",
-        "crest": null,
-        "elo": 1797.39
+        "elo": 1822.17
       },
       "played": 1,
       "won": 0,
@@ -11885,16 +11828,16 @@
       "goalsAgainst": 1,
       "goalDifference": -1,
       "points": 0,
-      "position": 18
+      "position": 15
     },
     {
-      "teamId": 20,
+      "teamId": 13,
       "team": {
-        "id": 20,
-        "name": "Hull City",
-        "shortName": "HUL",
+        "id": 13,
+        "name": "Crystal Palace",
+        "shortName": "CRY",
         "crest": null,
-        "elo": 1532.88
+        "elo": 1803.82
       },
       "played": 1,
       "won": 0,
@@ -11904,7 +11847,26 @@
       "goalsAgainst": 2,
       "goalDifference": -2,
       "points": 0,
-      "position": 19
+      "position": 16
+    },
+    {
+      "teamId": 4,
+      "team": {
+        "id": 4,
+        "name": "Manchester United",
+        "shortName": "MUN",
+        "crest": null,
+        "elo": 1915.32
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 0,
+      "goalsAgainst": 2,
+      "goalDifference": -2,
+      "points": 0,
+      "position": 17
     },
     {
       "teamId": 18,
@@ -11923,9 +11885,47 @@
       "goalsAgainst": 3,
       "goalDifference": -3,
       "points": 0,
+      "position": 18
+    },
+    {
+      "teamId": 16,
+      "team": {
+        "id": 16,
+        "name": "Tottenham Hotspur",
+        "shortName": "TOT",
+        "crest": null,
+        "elo": 1777.31
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 0,
+      "goalsAgainst": 3,
+      "goalDifference": -3,
+      "points": 0,
+      "position": 19
+    },
+    {
+      "teamId": 3,
+      "team": {
+        "id": 3,
+        "name": "Aston Villa",
+        "shortName": "AVL",
+        "crest": null,
+        "elo": 1920.97
+      },
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "goalsFor": 0,
+      "goalsAgainst": 4,
+      "goalDifference": -4,
+      "points": 0,
       "position": 20
     }
   ],
-  "matchesPlayed": 5,
+  "matchesPlayed": 10,
   "matchesTotal": 380
 }

@@ -3183,6 +3183,67 @@
       "teamAwayId": 2
     }
   ],
-  "actualResults": [],
+  "actualResults": [
+    {
+      "matchNumber": 1,
+      "goalsHome": 3,
+      "goalsAway": 0,
+      "recordedAt": "2026-08-25T22:26:44.412Z"
+    },
+    {
+      "matchNumber": 2,
+      "goalsHome": 2,
+      "goalsAway": 0,
+      "recordedAt": "2026-08-25T22:26:44.414Z"
+    },
+    {
+      "matchNumber": 3,
+      "goalsHome": 2,
+      "goalsAway": 0,
+      "recordedAt": "2026-08-25T22:26:44.414Z"
+    },
+    {
+      "matchNumber": 4,
+      "goalsHome": 2,
+      "goalsAway": 1,
+      "recordedAt": "2026-08-25T22:26:44.415Z"
+    },
+    {
+      "matchNumber": 5,
+      "goalsHome": 0,
+      "goalsAway": 1,
+      "recordedAt": "2026-08-25T22:26:44.416Z"
+    },
+    {
+      "matchNumber": 6,
+      "goalsHome": 3,
+      "goalsAway": 0,
+      "recordedAt": "2026-08-25T22:26:44.416Z"
+    },
+    {
+      "matchNumber": 7,
+      "goalsHome": 4,
+      "goalsAway": 0,
+      "recordedAt": "2026-08-25T22:26:44.417Z"
+    },
+    {
+      "matchNumber": 8,
+      "goalsHome": 2,
+      "goalsAway": 1,
+      "recordedAt": "2026-08-25T22:26:44.417Z"
+    },
+    {
+      "matchNumber": 9,
+      "goalsHome": 2,
+      "goalsAway": 2,
+      "recordedAt": "2026-08-25T22:26:44.417Z"
+    },
+    {
+      "matchNumber": 10,
+      "goalsHome": 2,
+      "goalsAway": 3,
+      "recordedAt": "2026-08-25T22:26:44.418Z"
+    }
+  ],
   "eloHistory": []
 }
