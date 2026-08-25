@@ -80,19 +80,21 @@ export class SeasonRunner {
   }
 
   /**
-   * Matches whose scorelines are allowed to move a rating: this simulation's own earlier
-   * results, and only those.
+   * Every played scoreline a rating can drift on: real results and this simulation's own
+   * earlier ones alike.
    *
-   * Real results are excluded on purpose. Base Elo is refreshed weekly from clubelo, which has
-   * already priced them in, so drifting on them again would count the same form twice. Note
-   * the opposite polarity from {@link withActuals}, which overlays those very rows in.
+   * Real results used to be excluded here, because `fetch:ratings` refreshed the base rating
+   * from clubelo weekly and that number had already priced them in — drifting on them again
+   * would have counted the same form twice. That base no longer refreshes, so the exclusion
+   * now leaves real form unpriced by anything at all. See {@link DEFAULT_SEASON_ELO_DELTA_WEIGHT}
+   * for the walk-forward evidence behind the switch.
+   *
+   * `rows` arrive already overlaid by {@link withActuals}, so a locked fixture carries the
+   * real scoreline here, not whatever this simulation happened to roll for it.
    */
-  private playedEloInputs(rows: SimulationMatch[], actuals: ActualResults): EloMatchInput[] {
+  private playedEloInputs(rows: SimulationMatch[]): EloMatchInput[] {
     return rows.flatMap((row) =>
-      row.status === 'played' &&
-      row.goalsHome != null &&
-      row.goalsAway != null &&
-      !actuals.has(row.matchNumber)
+      row.status === 'played' && row.goalsHome != null && row.goalsAway != null
         ? [
             {
               matchNumber: row.matchNumber,
@@ -111,14 +113,13 @@ export class SeasonRunner {
     pending: PendingFixture[],
     rows: SimulationMatch[],
     teams: Team[],
-    actuals: ActualResults,
     overrides: RunnerOptions,
   ): SimulateResult {
     const { baselineHome, baselineAway, upsetVariance, eloDeltaWeight, eloK, rng } =
       this.resolveOptions(overrides);
 
-    // Seed drift from matches this simulation played itself, so form carries into new ones.
-    const deltas = computeEloDeltasFromMatches(teams, this.playedEloInputs(rows, actuals), eloK);
+    // Seed drift from everything already played — real or simulated — so form carries forward.
+    const deltas = computeEloDeltasFromMatches(teams, this.playedEloInputs(rows), eloK);
 
     const byMatchday = new Map<number, PendingFixture[]>();
     for (const item of pending) {
@@ -197,7 +198,7 @@ export class SeasonRunner {
     const actuals = this.repo.getActualResultsByMatch();
     const rows = this.withActuals(this.repo.getSimulationMatches(simulationId), actuals);
     const pending = this.collectPending(rows, fixturesByNumber, teamsById, () => true);
-    return this.simulatePending(simulationId, pending, rows, teams, actuals, overrides);
+    return this.simulatePending(simulationId, pending, rows, teams, overrides);
   }
 
   simulateUpToMatchday(
@@ -216,7 +217,7 @@ export class SeasonRunner {
       teamsById,
       (fixture) => fixture.matchday <= matchday,
     );
-    return this.simulatePending(simulationId, pending, rows, teams, actuals, overrides);
+    return this.simulatePending(simulationId, pending, rows, teams, overrides);
   }
 
   simulateNextMatchday(simulationId: number, overrides: RunnerOptions = {}): SimulateResult {
@@ -266,7 +267,6 @@ export class SeasonRunner {
       [{ fixture, home, away }],
       others,
       teams,
-      actuals,
       overrides,
     );
   }

@@ -35,6 +35,14 @@ export interface SeasonSimulationOptions {
   eloK?: number;
   eloDeltaWeight?: number;
   rng?: RandomSource;
+  /**
+   * Drift a club already carries before the first simulated fixture, by team id.
+   *
+   * A run that simulates only the remainder of a season needs the form from the matchdays
+   * already played, which it never sees as fixtures. The caller computes that once and passes
+   * it here; the map is copied, not mutated.
+   */
+  seedEloDeltas?: Map<number, number>;
 }
 
 export interface SeasonSimulationResult {
@@ -74,7 +82,7 @@ export function simulateSeason(
   const rng = options.rng ?? defaultRandomSource;
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
-  const eloDeltas = new Map<number, number>();
+  const eloDeltas = new Map<number, number>(options.seedEloDeltas ?? []);
   const matches: SeasonMatchResult[] = [];
 
   for (const fixture of fixtures) {

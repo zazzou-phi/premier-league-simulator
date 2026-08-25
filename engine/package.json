@@ -16,6 +16,7 @@
     "monte-carlo": "tsx src/monte-carlo-cli.ts",
     "score": "tsx src/score-cli.ts",
     "fit:lambdas": "tsx src/fit-lambdas-cli.ts",
+    "fit:elo-k": "tsx src/fit-elo-k-cli.ts",
     "mc:convergence": "tsx src/mc-convergence-cli.ts",
     "week": "tsx src/week-cli.ts",
     "export:public": "tsx src/export-public-cli.ts"

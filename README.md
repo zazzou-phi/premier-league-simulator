@@ -83,11 +83,13 @@ Two knobs sit on top:
   so that turning it up makes results more volatile without inflating the number of goals.
   **Fitted to zero**: league goals are already fractionally under-dispersed relative to
   Poisson, so this particular mechanism only ever costs likelihood.
-- **In-season Elo drift** — within a simulated season, both teams get a standard Elo update
-  after every simulated match, so a run of form compounds. Defaults to a full-weight update.
-  Real results contribute nothing, because the weekly clubelo refresh has already priced them
-  in; the weight is calibrated against the spread of historical final tables rather than
-  per-match likelihood. Set it to 0 to hold ratings fixed.
+- **In-season Elo drift** — both teams get a standard Elo update after every played match, so a
+  run of form compounds. Defaults to a full-weight update. Real results drift a rating just as
+  simulated ones do: with `api.clubelo.com` no longer answering, drift is the only thing
+  pricing real form in, and `npm run fit:elo-k` measures it as recovering essentially all of
+  what the live feed was worth (+0.023 log-likelihood per match, t = 3.84). The weight is
+  supported both by the spread of historical final tables and by out-of-sample per-match
+  likelihood. Set it to 0 to hold ratings fixed.
 
 ### Standings
 
@@ -329,8 +331,17 @@ commit the regenerated `web/public/data/*.json`, and push.
 
 ## Data
 
-Both weekly pulls time out after 20 seconds rather than waiting out Node's default, so a
-network that blocks clubelo's plain HTTP fails quickly and by name instead of hanging the run.
+Both weekly pulls time out after 20 seconds rather than waiting out Node's default, so an
+unreachable upstream fails quickly and by name instead of hanging the run.
+
+**`api.clubelo.com` has been unreachable since 22 August 2026.** The apex domain was rebuilt on
+new infrastructure and the API host was left behind: `clubelo.com` resolves to
+Cloudflare/DigitalOcean, while `*.clubelo.com` is a wildcard pointing at an old address that
+answers nothing on either port. The wildcard is why `api.clubelo.com` still resolves — it is
+not evidence of a live host. No replacement CSV endpoint has been published. `npm run
+fetch:ratings` and the ratings step of `npm run week` will fail with `REMOTE_UNREACHABLE` until
+one is; use `--no-ratings` to skip it. In-season Elo drift now prices real results in, which
+covers most of the loss — see `specs/match-model.md`.
 
 Club Elo ratings come from [clubelo.com](http://clubelo.com), filtered to the English
 top flight (`Country=ENG`, `Level=1`). Fixtures come from
@@ -355,7 +366,8 @@ grading and trending, the repository, the HTTP API, and public-export redaction.
 |---------|---------|
 | `npm run week` | Advance the season one week: results → Elo → grade → project → export |
 | `npm run score` | Grade a stored projection against what actually happened |
-| `npm run fetch:ratings` | Refresh `data/teams.csv` from clubelo |
+| `npm run fetch:ratings` | Refresh `data/teams.csv` from clubelo (**upstream down since 2026-08-22**) |
+| `npm run fit:elo-k` | Fit the in-season Elo update against a frozen base; runs offline from `.cache/fitting` |
 | `npm run fetch:fixtures` | Download the 2026/27 fixture list into `data/fixtures.csv` |
 | `npm run fetch:results` | Lock finished scores from fixturedownload; refresh Club Elo (`--dry-run`, `--db`, `--no-ratings`) |
 | `npm run seed` | Create/populate the database (`--force` to rebuild) |
