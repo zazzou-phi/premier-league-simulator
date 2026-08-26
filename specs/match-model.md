@@ -129,6 +129,10 @@ every real result to date. It **recomputes rather than increments**, so running 
 no-op and a corrected scoreline is absorbed rather than layered on top of the wrong one. The
 anchor is the last rating from outside the model, pinned once and never overwritten.
 
+The `team_elo_history` snapshot is keyed the same way — by the date of the last result priced
+in, not by the day the sync ran — so an idle run adds no point and the series carries one entry
+per round. See `specs/persistence.md`.
+
 A batch projecting from matchday 12 therefore starts every club at a rating that already
 reflects matchdays 1–11, and lets only 12–38 move it. Locked fixtures are banked into the
 run's starting table and contribute no drift, because their effect is already in the number

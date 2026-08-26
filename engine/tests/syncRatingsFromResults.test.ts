@@ -137,6 +137,72 @@ describe('syncTeamRatingsFromResults', () => {
     }
   });
 
+  it('dates the snapshot by the last result, not the day it ran', async () => {
+    const fixture = play(1, 2, 0);
+    const summary = await syncTeamRatingsFromResults({
+      repo,
+      writeCsv: false,
+      date: new Date('2030-01-01T12:00:00Z'),
+    });
+
+    expect(summary.asOf).toBe(fixture.date);
+    expect(repo.getEloHistoryDates()).toEqual([fixture.date]);
+  });
+
+  it('records nothing when no match has been played', async () => {
+    const summary = await sync();
+    expect(summary.snapshotted).toBeUndefined();
+    expect(repo.getEloHistory()).toHaveLength(0);
+  });
+
+  it('adds no snapshot on an idle run, however often it is called', async () => {
+    play(1, 2, 0);
+    await sync();
+    expect(repo.getEloHistory()).toHaveLength(20);
+
+    // A rating only moves when a match is played, so a quiet week must add no points — three
+    // identical snapshots would also hide the last real move, which `groupEloSeries` reports
+    // as the difference between the final two.
+    for (let i = 0; i < 3; i++) {
+      const idle = await syncTeamRatingsFromResults({
+        repo,
+        writeCsv: false,
+        date: new Date(`2026-09-0${i + 1}T12:00:00Z`),
+      });
+      expect(idle.snapshotted).toBeUndefined();
+    }
+
+    expect(repo.getEloHistory()).toHaveLength(20);
+    expect(repo.getEloHistoryDates()).toHaveLength(1);
+  });
+
+  it('adds one point per round as results come in', async () => {
+    const first = play(1, 2, 0);
+    await sync();
+
+    const second = repo.getFixture(11)!;
+    play(11, 0, 3);
+    await sync();
+
+    expect(repo.getEloHistoryDates().sort()).toEqual([first.date, second.date].sort());
+    expect(repo.getEloHistory()).toHaveLength(40);
+  });
+
+  it('revises the snapshot in place when a scoreline is corrected', async () => {
+    const fixture = play(1, 3, 0);
+    await sync();
+    const optimistic = repo.getEloHistory(fixture.teamHomeId).at(-1)!.elo;
+
+    play(1, 0, 3);
+    await sync();
+    const corrected = repo.getEloHistory(fixture.teamHomeId);
+
+    // Same date, one row, revised value — not a second point implying the club moved twice.
+    expect(corrected).toHaveLength(1);
+    expect(corrected[0]!.asOf).toBe(fixture.date);
+    expect(corrected[0]!.elo).toBeLessThan(optimistic);
+  });
+
   it('writes nothing on a dry run but still reports the movers', async () => {
     play(1, 5, 0);
     const before = new Map(repo.getTeams().map((t) => [t.id, t.elo]));
