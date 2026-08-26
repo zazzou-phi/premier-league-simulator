@@ -1,35 +1,41 @@
 /**
- * Rebuilds the whole season's Elo history from results, one point per round.
+ * Rebuilds the whole season's Elo history from results, one point per day football was played.
  *
  * The weekly sync only ever records where ratings stand *now*, so the series is as sparse as
- * the loop was run: a fortnight without a run leaves a fortnight without a point, and a round
+ * the loop was run: a fortnight without a run leaves a fortnight without a point, and a day
  * missed at the time could never be recovered. Under clubelo that was unavoidable — a rating
  * for 12 October could only be captured on 12 October.
  *
- * Recomputing from an anchor removes that constraint. Every past round's rating is derivable
- * from `teams.anchor_elo` and the results, so the series can be rebuilt in full at any time,
- * dated to the round each rating followed rather than to whenever someone ran the loop.
+ * Recomputing from an anchor removes that constraint. Every past rating is derivable from
+ * `teams.anchor_elo` and the results, so the series can be rebuilt in full at any time.
  *
- * Each round is computed cumulatively from the anchors rather than by carrying a running total
- * forward, so the final round is by construction the same number
- * {@link ratingsFromRealResults} produces — the two cannot drift apart.
+ * Points are grouped by **date, not by round**, which follows from replaying results in
+ * chronological order (see {@link realResultsInOrder}). Grouping by round while accumulating by
+ * date would produce incoherent labels: a round with a fixture postponed to December closes in
+ * December, so "round 3" would name a snapshot containing every result up to that point,
+ * rounds 4 through 16 included. A date names exactly what it contains.
+ *
+ * Each point is computed cumulatively from the anchors rather than by carrying a running total
+ * forward, so the last one is by construction the same number {@link ratingsFromRealResults}
+ * produces — the two cannot drift apart.
  */
 import type { Repository } from '../db/repository.js';
 import { ratingsAfter, realResultsInOrder, type PlayedResult } from './syncRatingsFromResults.js';
 
-export interface BackfillRound {
-  matchday: number;
-  /** Kickoff date of the last fixture played in this round; the snapshot's key. */
+export interface BackfillPoint {
+  /** The day these results were played; the snapshot's key. */
   asOf: string;
-  /** Results priced in for the first time by this round. */
+  /** Results priced in for the first time on this day. */
   matches: number;
+  /** Rounds those results belong to — usually one, more when a rearranged match lands here. */
+  matchdays: number[];
 }
 
 export interface BackfillSummary {
-  rounds: BackfillRound[];
+  points: BackfillPoint[];
   /** Distinct rows stored, or that would be stored on a dry run. */
   snapshots: number;
-  /** Snapshot dates removed because no round ends on them any more. */
+  /** Snapshot dates removed because no result falls on them any more. */
   pruned: number;
   dryRun: boolean;
 }
@@ -39,53 +45,70 @@ export interface BackfillOptions {
   dryRun?: boolean;
   eloK?: number;
   /**
-   * Remove snapshot dates that no round resolves to any more.
+   * Remove snapshot dates no result falls on any more.
    *
-   * A rescheduled fixture moves its round's date, and the rebuild writes the round under the
-   * new one — but the row under the old date would linger as a point for a day no round ended
-   * on. Pruning is scoped to dates at or after the first round, so the pre-season baseline
-   * `seed` writes is never touched.
+   * A rescheduled fixture moves to a new date and the rebuild writes it there — but the row
+   * under the old date would linger as a rating for a day nothing was played. Pruning is
+   * floored at the season's earliest played fixture, so the pre-season baseline `seed` writes
+   * is never touched.
    */
   prune?: boolean;
 }
 
-/** Groups played results by round, in the order they should be applied. */
-function byRound(results: PlayedResult[]): Map<number, PlayedResult[]> {
-  const rounds = new Map<number, PlayedResult[]>();
+/** Groups played results by the day they were played, preserving chronological order. */
+function byDate(results: PlayedResult[]): Map<string, PlayedResult[]> {
+  const days = new Map<string, PlayedResult[]>();
   for (const result of results) {
-    const list = rounds.get(result.matchday);
+    const list = days.get(result.date);
     if (list) list.push(result);
-    else rounds.set(result.matchday, [result]);
+    else days.set(result.date, [result]);
   }
-  return rounds;
+  return days;
+}
+
+/** The day before `date`, as `YYYY-MM-DD`. */
+function dayBefore(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 export function backfillEloHistory(options: BackfillOptions): BackfillSummary {
   const { repo, dryRun = false, eloK, prune = false } = options;
 
   const results = realResultsInOrder(repo);
-  const rounds = byRound(results);
+  const days = byDate(results);
   const teams = repo.getTeams();
+  const anchors = new Map(teams.map((team) => [team.id, team.anchorElo ?? team.elo]));
 
-  const summary: BackfillRound[] = [];
-  // Two rounds can resolve to the same date — a postponed match played on a later round's
-  // closing day. The later round supersedes the earlier one, and rightly so: the true rating
-  // at the end of that day includes both. Count distinct dates so the total reflects rows
-  // stored rather than rows attempted.
-  const dates = new Set<string>();
+  const points: BackfillPoint[] = [];
 
-  for (const matchday of [...rounds.keys()].sort((a, b) => a - b)) {
-    const played = rounds.get(matchday)!;
+  // Open the series on the anchors, the day before the first result. `seed` writes a baseline
+  // too, but it cannot be told apart from a stale point by date alone — both are days no result
+  // falls on — so the rebuild derives its own rather than guessing which to spare. Deriving it
+  // also means the series always starts from the rating everything else is recomputed from.
+  if (results.length > 0) {
+    const opening = dayBefore([...days.keys()].sort()[0]!);
+    if (!dryRun) {
+      repo.recordEloSnapshot(
+        opening,
+        teams.map((team) => ({ teamId: team.id, elo: anchors.get(team.id)! })),
+      );
+    }
+    points.push({ asOf: opening, matches: 0, matchdays: [] });
+  }
 
-    // Everything up to and including this round. Recomputing from the anchor each time is
-    // O(rounds x matches) — trivial at 380 — and keeps every point on the same footing as the
+  for (const asOf of [...days.keys()].sort()) {
+    const played = days.get(asOf)!;
+
+    // Everything played on or before this day. Recomputing from the anchor each time is
+    // O(days x matches) — trivial at 380 — and keeps every point on the same footing as the
     // live rating rather than depending on an accumulator being carried correctly.
     const ratings = ratingsAfter(
       repo,
-      results.filter((result) => result.matchday <= matchday),
+      results.filter((result) => result.date <= asOf),
       eloK,
     );
-    const asOf = played.reduce((latest, r) => (r.date > latest ? r.date : latest), played[0]!.date);
 
     if (!dryRun) {
       repo.recordEloSnapshot(
@@ -94,18 +117,19 @@ export function backfillEloHistory(options: BackfillOptions): BackfillSummary {
       );
     }
 
-    dates.add(asOf);
-    summary.push({ matchday, asOf, matches: played.length });
+    points.push({
+      asOf,
+      matches: played.length,
+      matchdays: [...new Set(played.map((r) => r.matchday))].sort((a, b) => a - b),
+    });
   }
 
   let pruned = 0;
-  if (prune && !dryRun && summary.length > 0) {
-    // Floor the prune at the earliest fixture the season has actually played, not at the
-    // earliest date a round now resolves to. A postponed round moves *later*, so its stale
-    // point sits below the new dates and would slip under a floor derived from them.
-    const seasonStart = results.reduce((min, r) => (r.date < min ? r.date : min), results[0]!.date);
-    pruned = repo.pruneEloSnapshots(seasonStart, [...dates]);
+  if (prune && !dryRun && points.length > 0) {
+    // Every date the rebuild just wrote, and nothing else. The opening anchor point is among
+    // them, so there is no baseline to spare and no date-based guess to get wrong.
+    pruned = repo.pruneEloSnapshots(points.map((point) => point.asOf));
   }
 
-  return { rounds: summary, snapshots: dates.size * teams.length, pruned, dryRun };
+  return { points, snapshots: points.length * teams.length, pruned, dryRun };
 }

@@ -149,39 +149,57 @@ describe('syncFixturesFromRemote', () => {
 });
 
 describe('rescheduling and Elo history together', () => {
-  it('re-dates the round and prunes the point the round no longer ends on', async () => {
-    // Round 1 is played and recorded under its original closing date.
+  it('moves the point to the day the match was actually played, and prunes the old one', async () => {
+    // Round 1 is played across its two scheduled days.
     const round1 = repo.getFixtures().filter((f) => f.matchday === 1);
     for (const fixture of round1) repo.setActualResult(fixture.matchNumber, 2, 1);
     backfillEloHistory({ repo });
+    const before = repo.getEloHistoryDates().sort();
+    // Opening anchor point plus the two days round 1 was played over.
+    expect(before).toHaveLength(3);
 
-    const originalDate = round1.reduce((a, f) => (f.date > a ? f.date : a), round1[0]!.date);
-    expect(repo.getEloHistoryDates()).toEqual([originalDate]);
-
-    // One of them turns out to have been played later than the calendar said.
+    // Everything on the first day played turns out to have happened in December.
+    const opening = before[1]!;
+    const onOpeningDay = round1.filter((f) => f.date === opening);
     const late = '2026-12-15';
-    await sync(csvFromStored({ [round1[0]!.matchNumber]: { date: late } }));
+    await sync(
+      csvFromStored(Object.fromEntries(onOpeningDay.map((f) => [f.matchNumber, { date: late }]))),
+    );
     const rebuilt = backfillEloHistory({ repo, prune: true });
 
-    // The round now closes on the later date, and the old point is gone rather than lingering
-    // as a rating for a day no round ended on.
-    expect(rebuilt.rounds[0]!.asOf).toBe(late);
-    expect(repo.getEloHistoryDates()).toEqual([late]);
-    expect(rebuilt.pruned).toBe(1);
+    // December now has a point of its own, and the day the match left no longer carries the
+    // rating it had earned there.
+    const after = repo.getEloHistoryDates().sort();
+    expect(after).toContain(late);
+    expect(rebuilt.points.at(-1)!.asOf).toBe(late);
+    expect(rebuilt.points.filter((p) => p.matches > 0).map((p) => p.asOf)).not.toContain(opening);
+
+    // The vacated day survives here only because the anchor point lands on it — the series now
+    // opens the day before the first result, which is this date. What matters is the value: it
+    // holds the anchors, not the post-match rating it used to.
+    const stale = repo.getEloHistory().filter((s) => s.asOf === opening);
+    for (const snapshot of stale) {
+      const team = repo.getTeams().find((t) => t.id === snapshot.teamId)!;
+      expect(snapshot.elo).toBeCloseTo(team.anchorElo ?? team.elo, 10);
+    }
   });
 
-  it('leaves the pre-season baseline alone when pruning', () => {
+  it('replaces a stale pre-season baseline with its own anchor point', () => {
+    // `seed` writes a baseline dated to whenever it ran. It cannot be told apart from a stale
+    // point by date alone — both are days no result falls on — so the rebuild derives its own
+    // opening point rather than guessing which to spare.
     repo.recordEloSnapshot('2026-08-01', repo.getTeams().map((t) => ({ teamId: t.id, elo: t.elo })));
     for (const fixture of repo.getFixtures().filter((f) => f.matchday === 1)) {
       repo.setActualResult(fixture.matchNumber, 1, 0);
     }
 
-    backfillEloHistory({ repo, prune: true });
-    // Pruning is scoped to the first round onward, so the baseline survives.
-    expect(repo.getEloHistoryDates()).toContain('2026-08-01');
+    const summary = backfillEloHistory({ repo, prune: true });
+    expect(repo.getEloHistoryDates()).not.toContain('2026-08-01');
+    expect(repo.getEloHistoryDates()).toContain(summary.points[0]!.asOf);
+    expect(summary.points[0]!.matches).toBe(0);
   });
 
-  it('counts stored rows rather than rows attempted when two rounds share a date', () => {
+  it('collapses two rounds onto one point when they are played the same day', () => {
     for (const md of [1, 2]) {
       for (const fixture of repo.getFixtures().filter((f) => f.matchday === md)) {
         repo.setActualResult(fixture.matchNumber, 2, 1);
@@ -189,13 +207,17 @@ describe('rescheduling and Elo history together', () => {
     }
     const round2 = repo.getFixtures().filter((f) => f.matchday === 2);
     const shared = round2.reduce((a, f) => (f.date > a ? f.date : a), round2[0]!.date);
-    for (const fixture of repo.getFixtures().filter((f) => f.matchday === 1)) {
+    for (const fixture of repo.getFixtures().filter((f) => f.matchday !== 2 || f.date !== shared)) {
+      if (fixture.matchday > 2) continue;
       repo.updateFixtureSchedule(fixture.matchNumber, { ...fixture, date: shared });
     }
 
     const summary = backfillEloHistory({ repo });
-    expect(summary.rounds).toHaveLength(2);
-    expect(repo.getEloHistoryDates()).toEqual([shared]);
+    // One day of football, one point, naming both rounds it covered — plus the anchor point.
+    const played = summary.points.filter((p) => p.matches > 0);
+    expect(played).toHaveLength(1);
+    expect(played[0]!.matchdays).toEqual([1, 2]);
+    expect(repo.getEloHistoryDates()).toContain(shared);
     expect(summary.snapshots).toBe(repo.getEloHistory().length);
   });
 });

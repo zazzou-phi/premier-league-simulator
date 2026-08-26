@@ -129,9 +129,15 @@ every real result to date. It **recomputes rather than increments**, so running 
 no-op and a corrected scoreline is absorbed rather than layered on top of the wrong one. The
 anchor is the last rating from outside the model, pinned once and never overwritten.
 
+Results are replayed **chronologically**, not in round order. Elo is sequential — each update is
+sized by how surprising the result was against the ratings standing at that moment — so a match
+postponed to December must be priced in among December's results, not among the September
+neighbours its round number would put it with. With no rearrangements the two orders are
+identical, since rounds run in date order; they diverge only for a fixture that actually moved.
+
 The `team_elo_history` snapshot is keyed the same way — by the date of the last result priced
 in, not by the day the sync ran — so an idle run adds no point and the series carries one entry
-per round. See `specs/persistence.md`.
+per day football was played. See `specs/persistence.md`.
 
 A batch projecting from matchday 12 therefore starts every club at a rating that already
 reflects matchdays 1–11, and lets only 12–38 move it. Locked fixtures are banked into the
