@@ -25,7 +25,6 @@ Two processes: the engine API and the web app. Start them in separate terminals.
 # Terminal 1 — engine API (http://localhost:3123)
 cd engine
 npm install
-npm run fetch:ratings   # pull current club Elo from clubelo.com -> data/teams.csv
 npm run fetch:fixtures  # pull 2026/27 fixtures from fixturedownload.com -> data/fixtures.csv
 npm run seed            # load teams + fixtures into data/premier-league.db
 npm run api             # listens on 3123 by default
@@ -39,8 +38,10 @@ npm run dev             # proxies /api to http://127.0.0.1:3123
 Open [http://localhost:2627](http://localhost:2627). If you see "Could not load the
 simulator", the engine API is not running.
 
-`fetch:ratings`, `fetch:fixtures`, and `seed` only need to run once — from then on
-`npm run week` keeps everything current. Re-run `seed --force` to rebuild teams and
+`fetch:fixtures` and `seed` only need to run once — from then on `npm run week` keeps
+everything current, ratings included. (`npm run fetch:ratings` is not in the setup path any
+more: clubelo has been down since 22 August 2026, and `data/teams.csv` ships with the ratings
+to start from. See Ratings below.) Re-run `seed --force` to rebuild teams and
 fixtures from scratch (this clears simulations, predictions, actual results and Elo
 history).
 
@@ -83,13 +84,11 @@ Two knobs sit on top:
   so that turning it up makes results more volatile without inflating the number of goals.
   **Fitted to zero**: league goals are already fractionally under-dispersed relative to
   Poisson, so this particular mechanism only ever costs likelihood.
-- **In-season Elo drift** — both teams get a standard Elo update after every played match, so a
-  run of form compounds. Defaults to a full-weight update. Real results drift a rating just as
-  simulated ones do: with `api.clubelo.com` no longer answering, drift is the only thing
-  pricing real form in, and `npm run fit:elo-k` measures it as recovering essentially all of
-  what the live feed was worth (+0.023 log-likelihood per match, t = 3.84). The weight is
-  supported both by the spread of historical final tables and by out-of-sample per-match
-  likelihood. Set it to 0 to hold ratings fixed.
+- **In-season Elo drift** — within a simulated season, both teams get a standard Elo update
+  after every simulated match, so a run of form compounds. Defaults to a full-weight update.
+  Real results contribute nothing here, because the ratings step has already priced them into
+  the base rating — see Ratings below. The weight is calibrated against the spread of
+  historical final tables. Set it to 0 to hold ratings fixed.
 
 ### Standings
 
@@ -155,7 +154,7 @@ That is the whole loop. It runs the steps in the order that matters — projecti
 syncing results would ignore the weekend — and does five things:
 
 1. Pulls finished scores from fixturedownload and locks them
-2. Refreshes Club Elo from clubelo.com, reporting the biggest movers
+2. Recomputes ratings from the results just recorded, reporting the biggest movers
 3. **Grades the projection those results just settled**
 4. Re-projects the rest of the season, named `MD12 · 2026-11-03` after the round it faces
 5. Rewrites the public JSON snapshot
@@ -334,17 +333,26 @@ commit the regenerated `web/public/data/*.json`, and push.
 Both weekly pulls time out after 20 seconds rather than waiting out Node's default, so an
 unreachable upstream fails quickly and by name instead of hanging the run.
 
-**`api.clubelo.com` has been unreachable since 22 August 2026.** The apex domain was rebuilt on
-new infrastructure and the API host was left behind: `clubelo.com` resolves to
+### Ratings
+
+Ratings are recomputed from real results, not downloaded. The ratings step of `npm run week`
+rebuilds each club's Elo as its **anchor** — the last rating that came from outside the model —
+plus the Elo update implied by every real result so far. It recomputes rather than increments,
+so re-running it is a no-op and a corrected scoreline is absorbed rather than compounded.
+
+**`api.clubelo.com` has been unreachable since 22 August 2026**, which is why. The apex domain
+was rebuilt on new infrastructure and the API host was left behind: `clubelo.com` resolves to
 Cloudflare/DigitalOcean, while `*.clubelo.com` is a wildcard pointing at an old address that
 answers nothing on either port. The wildcard is why `api.clubelo.com` still resolves — it is
-not evidence of a live host. No replacement CSV endpoint has been published. `npm run
-fetch:ratings` and the ratings step of `npm run week` will fail with `REMOTE_UNREACHABLE` until
-one is; use `--no-ratings` to skip it. In-season Elo drift now prices real results in, which
-covers most of the loss — see `specs/match-model.md`.
+not evidence of a live host. No replacement CSV endpoint has been published.
 
-Club Elo ratings come from [clubelo.com](http://clubelo.com), filtered to the English
-top flight (`Country=ENG`, `Level=1`). Fixtures come from
+`npm run fit:elo-k` is what justified the change: an anchor plus the update from real results
+matches what the live feed was worth over five seasons (+0.023 log-likelihood per match,
+t = 3.84). Pass `--clubelo` to opt back into the old feed once it returns — deliberately, so
+the rating source cannot change mid-season without you asking for it.
+
+The rating anchors originate from [clubelo.com](http://clubelo.com), filtered to the English
+top flight (`Country=ENG`, `Level=1`), and are carried in `data/teams.csv`. Fixtures come from
 [fixturedownload.com](https://fixturedownload.com/)'s English Premier League 2026/27
 schedule (UK wall-clock kickoffs). The circle-method generator in `schedule.ts` remains
 available for tests that need a synthetic full season.
@@ -367,9 +375,10 @@ grading and trending, the repository, the HTTP API, and public-export redaction.
 | `npm run week` | Advance the season one week: results → Elo → grade → project → export |
 | `npm run score` | Grade a stored projection against what actually happened |
 | `npm run fetch:ratings` | Refresh `data/teams.csv` from clubelo (**upstream down since 2026-08-22**) |
+| `npm run week -- --clubelo` | Use the clubelo feed for ratings instead of recomputing from results |
 | `npm run fit:elo-k` | Fit the in-season Elo update against a frozen base; runs offline from `.cache/fitting` |
 | `npm run fetch:fixtures` | Download the 2026/27 fixture list into `data/fixtures.csv` |
-| `npm run fetch:results` | Lock finished scores from fixturedownload; refresh Club Elo (`--dry-run`, `--db`, `--no-ratings`) |
+| `npm run fetch:results` | Lock finished scores from fixturedownload; recompute ratings (`--dry-run`, `--db`, `--no-ratings`, `--clubelo`) |
 | `npm run seed` | Create/populate the database (`--force` to rebuild) |
 | `npm run api` | Start the REST API on port 3123 (`--port`, `--db`, `--seed`) |
 | `npm run simulate:season` | Simulate a stored season from the command line |

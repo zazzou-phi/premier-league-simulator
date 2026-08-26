@@ -12,11 +12,11 @@ Default DB path: `data/premier-league.db` (`getDefaultDbPath`). WAL mode and for
 
 ## CSV: teams
 
-Columns: `id`, `name`, `short_name`, `clubelo_name`, `elo`.
+Columns: `id`, `name`, `short_name`, `clubelo_name`, `elo`. The database also carries `teams.anchor_elo` — the last rating from outside the model, which `elo` is recomputed from. It is pinned once and never overwritten, so the recompute cannot drift on top of drift.
 
 Loaded by `parseTeamsCsv` / `loadTeams` → `Team` with `crest: null`.
 
-Source: `fetch:ratings` from clubelo.com, filtered `Country=ENG`, `Level=1`.
+Source: originally `fetch:ratings` from clubelo.com, filtered `Country=ENG`, `Level=1`. Since 22 August 2026 the `elo` column is maintained by `syncTeamRatingsFromResults` instead; `clubelo_name` is still the join key for the `--clubelo` path.
 
 ## CSV: fixtures
 
@@ -40,9 +40,9 @@ Validation: 380 fixtures; each team 19 home / 19 away; unique home–away pairs.
 
 ## Results sync
 
-`npm run fetch:results` pulls finished scores from the remote fixturedownload CSV into `actual_match_results` and refreshes `data/fixtures.csv`. It also refreshes Club Elo from `api.clubelo.com` into the DB and `data/teams.csv` (matched by `clubelo_name`; ids stay fixed), and appends a dated `team_elo_history` snapshot. Flags: `--dry-run`, `--db`, `--no-ratings`.
+`npm run fetch:results` pulls finished scores from the remote fixturedownload CSV into `actual_match_results` and refreshes `data/fixtures.csv`. It also updates ratings in the DB and `data/teams.csv` (ids stay fixed) and appends a dated `team_elo_history` snapshot. Flags: `--dry-run`, `--db`, `--no-ratings`, `--clubelo`.
 
-That upstream has been unreachable since 22 August 2026, so the ratings half currently fails and `--no-ratings` is the working path; `team_elo_history` is consequently still empty. Ratings stay at the values seeded on 3 August 2026, and in-season Elo drift prices real results in on top of them — see `specs/match-model.md`.
+That upstream has been unreachable since 22 August 2026, so ratings are no longer fetched. `syncTeamRatingsFromResults` recomputes them instead, as `teams.anchor_elo` plus the Elo update from every real result to date; `--clubelo` opts back into the old feed. Because it recomputes from the anchor rather than incrementing, re-running is a no-op and a corrected scoreline is absorbed rather than compounded. See `specs/match-model.md`.
 
 Does **not** re-run Monte Carlo or public export — those are separate steps. `npm run week`
 chains all of them in the required order and refuses to continue when the remote has changed
@@ -78,8 +78,8 @@ Migrations may drop legacy attack/defence columns, rename `consensus_mode` to `p
 
 `teams.elo` is overwritten in place by every ratings sync, so a past prediction cannot
 otherwise be tied to the ratings it used. `fetch:results` / `week` append one
-`team_elo_history` row per club under the clubelo snapshot date; re-running the same day
-overwrites rather than duplicating. `seed` writes a baseline snapshot so the table is never
+`team_elo_history` row per club under the run date; re-running the same day overwrites rather
+than duplicating. `seed` writes a baseline snapshot so the table is never
 empty. `data/teams.csv` is the tracked mirror — commit it weekly for a git-level history.
 
 ## Prediction provenance

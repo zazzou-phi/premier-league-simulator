@@ -13,22 +13,25 @@ export const DEFAULT_SEASON_ELO_K = 20;
  * How much a simulated run of form moves a club off its base Elo. Defaults to a full-weight
  * Elo update.
  *
- * Real and simulated results both drift a rating. A batch projecting from matchday 12 starts
- * every club at its last clubelo rating, replays matchdays 1–11 through {@link matchEloDelta}
- * to price in what actually happened, and lets matchdays 12–38 move it from there.
+ * Only *simulated* results drift a rating here. Real ones are already in the base:
+ * `syncTeamRatingsFromResults` recomputes `teams.elo` as `anchor_elo` plus the Elo update from
+ * every real result to date, so drifting on them again would count the same form twice. A
+ * batch projecting from matchday 12 therefore starts every club at a rating that already
+ * reflects matchdays 1–11, and lets only 12–38 move it.
  *
- * Real results used to be excluded. That was right while `fetch:ratings` refreshed the base
- * from clubelo weekly, because the refreshed number had already priced them in and drifting on
- * them again would have counted the same form twice. `api.clubelo.com` stopped answering on
- * 22 August 2026, so the base no longer refreshes and the exclusion left real form priced in
- * by nothing at all.
+ * That division is new, but the shape is not. It is the arrangement clubelo used to provide —
+ * an externally refreshed base plus counterfactual drift on top — with the engine's own Elo
+ * update in place of the feed. `api.clubelo.com` stopped answering on 22 August 2026 and
+ * published no replacement, so the base needed a new source rather than a new meaning.
  *
- * `npm run fit:elo-k` measures the replacement directly: freeze the base at each season's
+ * `npm run fit:elo-k` is what justifies letting real results move the rating at all: freeze
+ * the base at each season's
  * opening rating, let drift be the only in-season update, and score the next matchday
  * walk-forward over five seasons. Drift is worth +0.0228 log-likelihood per match against a
  * frozen base with drift off (paired over 152 origins, SE 0.0059, t = 3.84), which recovers
  * essentially all of the 0.0226 the live clubelo feed was worth. Losing the feed costs
- * approximately nothing, provided drift is fed real results.
+ * approximately nothing, provided real results reach the rating somehow — which they now do,
+ * through the ratings step rather than through this weight.
  *
  * That sweep also declined to move two things. K = 25 nominally beats K = 20 but only at
  * t = 1.04, and scaling the update by winning margin is worth t = 0.04 — see
@@ -36,9 +39,9 @@ export const DEFAULT_SEASON_ELO_K = 20;
  *
  * An earlier revision defaulted this weight to 0, on walk-forward evidence that drift was
  * neither significant (chi2(2) = 4.11, p = 0.13) nor useful (-0.00085 log-likelihood per match
- * over 152 origins). That measurement is still correct and still not applicable: it let drift
- * accumulate over real results *on top of* a live clubelo base, which is the double-count
- * described above rather than a test of drift on its own.
+ * over 152 origins). That measurement is still correct and still measures something else: it
+ * let drift accumulate over real results *on top of* a base that already contained them, which
+ * is the double-count this weight is scoped to avoid rather than a test of drift on its own.
  *
  * Drift also answers a second question — whether simulated *final tables* are as spread out as
  * real ones. Against the five completed seasons in `engine/src/fitting`, weight 0 is

@@ -120,9 +120,16 @@ export interface EloMove {
 }
 
 /** Elo moves between the stored ratings and the incoming ones, largest absolute move first. */
+/** Only the fields a mover needs, so callers that are not writing a CSV can use this too. */
+export interface RatedTeam {
+  id: number;
+  name: string;
+  elo: number;
+}
+
 export function computeEloMoves(
   previous: Map<number, number>,
-  next: TeamCsvRecord[],
+  next: RatedTeam[],
   limit = 5,
 ): EloMove[] {
   return next

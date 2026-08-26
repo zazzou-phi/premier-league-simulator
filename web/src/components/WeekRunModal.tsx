@@ -254,7 +254,7 @@ export function WeekRunModal({
     <Modal className="modal modal-wide week-modal" titleId="week-run-title" onClose={onClose}>
       <h2 id="week-run-title">Advance the season by one week</h2>
       <p className="muted monte-carlo-desc">
-        Pulls the weekend's results, refreshes Club Elo, grades the projection those results
+        Pulls the weekend's results, updates ratings from them, grades the projection those results
         just settled, re-projects the rest of the season and re-exports the public snapshot —
         in that order, because projecting before the results are in would ignore the weekend.
       </p>
@@ -331,7 +331,7 @@ export function WeekRunModal({
             onChange={(e) => setSkipRatings(e.target.checked)}
           />
           <span>
-            Skip the Club Elo refresh
+            Skip the ratings update
             <span className="muted week-option-hint">Keep the ratings the model has now</span>
           </span>
         </label>
@@ -405,7 +405,7 @@ export function WeekRunModal({
                   onRun({ ...options, skipRatings: true });
                 }}
               >
-                Re-run without the Club Elo refresh
+                Re-run without the ratings update
               </button>
             </>
           )}

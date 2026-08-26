@@ -23,6 +23,7 @@ interface Args {
   name?: string;
   dryRun: boolean;
   skipRatings: boolean;
+  useClubElo: boolean;
   skipExport: boolean;
   force: boolean;
   exportDir: string;
@@ -33,6 +34,7 @@ function parseArgs(argv: string[]): Args {
     runs: WEEK_RUN_DEFAULT_RUNS,
     dryRun: false,
     skipRatings: false,
+    useClubElo: false,
     skipExport: false,
     force: false,
     exportDir: getDefaultSnapshotDir(),
@@ -45,6 +47,7 @@ function parseArgs(argv: string[]): Args {
     else if (argv[i] === '--out' && argv[i + 1]) args.exportDir = resolve(argv[++i]!);
     else if (argv[i] === '--dry-run') args.dryRun = true;
     else if (argv[i] === '--no-ratings') args.skipRatings = true;
+    else if (argv[i] === '--clubelo') args.useClubElo = true;
     else if (argv[i] === '--no-export') args.skipExport = true;
     else if (argv[i] === '--force') args.force = true;
     else if (argv[i] === '--help' || argv[i] === '-h') {
@@ -70,7 +73,8 @@ const USAGE = `Advance the season by one week.
   --runs, -n <N>   Monte Carlo runs for the new projection (default ${WEEK_RUN_DEFAULT_RUNS})
   --name <text>    Name for the new projection (default "MD<n> · <date>")
   --dry-run        Report what would change; write nothing
-  --no-ratings     Skip the Club Elo refresh
+  --no-ratings     Skip the ratings update entirely
+  --clubelo        Refresh from clubelo instead of recomputing from results
   --no-export      Skip the public JSON snapshot
   --out <dir>      Snapshot output directory
   --force          Proceed even when the remote changed a result already recorded

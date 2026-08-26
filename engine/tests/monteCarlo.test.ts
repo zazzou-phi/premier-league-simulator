@@ -31,24 +31,6 @@ describe('simulateSeason', () => {
     expect(a.matches).toEqual(b.matches);
   });
 
-  it('starts from seeded drift rather than from a clean slate', () => {
-    const remainder = fixtures.filter((f) => f.matchNumber > 1);
-    const seedEloDeltas = new Map([[1, 300]]);
-
-    const seeded = simulateSeason(teams, remainder, { rng: testRng(4), seedEloDeltas });
-    const clean = simulateSeason(teams, remainder, { rng: testRng(4) });
-
-    expect(seeded.eloDeltas.get(1)).toBeGreaterThan(clean.eloDeltas.get(1) ?? 0);
-    expect(seeded.matches).not.toEqual(clean.matches);
-  });
-
-  it('does not mutate the seed map it was handed', () => {
-    const seedEloDeltas = new Map([[1, 50]]);
-    simulateSeason(teams, fixtures, { rng: testRng(5), seedEloDeltas });
-    expect(seedEloDeltas.get(1)).toBe(50);
-    expect(seedEloDeltas.size).toBe(1);
-  });
-
   it('simulates exactly the fixtures it is given', () => {
     const remainder = fixtures.filter((f) => f.matchNumber > 2);
     const { matches } = simulateSeason(teams, remainder, { rng: testRng(2) });
@@ -222,22 +204,18 @@ describe('runMonteCarlo', () => {
     // Same season, two ways of saying "match 1 finished 3-0": as a lock, or by handing the
     // simulator only the remainder. Identical seeds must give identical projections.
     //
-    // Drift is off on both sides on purpose. A locked result now moves a rating, so with
-    // drift on the two runs legitimately diverge; pinning the weight at 0 isolates the
-    // question this test is actually asking, which is whether the lock is banked or replayed.
     const lockedResults = new Map([[1, { goalsHome: 3, goalsAway: 0 }]]);
     const banked = await runMonteCarlo(teams, fixtures, {
       runs: 25,
       reservoirSize: 0,
       rng: testRng(33),
       lockedResults,
-      eloDeltaWeight: 0,
     });
 
     const remainderOnly = await runMonteCarlo(
       teams,
       fixtures.filter((f) => f.matchNumber !== 1),
-      { runs: 25, reservoirSize: 0, rng: testRng(33), eloDeltaWeight: 0 },
+      { runs: 25, reservoirSize: 0, rng: testRng(33) },
     );
 
     const first = fixtures.find((f) => f.matchNumber === 1)!;
@@ -249,10 +227,34 @@ describe('runMonteCarlo', () => {
     }
   });
 
-  it('lets a locked fixture drift a rating', async () => {
-    // Which way the lock went has to reach the Elo update: the away side is stronger for the
-    // rest of the season having won it than having lost it. Compared against the same fixture
-    // set and seed, so only the locked scoreline differs.
+  it('does not let a locked fixture drift a rating', async () => {
+    // `syncTeamRatingsFromResults` has already priced real results into `teams.elo`, so banking
+    // one here must leave the simulated remainder bit-identical to simulating that remainder on
+    // its own. Anything else is the same form counted twice.
+    const lockedResults = new Map([[1, { goalsHome: 9, goalsAway: 0 }]]);
+    const withLock = await runMonteCarlo(teams, fixtures, {
+      runs: 5,
+      reservoirSize: 3,
+      rng: testRng(35),
+      lockedResults,
+      eloDeltaWeight: 1,
+    });
+    const withoutLock = await runMonteCarlo(
+      teams,
+      fixtures.filter((f) => f.matchNumber !== 1),
+      { runs: 5, reservoirSize: 3, rng: testRng(35), eloDeltaWeight: 1 },
+    );
+
+    for (const [index, season] of withLock.sampledSeasons.entries()) {
+      const simulated = season.matches.filter((m) => !m.locked);
+      expect(simulated).toEqual(withoutLock.sampledSeasons[index]!.matches);
+    }
+  });
+
+  it('banks a locked result as points only, with no rating effect', async () => {
+    // The counterpart to the test above, stated in the currency the projection reports: the
+    // away side gains exactly the 3 points on offer by winning match 1, and not a fraction
+    // more from the rating that win would otherwise have moved.
     const awayId = fixtures.find((f) => f.matchNumber === 1)!.teamAwayId;
     const project = async (goalsHome: number, goalsAway: number) =>
       (
@@ -265,9 +267,6 @@ describe('runMonteCarlo', () => {
         })
       ).teams.find((t) => t.teamId === awayId)!.averagePoints;
 
-    const won = await project(0, 1);
-    const lost = await project(1, 0);
-    // The 3 banked points are worth exactly 3; anything beyond that is drift.
-    expect(won - lost).toBeGreaterThan(3);
+    expect((await project(0, 1)) - (await project(1, 0))).toBeCloseTo(3, 10);
   });
 });

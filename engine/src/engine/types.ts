@@ -5,7 +5,13 @@ export interface Team {
   name: string;
   shortName: string;
   crest: string | null;
+  /** Current rating: {@link anchorElo} plus the Elo update from every real result to date. */
   elo: number;
+  /**
+   * Last rating that came from outside the model, and the fixed point the current rating is
+   * recomputed from. Null only on rows written before the column existed.
+   */
+  anchorElo?: number | null;
 }
 
 export interface Fixture {

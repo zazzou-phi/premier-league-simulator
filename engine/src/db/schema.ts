@@ -7,6 +7,8 @@ export const teams = sqliteTable('teams', {
   shortName: text('short_name').notNull(),
   crest: text('crest'),
   elo: real('elo').notNull(),
+  /** Last rating from outside the model; `elo` is this plus drift from real results. */
+  anchorElo: real('anchor_elo'),
 });
 
 export const fixtures = sqliteTable('fixtures', {
