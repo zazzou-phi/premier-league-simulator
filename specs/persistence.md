@@ -94,6 +94,22 @@ A run that changes nothing and finds its date already recorded skips the write a
 `seed` writes a baseline snapshot so the table is never empty before the first round.
 `data/teams.csv` is the tracked mirror — commit it weekly for a git-level history.
 
+### Rebuilding it
+
+`npm run backfill:elo-history` replays every recorded result round by round and writes a
+snapshot per round, dated to that round's last fixture. Use it to fill rounds that passed
+without anyone running the week loop, or to rebuild the series after restoring a database.
+
+The weekly sync only ever records where ratings stand *now*, so the series is otherwise as
+sparse as the loop was run. Under clubelo that was permanent — a rating for 12 October could
+only be captured on 12 October. Recomputing from an anchor makes every past round derivable
+instead, so nothing is lost by not having run the loop that week.
+
+Each round is computed cumulatively from `teams.anchor_elo` rather than by carrying a running
+total forward, so the last point is by construction identical to the live rating. Re-running
+overwrites the rows it wrote before, so it is safe at any time. `--dry-run` reports the rounds
+it would write without touching anything.
+
 ## Prediction provenance
 
 `savePredictionFromMonteCarlo` records, alongside the aggregates:
