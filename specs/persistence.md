@@ -78,9 +78,21 @@ Migrations may drop legacy attack/defence columns, rename `consensus_mode` to `p
 
 `teams.elo` is overwritten in place by every ratings sync, so a past prediction cannot
 otherwise be tied to the ratings it used. `fetch:results` / `week` append one
-`team_elo_history` row per club under the run date; re-running the same day overwrites rather
-than duplicating. `seed` writes a baseline snapshot so the table is never
-empty. `data/teams.csv` is the tracked mirror — commit it weekly for a git-level history.
+`team_elo_history` row per club, **dated by the last real result priced in — not by the day the
+sync ran**.
+
+That key comes from the data on purpose. A rating only moves when a match is played, so keying
+the snapshot to the clock records the same number again on every idle run: three runs in a quiet
+week wrote three identical rows. Beyond the waste, a flat point landing on top of a real one
+makes the last move unreadable, because `groupEloSeries` reports the delta between the final two
+snapshots. Deriving the key from the results instead gives one point per round, an x-axis that
+means "after the round played on this date", and a repeat run that collapses onto the row it
+already wrote. A corrected scoreline revises that row in place rather than adding a second point
+implying the club moved twice.
+
+A run that changes nothing and finds its date already recorded skips the write altogether.
+`seed` writes a baseline snapshot so the table is never empty before the first round.
+`data/teams.csv` is the tracked mirror — commit it weekly for a git-level history.
 
 ## Prediction provenance
 
