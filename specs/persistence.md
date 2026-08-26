@@ -48,6 +48,24 @@ Does **not** re-run Monte Carlo or public export — those are separate steps. `
 chains all of them in the required order and refuses to continue when the remote has changed
 a result already recorded (override with `--force`).
 
+## Fixture calendar
+
+`npm run sync:fixtures`, or **More → Update Fixtures** in the app, reconciles the stored
+calendar with the remote one. Only `matchday`, `date` and `time` move; the match number to team
+pairing is the identity results, predictions and Elo history all key off, so a remote reporting
+a different pairing is listed as a mismatch and applied to nothing.
+
+Before this, `seed` was the only thing that had ever written the `fixtures` table. `fetch:results`
+refreshed `data/fixtures.csv` on disk but left the database holding whatever was true when the
+season was seeded, so a rearranged match kept its original date indefinitely and the only way to
+reconcile was `seed --force` — which clears results, predictions, simulations and Elo history too.
+
+Ratings need no separate step. Every rating is recomputed from the anchor plus the results, so
+once a fixture sits on its true date the history rebuild re-dates that round's snapshot and
+prunes the point under the date the round no longer ends on. The whole download is validated
+first (380 fixtures, unique match numbers, 19 home and 19 away per club), so a truncated or
+garbled response is rejected rather than half-applied.
+
 ## SQLite schema
 
 Defined in `engine/src/db/schema.ts` (Drizzle) with DDL also applied in `client.ts`.

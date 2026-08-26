@@ -18,6 +18,7 @@
     "fit:lambdas": "tsx src/fit-lambdas-cli.ts",
     "fit:elo-k": "tsx src/fit-elo-k-cli.ts",
     "backfill:elo-history": "tsx src/backfill-elo-history-cli.ts",
+    "sync:fixtures": "tsx src/sync-fixtures-cli.ts",
     "mc:convergence": "tsx src/mc-convergence-cli.ts",
     "week": "tsx src/week-cli.ts",
     "export:public": "tsx src/export-public-cli.ts"
