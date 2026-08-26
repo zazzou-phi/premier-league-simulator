@@ -20,7 +20,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { computeEloDeltasFromMatches } from '../engine/seasonElo.js';
+import { computeEloDeltasFromMatches, type EloMatchInput } from '../engine/seasonElo.js';
 import type { Repository } from '../db/repository.js';
 import { computeEloMoves, type SyncRatingsSummary } from './fetchRatings.js';
 import {
@@ -62,22 +62,21 @@ export function lastResultDate(repo: Repository): string | null {
   return latest;
 }
 
-/**
- * Rating each club would carry with every real result to date priced in.
- *
- * Ordered by match number so the replay is deterministic and a club's later fixtures see its
- * earlier ones, matching how the simulator applies drift within a season.
- */
-export function ratingsFromRealResults(
-  repo: Repository,
-  eloK?: number,
-): Map<number, number> {
-  const teams = repo.getTeams();
-  const anchors = new Map(teams.map((team) => [team.id, team.anchorElo ?? team.elo]));
+/** A real result with the round and date it was played on, for replaying in order. */
+export interface PlayedResult extends EloMatchInput {
+  matchday: number;
+  date: string;
+}
 
+/**
+ * Every real result, in the order a replay should apply them.
+ *
+ * Sorted by round and then match number so a club's later fixtures see its earlier ones, and
+ * so the sequence is deterministic regardless of the order results were recorded in.
+ */
+export function realResultsInOrder(repo: Repository): PlayedResult[] {
   const fixtures = new Map(repo.getFixtures().map((fixture) => [fixture.matchNumber, fixture]));
-  const inputs = [...repo.getActualResultsByMatch().entries()]
-    .sort(([a], [b]) => a - b)
+  return [...repo.getActualResultsByMatch().entries()]
     .flatMap(([matchNumber, result]) => {
       const fixture = fixtures.get(matchNumber);
       if (!fixture) return [];
@@ -88,18 +87,41 @@ export function ratingsFromRealResults(
           teamAwayId: fixture.teamAwayId,
           goalsHome: result.goalsHome,
           goalsAway: result.goalsAway,
+          matchday: fixture.matchday,
+          date: fixture.date,
         },
       ];
-    });
+    })
+    .sort((a, b) => a.matchday - b.matchday || a.matchNumber - b.matchNumber);
+}
 
-  // Drift is computed against the anchors, not against whatever `elo` currently holds — that
-  // is what makes a repeat run idempotent.
-  const anchoredTeams = teams.map((team) => ({ ...team, elo: anchors.get(team.id)! }));
-  const deltas = computeEloDeltasFromMatches(anchoredTeams, inputs, eloK);
+/**
+ * Clubs at their anchor rating.
+ *
+ * Drift is always computed against these, never against whatever `elo` currently holds — that
+ * is what makes a repeat run idempotent instead of compounding.
+ */
+export function anchoredTeams(repo: Repository) {
+  return repo.getTeams().map((team) => ({ ...team, elo: team.anchorElo ?? team.elo }));
+}
 
-  return new Map(
-    teams.map((team) => [team.id, anchors.get(team.id)! + (deltas.get(team.id) ?? 0)]),
-  );
+/** Rating each club would carry with the given results priced in, keyed by team id. */
+export function ratingsAfter(
+  repo: Repository,
+  results: EloMatchInput[],
+  eloK?: number,
+): Map<number, number> {
+  const anchored = anchoredTeams(repo);
+  const deltas = computeEloDeltasFromMatches(anchored, results, eloK);
+  return new Map(anchored.map((team) => [team.id, team.elo + (deltas.get(team.id) ?? 0)]));
+}
+
+/** Rating each club would carry with every real result to date priced in. */
+export function ratingsFromRealResults(
+  repo: Repository,
+  eloK?: number,
+): Map<number, number> {
+  return ratingsAfter(repo, realResultsInOrder(repo), eloK);
 }
 
 export async function syncTeamRatingsFromResults(
