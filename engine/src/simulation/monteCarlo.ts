@@ -3,7 +3,6 @@ import {
   computeLeagueStandings,
   type PlayedMatch,
 } from '../engine/standings.js';
-import { computeEloDeltasFromMatches } from '../engine/seasonElo.js';
 import type { Fixture, Team } from '../engine/types.js';
 import {
   orderFixtures,
@@ -70,8 +69,8 @@ export interface MonteCarloOptions extends SeasonSimulationOptions {
    * Real results keyed by match number. These fixtures are not simulated at all — they are
    * banked into every run's starting table and re-attached to the output afterwards.
    *
-   * Their scorelines do still drift ratings: the remainder starts from the form they imply,
-   * computed once as a seed rather than per run.
+   * Their scorelines do not drift ratings here either. `fetch:results` has already priced them
+   * into `teams.elo`, so the ratings passed in already reflect them.
    */
   lockedResults?: Map<number, { goalsHome: number; goalsAway: number }>;
   onProgress?: (completed: number, total: number) => void | Promise<void>;
@@ -167,22 +166,8 @@ export async function runMonteCarlo(
   });
   const lockedTotals = accumulateTotals(teams, lockedMatches.map(toPlayedMatch));
 
-  // Form from the matchdays already played. The locked half is identical in every run, so its
-  // drift is computed once here rather than re-derived inside the loop.
-  const seedEloDeltas = computeEloDeltasFromMatches(
-    teams,
-    lockedMatches.map((match) => ({
-      matchNumber: match.matchNumber,
-      teamHomeId: match.teamHomeId,
-      teamAwayId: match.teamAwayId,
-      goalsHome: match.goalsHome,
-      goalsAway: match.goalsAway,
-    })),
-    options.eloK,
-  );
-
   for (let run = 0; run < runs; run++) {
-    const { matches } = simulateSeason(teams, remainder, { ...options, seedEloDeltas });
+    const { matches } = simulateSeason(teams, remainder, options);
 
     const played: PlayedMatch[] = matches.map(toPlayedMatch);
 

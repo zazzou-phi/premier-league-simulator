@@ -114,22 +114,31 @@ After every match, both teams receive a standard Elo update (`matchEloDelta`, K 
 Effective Elo for simulation: `base + weight × delta`. **Weight default `1`**, allowed `0…5`
 (`app_settings.season_elo_delta_weight`).
 
-### What drifts
+### Where each kind of result is priced in
 
-Every played scoreline moves a rating, real or simulated alike. Locked fixtures are still not
-*simulated* — they are banked into the run's starting table rather than replayed — but their
-scorelines are now replayed through `matchEloDelta` to seed the drift the remainder starts
-from. `runMonteCarlo` computes that seed once, since the locked half is identical in every run;
-`SeasonRunner` derives it from rows already overlaid with real results.
+Real results move the **base** rating. Simulated ones move the **drift** on top of it. Nothing
+is counted in both places, and that boundary is the invariant to preserve:
 
-A batch projecting from matchday 12 therefore starts every club at its last clubelo rating,
-replays matchdays 1–11 to price in what happened, and lets matchdays 12–38 move it from there.
+| | Owner | When |
+|---|---|---|
+| Real results | `syncTeamRatingsFromResults` → `teams.elo` | The ratings step of `npm run week` |
+| Simulated results | `matchEloDelta` → in-run drift | Every Monte Carlo run |
 
-Real results were excluded until 26 August 2026. That was correct while `fetch:ratings`
-overwrote each club's base Elo with clubelo's *current* rating, which already reflected every
-result so far — applying `matchEloDelta` on top would have counted the same form twice.
-`api.clubelo.com` stopped answering on 22 August 2026 (see `specs/api.md`), so the base no
-longer refreshes and the exclusion left real form priced in by nothing at all.
+The ratings step recomputes `teams.elo` as `teams.anchor_elo` plus the Elo update implied by
+every real result to date. It **recomputes rather than increments**, so running it twice is a
+no-op and a corrected scoreline is absorbed rather than layered on top of the wrong one. The
+anchor is the last rating from outside the model, pinned once and never overwritten.
+
+A batch projecting from matchday 12 therefore starts every club at a rating that already
+reflects matchdays 1–11, and lets only 12–38 move it. Locked fixtures are banked into the
+run's starting table and contribute no drift, because their effect is already in the number
+the run starts from.
+
+This is the arrangement clubelo used to provide — an externally refreshed base with
+counterfactual drift on top — with the engine's own Elo update in place of the feed.
+`api.clubelo.com` stopped answering on 22 August 2026 (see `specs/api.md`) and published no
+replacement, so the base needed a new source rather than a new meaning. `--clubelo` opts back
+into the old feed explicitly, so the rating source can never change mid-season by accident.
 
 ### What the frozen-anchor fit measures
 
@@ -151,8 +160,10 @@ variance is large and common to all of them, so the ranking alone would prove no
 | Margin-of-victory (`log`) vs `none` | +0.00004 | 0.00082 | 0.04 |
 | Margin-of-victory (`linear`) vs `none` | −0.00116 | 0.00147 | −0.79 |
 
-Drift on real results recovers essentially the whole headroom: a frozen anchor plus drift
-*matches* the live feed over these five seasons. That is the evidence for the switch.
+Drift on real results recovers essentially the whole headroom: an anchor plus the Elo update
+from real results *matches* the live feed over these five seasons. That is the evidence for
+letting real results move the rating at all — the fit says the update is worth applying, and
+the table above says where to apply it.
 
 The same sweep declined two changes. K stays at 20 — 25 tops the raw ranking but at t = 1.04.
 Margin-of-victory scaling stays off; `movMultiplier` implements `linear` and `log` schemes, and

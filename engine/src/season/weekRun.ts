@@ -2,6 +2,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchPremierLeagueFixturesCsv } from '../data/fetchFixtures.js';
 import { syncTeamRatingsFromClubElo, type SyncRatingsSummary } from '../data/fetchRatings.js';
+import { syncTeamRatingsFromResults } from '../data/syncRatingsFromResults.js';
 import { syncActualResultsFromRemote, type SyncResultsSummary } from '../data/syncResults.js';
 import type { Prediction, PredictionAccuracy, Repository } from '../db/repository.js';
 import { REVEAL_POLICY, type PublicMeta } from '../export/publicSnapshot.js';
@@ -68,6 +69,14 @@ export interface WeekRunOptions {
   name?: string;
   dryRun?: boolean;
   skipRatings?: boolean;
+  /**
+   * Refresh ratings from clubelo instead of recomputing them from real results.
+   *
+   * Off by default. `api.clubelo.com` has published nothing since 22 August 2026, so this
+   * fails by design rather than silently changing the rating source mid-season; it exists so
+   * the old feed can be opted back into deliberately once it returns.
+   */
+  useClubElo?: boolean;
   skipExport?: boolean;
   /** Accept a remote scoreline that overwrites one already recorded here. */
   force?: boolean;
@@ -147,6 +156,7 @@ export async function runWeek(
     runs = WEEK_RUN_DEFAULT_RUNS,
     dryRun = false,
     skipRatings = false,
+    useClubElo = false,
     skipExport = false,
     force = false,
     writeCsv = true,
@@ -184,9 +194,22 @@ export async function runWeek(
 
   // ------------------------------------------------------------------ ratings
 
-  step('ratings', skipRatings ? 'Skipping Club Elo refresh' : 'Refreshing Club Elo');
+  step(
+    'ratings',
+    skipRatings
+      ? 'Skipping the ratings update'
+      : useClubElo
+        ? 'Refreshing Club Elo from clubelo'
+        : 'Updating ratings from results',
+  );
 
-  const ratings = skipRatings ? null : await syncTeamRatingsFromClubElo({ repo, writeCsv, dryRun });
+  // Ratings run before the projection on purpose: the batch below simulates from `teams.elo`,
+  // and drifts only on its own results, so the weekend has to be in the rating by now.
+  const ratings = skipRatings
+    ? null
+    : useClubElo
+      ? await syncTeamRatingsFromClubElo({ repo, writeCsv, dryRun })
+      : await syncTeamRatingsFromResults({ repo, writeCsv, dryRun });
   stepResult({ step: 'ratings', ratings });
 
   // ------------------------------------------------------------------ grading

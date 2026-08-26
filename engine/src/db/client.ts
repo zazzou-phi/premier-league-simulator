@@ -23,7 +23,8 @@ export function initSchema(sqlite: Database.Database): void {
       name TEXT NOT NULL,
       short_name TEXT NOT NULL,
       crest TEXT,
-      elo REAL NOT NULL
+      elo REAL NOT NULL,
+      anchor_elo REAL
     );
 
     CREATE TABLE IF NOT EXISTS fixtures (
@@ -154,6 +155,23 @@ export function initSchema(sqlite: Database.Database): void {
   migratePickStrategies(sqlite);
   migratePredictionProvenance(sqlite);
   migrateDropScoringRuleColumns(sqlite);
+  migrateTeamAnchorElo(sqlite);
+}
+
+/**
+ * Add `teams.anchor_elo`: the last rating that came from outside the model.
+ *
+ * `elo` is now recomputed as `anchor_elo` plus the Elo update implied by every real result to
+ * date, so the anchor has to survive that overwrite — otherwise a second sync would drift on
+ * top of an already-drifted number and compound. Backfilled from `elo`, which is correct
+ * because the recompute has never run before this migration: whatever is in `elo` is still the
+ * externally sourced rating.
+ */
+function migrateTeamAnchorElo(sqlite: Database.Database): void {
+  const columns = sqlite.prepare(`PRAGMA table_info(teams)`).all() as Array<{ name: string }>;
+  if (columns.some((column) => column.name === 'anchor_elo')) return;
+  sqlite.exec(`ALTER TABLE teams ADD COLUMN anchor_elo REAL`);
+  sqlite.exec(`UPDATE teams SET anchor_elo = elo WHERE anchor_elo IS NULL`);
 }
 
 /**

@@ -100,6 +100,7 @@ function mapTeam(row: typeof schema.teams.$inferSelect): Team {
     shortName: row.shortName,
     crest: row.crest,
     elo: row.elo,
+    anchorElo: row.anchorElo,
   };
 }
 
@@ -149,6 +150,19 @@ export class Repository {
 
   getTeamsById(): Map<number, Team> {
     return new Map(this.getTeams().map((team) => [team.id, team]));
+  }
+
+  /**
+   * Pin the rating the current one is recomputed from.
+   *
+   * Set once, when a club first enters the league or a rating arrives from outside the model.
+   * Overwriting it with an already-drifted rating would make the next recompute drift on top
+   * of drift, so callers set it only where it is null.
+   */
+  setTeamAnchorElo(teamId: number, anchorElo: number): void {
+    const existing = this.db.select().from(schema.teams).where(eq(schema.teams.id, teamId)).get();
+    if (!existing) throw new NotFoundError(`Team ${teamId}`);
+    this.db.update(schema.teams).set({ anchorElo }).where(eq(schema.teams.id, teamId)).run();
   }
 
   updateTeamElo(teamId: number, elo: number): Team {

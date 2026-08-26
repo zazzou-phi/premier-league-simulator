@@ -264,6 +264,7 @@ export function createApiApp(repo: Repository): Hono {
       name?: string;
       dryRun?: boolean;
       skipRatings?: boolean;
+      useClubElo?: boolean;
       skipExport?: boolean;
       force?: boolean;
     }>().catch(() => ({}) as Record<string, never>);
@@ -276,6 +277,7 @@ export function createApiApp(repo: Repository): Hono {
       name: body.name,
       dryRun: body.dryRun === true,
       skipRatings: body.skipRatings === true,
+      useClubElo: body.useClubElo === true,
       skipExport: body.skipExport === true,
       force: body.force === true,
     };
