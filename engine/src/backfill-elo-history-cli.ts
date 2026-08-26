@@ -10,14 +10,16 @@ import { openDatabase } from './db/client.js';
 import { Repository } from './db/repository.js';
 import { backfillEloHistory } from './data/backfillEloHistory.js';
 
-function parseArgs(argv: string[]): { dbPath?: string; dryRun: boolean } {
+function parseArgs(argv: string[]): { dbPath?: string; dryRun: boolean; prune: boolean } {
   let dbPath: string | undefined;
   let dryRun = false;
+  let prune = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--db' && argv[i + 1]) dbPath = argv[++i];
     else if (argv[i] === '--dry-run') dryRun = true;
+    else if (argv[i] === '--prune') prune = true;
   }
-  return { dbPath, dryRun };
+  return { dbPath, dryRun, prune };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -25,7 +27,7 @@ const { db } = openDatabase(args.dbPath);
 const repo = new Repository(db);
 
 const before = repo.getEloHistoryDates().length;
-const summary = backfillEloHistory({ repo, dryRun: args.dryRun });
+const summary = backfillEloHistory({ repo, dryRun: args.dryRun, prune: args.prune });
 
 if (summary.rounds.length === 0) {
   console.log('No results recorded yet, so there is no history to rebuild.');
@@ -48,5 +50,8 @@ for (const round of summary.rounds) {
 
 if (!args.dryRun) {
   const after = repo.getEloHistoryDates().length;
-  console.log(`\nSnapshot dates: ${before} → ${after}.`);
+  console.log(
+    `\nSnapshot dates: ${before} → ${after}` +
+      (summary.pruned > 0 ? `, pruned ${summary.pruned} that no round ends on.` : '.'),
+  );
 }

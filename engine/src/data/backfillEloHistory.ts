@@ -27,8 +27,10 @@ export interface BackfillRound {
 
 export interface BackfillSummary {
   rounds: BackfillRound[];
-  /** Rows written, or that would be written on a dry run. */
+  /** Distinct rows stored, or that would be stored on a dry run. */
   snapshots: number;
+  /** Snapshot dates removed because no round ends on them any more. */
+  pruned: number;
   dryRun: boolean;
 }
 
@@ -36,6 +38,15 @@ export interface BackfillOptions {
   repo: Repository;
   dryRun?: boolean;
   eloK?: number;
+  /**
+   * Remove snapshot dates that no round resolves to any more.
+   *
+   * A rescheduled fixture moves its round's date, and the rebuild writes the round under the
+   * new one — but the row under the old date would linger as a point for a day no round ended
+   * on. Pruning is scoped to dates at or after the first round, so the pre-season baseline
+   * `seed` writes is never touched.
+   */
+  prune?: boolean;
 }
 
 /** Groups played results by round, in the order they should be applied. */
@@ -50,14 +61,18 @@ function byRound(results: PlayedResult[]): Map<number, PlayedResult[]> {
 }
 
 export function backfillEloHistory(options: BackfillOptions): BackfillSummary {
-  const { repo, dryRun = false, eloK } = options;
+  const { repo, dryRun = false, eloK, prune = false } = options;
 
   const results = realResultsInOrder(repo);
   const rounds = byRound(results);
   const teams = repo.getTeams();
 
   const summary: BackfillRound[] = [];
-  let snapshots = 0;
+  // Two rounds can resolve to the same date — a postponed match played on a later round's
+  // closing day. The later round supersedes the earlier one, and rightly so: the true rating
+  // at the end of that day includes both. Count distinct dates so the total reflects rows
+  // stored rather than rows attempted.
+  const dates = new Set<string>();
 
   for (const matchday of [...rounds.keys()].sort((a, b) => a - b)) {
     const played = rounds.get(matchday)!;
@@ -79,9 +94,18 @@ export function backfillEloHistory(options: BackfillOptions): BackfillSummary {
       );
     }
 
-    snapshots += teams.length;
+    dates.add(asOf);
     summary.push({ matchday, asOf, matches: played.length });
   }
 
-  return { rounds: summary, snapshots, dryRun };
+  let pruned = 0;
+  if (prune && !dryRun && summary.length > 0) {
+    // Floor the prune at the earliest fixture the season has actually played, not at the
+    // earliest date a round now resolves to. A postponed round moves *later*, so its stale
+    // point sits below the new dates and would slip under a floor derived from them.
+    const seasonStart = results.reduce((min, r) => (r.date < min ? r.date : min), results[0]!.date);
+    pruned = repo.pruneEloSnapshots(seasonStart, [...dates]);
+  }
+
+  return { rounds: summary, snapshots: dates.size * teams.length, pruned, dryRun };
 }

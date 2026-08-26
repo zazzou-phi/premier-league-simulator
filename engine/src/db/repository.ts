@@ -235,6 +235,48 @@ export class Repository {
   }
 
   /**
+   * Move a fixture in the calendar, leaving who is playing and any recorded result alone.
+   *
+   * Only the schedule is writable. The teams are what make a match number mean anything —
+   * predictions, locked results and Elo history all key off it — so a remote that reports a
+   * different pairing is a mismatch to raise, never one to apply.
+   */
+  updateFixtureSchedule(
+    matchNumber: number,
+    schedule: { matchday: number; date: string; time: string },
+  ): Fixture {
+    if (!this.getFixture(matchNumber)) throw new NotFoundError(`Fixture ${matchNumber}`);
+    this.db
+      .update(schema.fixtures)
+      .set(schedule)
+      .where(eq(schema.fixtures.matchNumber, matchNumber))
+      .run();
+    return mapFixture(
+      this.db.select().from(schema.fixtures).where(eq(schema.fixtures.matchNumber, matchNumber)).get()!,
+    );
+  }
+
+  /**
+   * Drop Elo snapshots dated on or after `from`, except those whose date is in `keep`.
+   *
+   * A rebuild after a reschedule writes each round under its new date, but the rows written
+   * under the old ones would otherwise linger as points for days no round ended on. `from`
+   * protects anything earlier — the pre-season baseline in particular.
+   */
+  pruneEloSnapshots(from: string, keep: string[]): number {
+    const kept = new Set(keep);
+    const dates = this.getEloHistoryDates().filter((date) => date >= from && !kept.has(date));
+    if (dates.length === 0) return 0;
+
+    const remove = this.sqlite.prepare(`DELETE FROM team_elo_history WHERE as_of = ?`);
+    const run = this.sqlite.transaction(() => {
+      for (const date of dates) remove.run(date);
+    });
+    run();
+    return dates.length;
+  }
+
+  /**
    * Lowest matchday with an unplayed fixture — the round a fresh batch is predicting.
    * Null once every fixture is locked. Postponements mean this is not always the highest
    * played matchday plus one.

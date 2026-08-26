@@ -106,6 +106,17 @@ changes a result already recorded is refused with 409 `REMOTE_RESULTS_CHANGED` (
 `force: true`. Writes finish even if the reader disconnects — enqueue failures are swallowed
 rather than aborting the loop half-way.
 
+## Fixtures
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/api/v1/fixtures/sync` | `{ dryRun? }` — apply rearranged kickoffs from fixturedownload |
+
+Returns `{ fixtures, history }`. `fixtures.moved` lists what shifted (with `roundChanged` and
+`played` flags), `fixtures.mismatched` lists match numbers whose teams disagree — reported, never
+applied, since the match number is what every other table keys off. `history` is the Elo rebuild
+that follows a move, and is null when nothing moved.
+
 ## Predictions
 
 | Method | Path | Notes |

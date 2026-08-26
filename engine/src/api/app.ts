@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { parsePickStrategy } from '../engine/pickStrategy.js';
 import { getDefaultFixturesCsvPath, loadFixtures } from '../data/fixturesCsv.js';
+import { syncFixturesFromRemote } from '../data/syncFixtures.js';
+import { backfillEloHistory } from '../data/backfillEloHistory.js';
 import { SEASON_ELO_DELTA_WEIGHT_MAX } from '../engine/seasonElo.js';
 import { MONTE_CARLO_MAX_RUNS, runMonteCarlo } from '../simulation/monteCarlo.js';
 import { SeasonRunner } from '../simulation/runner.js';
@@ -397,6 +399,28 @@ export function createApiApp(repo: Repository): Hono {
     const body = await c.req.json<{ sampleIndex?: number }>();
     repo.setActiveSample(id, Math.floor(Number(body.sampleIndex)));
     return c.json(repo.buildPredictionState(id));
+  });
+
+  // -------------------------------------------------------------- fixtures
+
+  /**
+   * Pull the remote calendar and apply any rearranged kickoffs.
+   *
+   * Ratings follow on their own: every rating is recomputed from the anchor plus the results,
+   * so once a fixture sits on its true date the history rebuild re-dates that round's snapshot
+   * to match, and prunes the point left under the date the round no longer ends on.
+   */
+  app.post('/api/v1/fixtures/sync', async (c) => {
+    const body = await c.req.json<{ dryRun?: boolean }>().catch(() => ({}) as { dryRun?: boolean });
+    const dryRun = body.dryRun === true;
+
+    const fixtures = await syncFixturesFromRemote({ repo, dryRun });
+    const history =
+      !dryRun && fixtures.moved.length > 0
+        ? backfillEloHistory({ repo, prune: true })
+        : null;
+
+    return c.json({ fixtures, history });
   });
 
   // ----------------------------------------------------------------- admin

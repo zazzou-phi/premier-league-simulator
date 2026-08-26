@@ -84,6 +84,7 @@ export function App() {
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [fixturesSyncing, setFixturesSyncing] = useState(false);
 
   // The forecast is the answer the engine exists to compute, so it leads. Bootstrap falls back to
   // the picks season when there is no batch to project from.
@@ -352,6 +353,41 @@ export function App() {
     }
   };
 
+  /**
+   * Pull the remote calendar and apply any rearranged kickoffs.
+   *
+   * Ratings need no separate step: they are recomputed from the anchor plus the results, so
+   * moving a fixture re-dates that round's history point on its own — the server rebuilds and
+   * prunes whatever the move invalidated.
+   */
+  const handleSyncFixtures = async () => {
+    setFixturesSyncing(true);
+    try {
+      const { fixtures: sync, history } = await api.syncFixtures();
+
+      if (sync.mismatched.length > 0) {
+        setToast(
+          `${sync.mismatched.length} fixture(s) name different teams remotely — not applied, the list may have been renumbered`,
+        );
+      } else if (sync.moved.length === 0) {
+        setToast('Fixtures are already up to date');
+      } else {
+        const [fixtureList, teamList] = await Promise.all([
+          api.listFixtures(),
+          api.listTeams().catch(() => teams),
+        ]);
+        setFixtures(fixtureList);
+        setTeams(teamList);
+        const rebuilt = history ? ` — Elo history rebuilt over ${history.rounds.length} round(s)` : '';
+        setToast(`${sync.moved.length} fixture(s) rescheduled${rebuilt}`);
+      }
+    } catch (err) {
+      setToast(errorMessage(err, 'Could not check for fixture changes'));
+    } finally {
+      setFixturesSyncing(false);
+    }
+  };
+
   const handleOpenMatchDistribution = async (matchNumber: number) => {
     const predictionId = projections.prediction?.id;
     if (predictionId == null) return;
@@ -437,6 +473,8 @@ export function App() {
         onOpenWeekRun={openWeekRun}
         onOpenPredictions={() => setModal('predictions')}
         onOpenRatings={() => setModal('ratings')}
+        onSyncFixtures={() => void handleSyncFixtures()}
+        fixturesSyncing={fixturesSyncing}
       />
 
       {toast && (

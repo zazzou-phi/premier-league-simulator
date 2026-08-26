@@ -377,7 +377,8 @@ grading and trending, the repository, the HTTP API, and public-export redaction.
 | `npm run fetch:ratings` | Refresh `data/teams.csv` from clubelo (**upstream down since 2026-08-22**) |
 | `npm run week -- --clubelo` | Use the clubelo feed for ratings instead of recomputing from results |
 | `npm run fit:elo-k` | Fit the in-season Elo update against a frozen base; runs offline from `.cache/fitting` |
-| `npm run backfill:elo-history` | Rebuild `team_elo_history` from recorded results, one point per round (`--dry-run`, `--db`) |
+| `npm run backfill:elo-history` | Rebuild `team_elo_history` from recorded results, one point per round (`--dry-run`, `--prune`, `--db`) |
+| `npm run sync:fixtures` | Apply rearranged kickoffs from fixturedownload, then re-date Elo history (`--dry-run`, `--db`) |
 | `npm run fetch:fixtures` | Download the 2026/27 fixture list into `data/fixtures.csv` |
 | `npm run fetch:results` | Lock finished scores from fixturedownload; recompute ratings (`--dry-run`, `--db`, `--no-ratings`, `--clubelo`) |
 | `npm run seed` | Create/populate the database (`--force` to rebuild) |

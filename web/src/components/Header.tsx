@@ -19,6 +19,8 @@ interface Props {
   onOpenWeekRun: () => void;
   onOpenPredictions: () => void;
   onOpenRatings: () => void;
+  onSyncFixtures: () => void;
+  fixturesSyncing?: boolean;
 }
 
 export function Header({
@@ -34,6 +36,8 @@ export function Header({
   onOpenWeekRun,
   onOpenPredictions,
   onOpenRatings,
+  onSyncFixtures,
+  fixturesSyncing = false,
 }: Props) {
   const narrow = useMediaQuery(MOBILE_QUERY);
   const { preference, setPreference } = useTheme();
@@ -99,6 +103,19 @@ export function Header({
       >
         Manage Projections
       </button>
+      {/* Occasional rather than weekly: the calendar only moves when a match is rearranged, so
+          it sits in the menu rather than costing a header slot. */}
+      {!publicMode && (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={fixturesSyncing}
+          title="Check fixturedownload for rearranged kickoffs and apply them"
+          onClick={onSyncFixtures}
+        >
+          {fixturesSyncing ? 'Checking…' : 'Update Fixtures'}
+        </button>
+      )}
       {/* Switching theme should not dismiss the menu — stop the panel's close-on-click here so
           the reader can compare System / Light / Dark without reopening. */}
       <div

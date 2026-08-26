@@ -80,3 +80,29 @@ export interface ProjectionsResponse {
 export interface SettingValue {
   value: number;
 }
+export interface FixtureMove {
+  matchNumber: number;
+  homeName: string;
+  awayName: string;
+  from: { matchday: number; date: string; time: string };
+  to: { matchday: number; date: string; time: string };
+  roundChanged: boolean;
+  played: boolean;
+}
+
+export interface FixtureMismatch {
+  matchNumber: number;
+  stored: string;
+  remote: string;
+}
+
+export interface SyncFixturesResult {
+  fixtures: {
+    moved: FixtureMove[];
+    unchanged: number;
+    mismatched: FixtureMismatch[];
+    dryRun: boolean;
+  };
+  /** Present when a move triggered an Elo history rebuild. */
+  history: { rounds: unknown[]; snapshots: number; pruned: number } | null;
+}

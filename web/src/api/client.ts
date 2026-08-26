@@ -1,7 +1,7 @@
 import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { MatchDistribution } from '@shared/simulation/monteCarlo.js';
 import type { ActualMatchResult, Fixture, SeasonState, Team } from '@shared/engine/types.js';
-import type { AccuracyHistoryPoint, TeamEloSnapshot } from '../types.js';
+import type { AccuracyHistoryPoint, SyncFixturesResult, TeamEloSnapshot } from '../types.js';
 import { isPublicMode } from '../config/appMode.js';
 import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
@@ -66,6 +66,7 @@ export interface LeagueApi {
 
   runMonteCarlo(runs: number, options?: MonteCarloOptions): Promise<MonteCarloRunResult>;
   runWeek(options?: WeekRunOptions): Promise<WeekRunResult>;
+  syncFixtures(dryRun?: boolean): Promise<SyncFixturesResult>;
 
   listPredictions(page?: number, pageSize?: number): Promise<PredictionListPage>;
   renamePrediction(id: number, name: string): Promise<Prediction>;
@@ -214,6 +215,13 @@ const privateApi: LeagueApi = {
     return result;
   },
 
+  syncFixtures: (dryRun = false) =>
+    request<SyncFixturesResult>('/api/v1/fixtures/sync', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ dryRun }),
+    }),
+
   runWeek: async (options = {}) => {
     const res = await postNdjson('/api/v1/week', {
       runs: options.runs,
@@ -317,6 +325,7 @@ const publicApi: LeagueApi = {
 
   runMonteCarlo: async () => unavailable(),
   runWeek: async () => unavailable(),
+  syncFixtures: async () => unavailable(),
 
   listPredictions: async () => ({ items: [], total: 0 }),
   renamePrediction: async () => unavailable(),
