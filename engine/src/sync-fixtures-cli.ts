@@ -61,7 +61,7 @@ for (const move of summary.moved) {
 if (!args.dryRun) {
   const history = backfillEloHistory({ repo, prune: true });
   console.log(
-    `\nRebuilt Elo history: ${history.snapshots} rows across ${history.rounds.length} round(s)` +
+    `\nRebuilt Elo history: ${history.snapshots} rows across ${history.points.length} day(s)` +
       (history.pruned > 0 ? `, pruned ${history.pruned} stale date(s).` : '.'),
   );
 }

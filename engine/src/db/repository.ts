@@ -257,15 +257,17 @@ export class Repository {
   }
 
   /**
-   * Drop Elo snapshots dated on or after `from`, except those whose date is in `keep`.
+   * Drop every Elo snapshot whose date is not in `keep`.
    *
-   * A rebuild after a reschedule writes each round under its new date, but the rows written
-   * under the old ones would otherwise linger as points for days no round ended on. `from`
-   * protects anything earlier — the pre-season baseline in particular.
+   * A rebuild after a reschedule writes each day under its new date, and the rows left under
+   * the old ones would otherwise linger as ratings for days nothing was played. The caller
+   * lists everything worth keeping — including the pre-season baseline, which no result
+   * accounts for. A date floor cannot do this job: when the day vacated is the earliest one,
+   * it falls below any floor derived from the dates that survive.
    */
-  pruneEloSnapshots(from: string, keep: string[]): number {
+  pruneEloSnapshots(keep: string[]): number {
     const kept = new Set(keep);
-    const dates = this.getEloHistoryDates().filter((date) => date >= from && !kept.has(date));
+    const dates = this.getEloHistoryDates().filter((date) => !kept.has(date));
     if (dates.length === 0) return 0;
 
     const remove = this.sqlite.prepare(`DELETE FROM team_elo_history WHERE as_of = ?`);

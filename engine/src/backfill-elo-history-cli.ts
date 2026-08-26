@@ -29,22 +29,22 @@ const repo = new Repository(db);
 const before = repo.getEloHistoryDates().length;
 const summary = backfillEloHistory({ repo, dryRun: args.dryRun, prune: args.prune });
 
-if (summary.rounds.length === 0) {
+if (summary.points.length === 0) {
   console.log('No results recorded yet, so there is no history to rebuild.');
   process.exit(0);
 }
 
 console.log(
   args.dryRun
-    ? `Would write ${summary.snapshots} rows across ${summary.rounds.length} round(s):\n`
-    : `Wrote ${summary.snapshots} rows across ${summary.rounds.length} round(s):\n`,
+    ? `Would write ${summary.snapshots} rows across ${summary.points.length} day(s) of football:\n`
+    : `Wrote ${summary.snapshots} rows across ${summary.points.length} day(s) of football:\n`,
 );
 
-console.log('  round   as of         matches');
-console.log('  -----   -----------   -------');
-for (const round of summary.rounds) {
+console.log('  date         matches   round(s)');
+console.log('  ----------   -------   --------');
+for (const point of summary.points) {
   console.log(
-    `  ${String(round.matchday).padStart(5)}   ${round.asOf}    ${String(round.matches).padStart(7)}`,
+    `  ${point.asOf}   ${String(point.matches).padStart(7)}   ${point.matchdays.join(', ')}`,
   );
 }
 

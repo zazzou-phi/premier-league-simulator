@@ -114,18 +114,28 @@ A run that changes nothing and finds its date already recorded skips the write a
 
 ### Rebuilding it
 
-`npm run backfill:elo-history` replays every recorded result round by round and writes a
-snapshot per round, dated to that round's last fixture. Use it to fill rounds that passed
-without anyone running the week loop, or to rebuild the series after restoring a database.
+`npm run backfill:elo-history` replays every recorded result in date order and writes a snapshot
+per day football was played. Use it to fill days that passed without anyone running the week
+loop, or to rebuild the series after restoring a database.
+
+Points are grouped by date rather than by round because the replay is chronological. Grouping by
+round while accumulating by date would produce incoherent labels: a round with a fixture
+postponed to December closes in December, so "round 3" would name a snapshot containing every
+result up to that point, rounds 4 through 16 included. A date names exactly what it contains.
+
+The series opens on the anchors, dated the day before the first result. `seed` writes a baseline
+too, but it cannot be told apart from a stale point by date alone — both are days no result falls
+on — so the rebuild derives its own rather than guessing which to spare, and `--prune` removes
+every date the rebuild did not write.
 
 The weekly sync only ever records where ratings stand *now*, so the series is otherwise as
 sparse as the loop was run. Under clubelo that was permanent — a rating for 12 October could
 only be captured on 12 October. Recomputing from an anchor makes every past round derivable
 instead, so nothing is lost by not having run the loop that week.
 
-Each round is computed cumulatively from `teams.anchor_elo` rather than by carrying a running
-total forward, so the last point is by construction identical to the live rating. Re-running
-overwrites the rows it wrote before, so it is safe at any time. `--dry-run` reports the rounds
+Each point is computed cumulatively from `teams.anchor_elo` rather than by carrying a running
+total forward, so the last one is by construction identical to the live rating. Re-running
+overwrites the rows it wrote before, so it is safe at any time. `--dry-run` reports the points
 it would write without touching anything.
 
 ## Prediction provenance

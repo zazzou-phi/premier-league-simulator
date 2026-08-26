@@ -378,7 +378,9 @@ export function App() {
         ]);
         setFixtures(fixtureList);
         setTeams(teamList);
-        const rebuilt = history ? ` — Elo history rebuilt over ${history.rounds.length} round(s)` : '';
+        const rebuilt = history
+          ? ` — Elo history rebuilt over ${history.points.length} day(s)`
+          : '';
         setToast(`${sync.moved.length} fixture(s) rescheduled${rebuilt}`);
       }
     } catch (err) {

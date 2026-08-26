@@ -104,5 +104,5 @@ export interface SyncFixturesResult {
     dryRun: boolean;
   };
   /** Present when a move triggered an Elo history rebuild. */
-  history: { rounds: unknown[]; snapshots: number; pruned: number } | null;
+  history: { points: unknown[]; snapshots: number; pruned: number } | null;
 }

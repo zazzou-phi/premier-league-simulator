@@ -62,17 +62,25 @@ export function lastResultDate(repo: Repository): string | null {
   return latest;
 }
 
-/** A real result with the round and date it was played on, for replaying in order. */
+/** A real result with the round and kickoff it was played at, for replaying in order. */
 export interface PlayedResult extends EloMatchInput {
   matchday: number;
   date: string;
+  time: string;
 }
 
 /**
- * Every real result, in the order a replay should apply them.
+ * Every real result, in the order a replay should apply them: **chronological**.
  *
- * Sorted by round and then match number so a club's later fixtures see its earlier ones, and
- * so the sequence is deterministic regardless of the order results were recorded in.
+ * Elo is a sequential process, so the order decides the numbers — each update is sized by how
+ * surprising the result was against the ratings standing at that moment. Ordering by round
+ * instead would replay a match postponed to December among its original September neighbours,
+ * carrying a club's September form into a match it played three months later.
+ *
+ * With no rearrangements the two orders are identical, since rounds run in date order. They
+ * only diverge for a fixture that actually moved, which is exactly the case worth getting
+ * right. Kickoff time then match number break ties within a day, so the sequence is
+ * deterministic regardless of the order results were recorded in.
  */
 export function realResultsInOrder(repo: Repository): PlayedResult[] {
   const fixtures = new Map(repo.getFixtures().map((fixture) => [fixture.matchNumber, fixture]));
@@ -89,10 +97,16 @@ export function realResultsInOrder(repo: Repository): PlayedResult[] {
           goalsAway: result.goalsAway,
           matchday: fixture.matchday,
           date: fixture.date,
+          time: fixture.time,
         },
       ];
     })
-    .sort((a, b) => a.matchday - b.matchday || a.matchNumber - b.matchNumber);
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        a.time.localeCompare(b.time) ||
+        a.matchNumber - b.matchNumber,
+    );
 }
 
 /**
