@@ -244,18 +244,19 @@ npm run export:public
 This writes `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json` and
 `distributions.json`.
 
-Exports use a **next-round reveal policy**: the upcoming round is published in advance — a
-forecast is worth more before kickoff than after it — while every later round is blanked, so
-the snapshot still cannot be read as a season-long script. Recorded real results are always
-included.
+The snapshot is **the whole season** — `revealPolicy: "full"` — so the public site shows exactly
+what the private app does: recorded results, a picked scoreline for every remaining fixture, and
+the same matchday cutoff to read the table at any point of the season. Earlier exports blanked
+every round past the next one to be played; that guarded against giving a future away to someone
+reading along, and this is a general-interest site with no such someone.
 
-The published table is a narrower set on purpose: it counts only matches that are recorded or
-have kicked off, so showing next weekend's picks never puts points on the board for games
-nobody has played. A snapshot can show MD8 predictions above an MD7 table.
+The public build still has no API, so it omits what needs one: Monte Carlo, `Run Week`, the
+pick-strategy switch and the accuracy trend.
 
-`distributions.json` carries the outcome and scoreline spread behind each revealed match, which
-is what makes the per-fixture distribution modal work on the public site. Unrevealed fixtures
-carry no distribution and their scores are not clickable.
+`distributions.json` carries the outcome and scoreline spread behind all 380 fixtures, which is
+what makes the per-fixture distribution modal work on the public site. It is ~1.7 MB on disk
+(~90 KB gzipped over the wire) and the client fetches it lazily, on the first distribution a
+reader opens.
 
 Build it with `npm run build:public` in `web/`.
 

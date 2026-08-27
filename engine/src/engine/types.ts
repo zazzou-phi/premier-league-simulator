@@ -44,6 +44,13 @@ export interface ResolvedMatch {
   };
   /** True when an actual real-world result is recorded for this fixture. */
   locked: boolean;
+  /**
+   * The scoreline the batch picked, kept alongside `result` so a played fixture can show what
+   * was forecast next to what happened. Null on a fixture the batch was handed rather than
+   * predicted (it was already locked when the batch ran), because replaying a known result is
+   * not a forecast — the same reason grading excludes those fixtures.
+   */
+  pick?: { goalsHome: number; goalsAway: number } | null;
 }
 
 export interface StandingRow {

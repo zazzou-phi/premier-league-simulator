@@ -9,7 +9,7 @@ Simulate a full Premier League season (20 clubs, 38 matchdays, 380 matches) with
 - Locked real-world results that override every simulation path at read time
 - A weekly in-season loop (`npm run week`) that syncs results and Elo, grades the previous
   projection, and re-projects the rest of the season
-- A static public site that cannot leak unrevealed future predictions
+- A static public site carrying the same season the private app shows
 
 Adapted from a World Cup 2026 simulator. **Out of scope:** groups, knockouts, extra time, penalty shootouts, FIFA head-to-head tiebreakers.
 

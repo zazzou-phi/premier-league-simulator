@@ -5,140 +5,160 @@
       "name": "Arsenal",
       "shortName": "ARS",
       "crest": null,
-      "elo": 2063.76
+      "elo": 2063.76,
+      "anchorElo": 2063.76
     },
     {
       "id": 2,
       "name": "Manchester City",
       "shortName": "MCI",
       "crest": null,
-      "elo": 1970.85
+      "elo": 1970.85,
+      "anchorElo": 1970.85
     },
     {
       "id": 3,
       "name": "Aston Villa",
       "shortName": "AVL",
       "crest": null,
-      "elo": 1920.97
+      "elo": 1920.97,
+      "anchorElo": 1920.97
     },
     {
       "id": 4,
       "name": "Manchester United",
       "shortName": "MUN",
       "crest": null,
-      "elo": 1915.32
+      "elo": 1915.32,
+      "anchorElo": 1915.32
     },
     {
       "id": 5,
       "name": "Liverpool",
       "shortName": "LIV",
       "crest": null,
-      "elo": 1910.8
+      "elo": 1910.8,
+      "anchorElo": 1910.8
     },
     {
       "id": 6,
       "name": "Bournemouth",
       "shortName": "BOU",
       "crest": null,
-      "elo": 1871.97
+      "elo": 1871.97,
+      "anchorElo": 1871.97
     },
     {
       "id": 7,
       "name": "Brighton & Hove Albion",
       "shortName": "BHA",
       "crest": null,
-      "elo": 1842.01
+      "elo": 1842.01,
+      "anchorElo": 1842.01
     },
     {
       "id": 8,
       "name": "Newcastle United",
       "shortName": "NEW",
       "crest": null,
-      "elo": 1837.53
+      "elo": 1837.53,
+      "anchorElo": 1837.53
     },
     {
       "id": 9,
       "name": "Brentford",
       "shortName": "BRE",
       "crest": null,
-      "elo": 1836.59
+      "elo": 1836.59,
+      "anchorElo": 1836.59
     },
     {
       "id": 10,
       "name": "Chelsea",
       "shortName": "CHE",
       "crest": null,
-      "elo": 1831.1
+      "elo": 1831.1,
+      "anchorElo": 1831.1
     },
     {
       "id": 11,
       "name": "Nottingham Forest",
       "shortName": "NFO",
       "crest": null,
-      "elo": 1822.17
+      "elo": 1822.17,
+      "anchorElo": 1822.17
     },
     {
       "id": 12,
       "name": "Fulham",
       "shortName": "FUL",
       "crest": null,
-      "elo": 1813.1
+      "elo": 1813.1,
+      "anchorElo": 1813.1
     },
     {
       "id": 13,
       "name": "Crystal Palace",
       "shortName": "CRY",
       "crest": null,
-      "elo": 1803.82
+      "elo": 1803.82,
+      "anchorElo": 1803.82
     },
     {
       "id": 14,
       "name": "Everton",
       "shortName": "EVE",
       "crest": null,
-      "elo": 1803.43
+      "elo": 1803.43,
+      "anchorElo": 1803.43
     },
     {
       "id": 15,
       "name": "Leeds United",
       "shortName": "LEE",
       "crest": null,
-      "elo": 1797.39
+      "elo": 1797.39,
+      "anchorElo": 1797.39
     },
     {
       "id": 16,
       "name": "Tottenham Hotspur",
       "shortName": "TOT",
       "crest": null,
-      "elo": 1777.31
+      "elo": 1777.31,
+      "anchorElo": 1777.31
     },
     {
       "id": 17,
       "name": "Sunderland",
       "shortName": "SUN",
       "crest": null,
-      "elo": 1735.93
+      "elo": 1735.93,
+      "anchorElo": 1735.93
     },
     {
       "id": 18,
       "name": "Coventry City",
       "shortName": "COV",
       "crest": null,
-      "elo": 1661.48
+      "elo": 1661.48,
+      "anchorElo": 1661.48
     },
     {
       "id": 19,
       "name": "Ipswich Town",
       "shortName": "IPS",
       "crest": null,
-      "elo": 1640
+      "elo": 1640,
+      "anchorElo": 1640
     },
     {
       "id": 20,
       "name": "Hull City",
       "shortName": "HUL",
       "crest": null,
-      "elo": 1532.88
+      "elo": 1532.88,
+      "anchorElo": 1532.88
     }
   ],
   "fixtures": [

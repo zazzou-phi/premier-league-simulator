@@ -27,7 +27,7 @@ Elo is the strength input to the match model. Editable via API in private mode (
 
 `matchNumber` (PK), `matchday`, `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `teamHomeId`, `teamAwayId`.
 
-Kickoffs are UK wall-clock times (`Europe/London`, including BST). Used by the public next-round reveal policy, whose kicked-off clause decides what counts toward the published table.
+Kickoffs are UK wall-clock times (`Europe/London`, including BST).
 
 ### Simulation
 
@@ -47,7 +47,11 @@ When set:
    built from a simulation agrees with reality without a second copy of the scoreline existing
 3. Treated as locked in season state (`ResolvedMatch.locked`)
 4. Banked into every Monte Carlo run's starting table rather than simulated
-5. Always wins over picked seasons when building prediction state
+5. Always wins over picked seasons when building prediction state — but does not erase the
+   pick: `ResolvedMatch.pick` keeps the scoreline the batch chose alongside `result`, so a
+   played fixture can be read against what was forecast for it. `pick` is null on a fixture the
+   batch was *handed* (already in `prediction_locked_matches` when it ran), because replaying a
+   known result is not a forecast — the same rule grading applies
 
 ### Season state
 

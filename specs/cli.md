@@ -42,7 +42,7 @@ Engine tests (`engine/tests/`) protect:
 - Dated Elo history and mover reporting
 - Repository (read-time actual overlay, predictions, settings)
 - HTTP API routes and error codes
-- Public snapshot redaction / next-round reveal
+- Public snapshot contents and file set
 
 After model, API, or persistence changes: `cd engine && npm test`.
 

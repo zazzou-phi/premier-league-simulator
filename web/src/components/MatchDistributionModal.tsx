@@ -148,6 +148,10 @@ export function MatchDistributionModal({
       ? { goalsHome: match.result.goalsHome, goalsAway: match.result.goalsAway }
       : null;
 
+  // On a played fixture `result` is the real score, so the pick is a separate figure — and the
+  // one this modal exists to explain. It is absent on a fixture the batch was handed.
+  const pick = match.locked ? (match.pick ?? null) : actualScoreline;
+
   return (
     <Modal className="modal modal-wide" titleId="match-distribution-title" onClose={onClose}>
       <h2 id="match-distribution-title">
@@ -165,10 +169,22 @@ export function MatchDistributionModal({
           · {formatPct(bestCandidate.n, total)} of {total.toLocaleString()} runs
         </p>
       )}
-      {actualScoreline ? (
+      {pick || actualScoreline ? (
         <p className="match-distribution-pick">
-          {match.locked ? 'Recorded result' : 'Pick'}: {actualScoreline.goalsHome}–
-          {actualScoreline.goalsAway}
+          {pick && (
+            <span className="match-distribution-picked">
+              Pick: {pick.goalsHome}–{pick.goalsAway}
+            </span>
+          )}
+          {pick && match.locked && actualScoreline && ' · '}
+          {match.locked && actualScoreline && (
+            <span className="match-distribution-actual">
+              Recorded result: {actualScoreline.goalsHome}–{actualScoreline.goalsAway}
+            </span>
+          )}
+          {match.locked && !pick && (
+            <span className="muted"> — this batch was handed the result, it did not predict it</span>
+          )}
         </p>
       ) : (
         <p className="muted match-distribution-pick">No scoreline yet</p>

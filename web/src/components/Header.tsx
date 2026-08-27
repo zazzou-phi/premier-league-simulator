@@ -41,8 +41,7 @@ export function Header({
 }: Props) {
   const narrow = useMediaQuery(MOBILE_QUERY);
   const { preference, setPreference } = useTheme();
-  const isProjectionFamily = appView === 'picks' || appView === 'projections';
-  const isResultsView = appView === 'results';
+  const isSeasonView = appView === 'season';
 
   // Which round the season is actually on — the anchor for a week-by-week workflow.
   const matchdayBadge =
@@ -56,18 +55,17 @@ export function Header({
       </span>
     );
 
-  const meta = isResultsView ? (
-    <>
-      <span className="header-meta header-results">
-        {recordedResultCount} recorded result{recordedResultCount === 1 ? '' : 's'}
-      </span>
-      {matchdayBadge}
-    </>
-  ) : (
+  // The season view mixes the two, so it names both sources; Projections is the batch alone.
+  const meta = (
     <>
       <span className="header-meta header-projections">
         {activePredictionLabel ?? 'No projection loaded'}
       </span>
+      {isSeasonView && (
+        <span className="header-meta header-results">
+          {recordedResultCount} recorded result{recordedResultCount === 1 ? '' : 's'}
+        </span>
+      )}
       {matchdayBadge}
     </>
   );
@@ -76,9 +74,7 @@ export function Header({
   // per view break muscle memory. Unavailable entries are disabled with a reason, not hidden.
   const projectionsUnavailable = publicMode
     ? 'Projections are fixed in the published snapshot'
-    : isResultsView
-      ? 'Switch to Picks or Projections to manage batches'
-      : null;
+    : null;
 
   const optionsMenu = (
     <HeaderDropdownMenu
@@ -144,7 +140,7 @@ export function Header({
 
   const actions = (
     <>
-      {isProjectionFamily && !publicMode && (
+      {!publicMode && (
         <button
           type="button"
           className="btn btn-simulate"
@@ -154,9 +150,8 @@ export function Header({
           {monteCarloRunning ? 'Simulating…' : 'Monte Carlo'}
         </button>
       )}
-      {/* The week loop starts from the weekend's results, so it is offered in every view —
-          unlike Monte Carlo, which only makes sense where a projection is on screen. It shrinks
-          to an icon on narrow screens, where a second worded button costs the app title. */}
+      {/* Shrinks to an icon on narrow screens, where a second worded button costs the app
+          title. */}
       {!publicMode && (
         <button
           type="button"
@@ -177,7 +172,7 @@ export function Header({
   if (narrow) {
     return (
       <header className="header header-mobile">
-        {/* The tab bar takes its own row: three tabs plus the title and two icon buttons do not
+        {/* The tab bar takes its own row: the tabs plus the title and two icon buttons do not
             fit on one line at 375px. */}
         <ViewSwitcher appView={appView} short onAppViewChange={onAppViewChange} />
         <div className="header-row">

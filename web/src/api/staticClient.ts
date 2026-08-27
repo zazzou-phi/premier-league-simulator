@@ -32,9 +32,10 @@ export async function loadBootstrap(): Promise<PublicBootstrap> {
 }
 
 /**
- * Distributions for the revealed matches, keyed by fixture. One file for the whole set: it is a
- * few tens of KB, and the alternative — a request per match — would make a click wait on the
- * network for data already published.
+ * Every fixture's distribution, keyed by match number. One file for the whole set rather than a
+ * request per match, which would make a click wait on the network for data already published.
+ * It is fetched lazily, on the first distribution a reader opens, because publishing all 380
+ * spreads costs a megabyte or so and most visits never open one.
  */
 export async function loadDistributions(): Promise<Map<number, MatchDistribution>> {
   if (!cachedDistributions) {
@@ -63,7 +64,7 @@ export const staticApi = {
   getMatchDistribution: async (matchNumber: number): Promise<MatchDistribution> => {
     const distribution = (await loadDistributions()).get(matchNumber);
     if (!distribution) {
-      throw new Error('This match is not revealed yet');
+      throw new Error('This snapshot carries no distribution for that match');
     }
     return distribution;
   },

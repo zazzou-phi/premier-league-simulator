@@ -9,16 +9,15 @@ import type {
 } from '@shared/engine/types.js';
 import { api, isPublicMode, type WeekRunOptions } from './api/client.js';
 import { loadPublicMeta } from './api/staticClient.js';
-import { ActualResultsView } from './components/ActualResultsView.js';
-import { PicksView } from './components/PicksView.js';
 import { Header } from './components/Header.js';
 import { MatchDistributionModal } from './components/MatchDistributionModal.js';
 import { MonteCarloModal } from './components/MonteCarloModal.js';
 import { WeekRunModal } from './components/WeekRunModal.js';
 import { PredictionManagerModal } from './components/PredictionManagerModal.js';
 import { ProjectionsView } from './components/ProjectionsView.js';
+import { SeasonView } from './components/SeasonView.js';
 import { TeamRatingsModal } from './components/TeamRatingsModal.js';
-import type { AppView } from './lib/appView.js';
+import { DEFAULT_APP_VIEW, type AppView } from './lib/appView.js';
 import {
   DEFAULT_PICK_STRATEGY,
   formatPickStrategy,
@@ -86,9 +85,9 @@ export function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [fixturesSyncing, setFixturesSyncing] = useState(false);
 
-  // The forecast is the answer the engine exists to compute, so it leads. Bootstrap falls back to
-  // the picks season when there is no batch to project from.
-  const [appView, setAppView] = useState<AppView>('projections');
+  // The season leads: results and the picks that follow them are what a reader arrives for,
+  // and the odds behind them are a tab away.
+  const [appView, setAppView] = useState<AppView>(DEFAULT_APP_VIEW);
   const [teams, setTeams] = useState<Team[]>([]);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [actualResults, setActualResults] = useState<ActualMatchResult[]>([]);
@@ -96,6 +95,9 @@ export function App() {
   const [publicMeta, setPublicMeta] = useState<PublicMeta | null>(null);
 
   const [selectedMatchNumber, setSelectedMatchNumber] = useState<number | null>(null);
+  // Null until the reader moves it, so the season view picks its own default from the calendar
+  // rather than a number captured before the fixtures arrived.
+  const [seasonCutoff, setSeasonCutoff] = useState<number | null>(null);
 
   const [upsetVariance, setUpsetVariance] = useState(DEFAULT_UPSET_VARIANCE);
   const [seasonEloDeltaWeight, setSeasonEloDeltaWeight] = useState(
@@ -151,9 +153,9 @@ export function App() {
         if (publicMode) {
           const meta = await loadPublicMeta().catch(() => null);
           setPublicMeta(meta);
-          if (meta?.predictionId == null) {
-            setAppView('picks');
-          } else {
+          // No projection in the snapshot is not a dead end: the season view still has the
+          // recorded results to show.
+          if (meta?.predictionId != null) {
             await loadProjection({
               id: meta.predictionId,
               name: meta.predictionName ?? 'Season',
@@ -178,7 +180,6 @@ export function App() {
           const predictionPage = await api.listPredictions(1, 1).catch(() => null);
           const prediction = predictionPage?.items[0] ?? null;
           if (prediction) await loadProjection(prediction);
-          else setAppView('picks');
         }
       } catch (err) {
         setFatalError(errorMessage(err, 'Failed to load the simulator'));
@@ -508,29 +509,28 @@ export function App() {
       )}
 
       <main className="app-main">
-        {appView === 'picks' &&
-          (projections.prediction == null ? (
-            emptyProjectionMessage
-          ) : (
-            <PicksView
-              teams={teams}
-              picksState={projections.picks}
-              picksError={projections.error}
-              loading={projections.loading}
-              runs={projections.runs}
-              nextMatchday={nextMatchday}
-              pickStrategy={pickStrategy}
-              savingPickStrategy={savingPickStrategy}
-              onPickStrategyChange={
-                publicMode
-                  ? undefined
-                  : (mode) => void handlePickStrategyChange(mode)
-              }
-              selectedMatchNumber={selectedMatchNumber}
-              onSelectMatch={setSelectedMatchNumber}
-              onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
-            />
-          ))}
+        {appView === 'season' && (
+          <SeasonView
+            teams={teams}
+            fixtures={fixtures}
+            actualResults={actualResults}
+            picksState={projections.picks}
+            picksError={projections.error}
+            loading={projections.loading}
+            runs={projections.runs}
+            nextMatchday={nextMatchday}
+            pickStrategy={pickStrategy}
+            savingPickStrategy={savingPickStrategy}
+            onPickStrategyChange={
+              publicMode ? undefined : (mode) => void handlePickStrategyChange(mode)
+            }
+            selectedMatchNumber={selectedMatchNumber}
+            cutoffChoice={seasonCutoff}
+            onCutoffChange={setSeasonCutoff}
+            onSelectMatch={setSelectedMatchNumber}
+            onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
+          />
+        )}
 
         {appView === 'projections' &&
           (projections.prediction == null ? (
@@ -544,17 +544,6 @@ export function App() {
               loading={projections.loading}
             />
           ))}
-
-        {appView === 'results' && (
-          <ActualResultsView
-            teams={teams}
-            fixtures={fixtures}
-            actualResults={actualResults}
-            selectedMatchNumber={selectedMatchNumber}
-            nextMatchday={nextMatchday}
-            onSelectMatch={setSelectedMatchNumber}
-          />
-        )}
       </main>
 
       {publicMode && publicMeta && (

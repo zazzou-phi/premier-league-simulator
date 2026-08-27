@@ -964,21 +964,14 @@ export class Repository {
       fixtures,
       distributions,
     );
+    // A fixture this batch was handed rather than predicted has a "pick" that is just the
+    // result replayed, so it is not published as one — the rule grading already applies.
+    const bankedAtRunTime = this.getPredictionLockedMatches(predictionId);
 
     const matches: ResolvedMatch[] = fixtures.map((fixture) => {
       const teamHome = teamsById.get(fixture.teamHomeId)!;
       const teamAway = teamsById.get(fixture.teamAwayId)!;
       const actual = actuals.get(fixture.matchNumber);
-
-      if (actual) {
-        return {
-          fixture,
-          teamHome,
-          teamAway,
-          result: { goalsHome: actual.goalsHome, goalsAway: actual.goalsAway, status: 'played' },
-          locked: true,
-        };
-      }
 
       const distribution = distributions.get(fixture.matchNumber);
       const pick = distribution
@@ -988,6 +981,17 @@ export class Repository {
             seasonPick: seasonPicks?.get(fixture.matchNumber) ?? null,
           })
         : null;
+
+      if (actual) {
+        return {
+          fixture,
+          teamHome,
+          teamAway,
+          result: { goalsHome: actual.goalsHome, goalsAway: actual.goalsAway, status: 'played' },
+          locked: true,
+          pick: bankedAtRunTime.has(fixture.matchNumber) ? null : pick,
+        };
+      }
 
       return {
         fixture,
@@ -999,6 +1003,7 @@ export class Repository {
           status: pick ? 'played' : 'scheduled',
         },
         locked: false,
+        pick,
       };
     });
 

@@ -6,59 +6,48 @@ Default output directory: `web/public/data/` (override with `--out`). DB via `--
 
 ## Reveal policy
 
-`REVEAL_POLICY = 'next-round'` (`engine/src/export/publicSnapshot.ts`).
+`REVEAL_POLICY = 'full'` (`engine/src/export/publicSnapshot.ts`). The snapshot is the private
+app's state verbatim: `buildPredictionState` for the active prediction, unmodified.
 
-A forecast is worth more before kickoff than after it, so the upcoming round is published in
-advance. `isRevealed(match, at, round)` is true when the match is **locked** (actual result),
-`hasKickedOff(fixture, now)` is true, or its matchday is **no later than the next round** —
-the lowest matchday with an unrecorded fixture, via `findNextMatchday`. The first two clauses
-keep the set monotone: nothing that has been shown becomes secret again.
+The export used to blank every round past the next one to be played, and to recompute the
+published table from locked or kicked-off matches only. That was protection against giving a
+future away to someone reading along; the site is general interest and there is no such
+someone, so it was dropped along with `redactUnrevealed`, `isRevealed`, `hasKickedOff` and
+`nextRound`. `revealPolicy` survives in `meta.json` so a snapshot still says which policy
+produced it, and so an older `"next-round"` snapshot stays readable.
 
-`hasKickedOff` compares fixture `date`+`time` to the current instant formatted in
-`Europe/London`.
-
-`redactUnrevealed(state, at)`:
-
-1. Keep matches that are revealed by the rule above
-2. Blank every other predicted score (`scheduled`, null goals)
-3. **Recompute standings from locked or kicked-off matches only** — deliberately a narrower
-   set than the revealed one
-
-Step 3 is what keeps invariant 12 true now that reveal runs ahead of kickoff: the next round is
-shown as a forecast, but points from a match nobody has played would imply a result. So a
-snapshot can show `MD8` picks while its table still reads `MD7`.
-
-Later rounds stay blank, so the snapshot cannot be read as a season-long script.
-
-Projections (season-long position probabilities) are exported as-is; they are not per-fixture futures.
+The published table is no longer a field at all in practice: the web client recomputes it from
+whichever matchday the reader has the Season view's cutoff set to (see [web.md](web.md)), so the
+`standings` the snapshot carries go unread.
 
 `eloHistory` is exported unredacted: dated snapshots are a record of past ratings, not a
 future prediction.
 
 ## Per-fixture distributions
 
-`distributions.json` carries the outcome and scoreline spread behind each **revealed** match and
-no others — the spread behind a published pick tells a reader nothing the pick did not already,
-while an unrevealed match's distribution *is* the forecast the redaction removes. The public
-client loads the file once and serves `getMatchDistribution` from it, so the distribution modal
-works on the static site; blanked fixtures render an inert score rather than a failing click
-(`FixtureList`'s `canOpen`).
+`distributions.json` carries the outcome and scoreline spread behind **every** fixture, ordered
+by match number — the spread behind a published pick tells a reader nothing the pick did not
+already. The public client loads the file once and serves `getMatchDistribution` from it, so the
+distribution modal works on the static site.
 
-Size scales with what has been revealed: ~54 scorelines per match, so a matchday costs ~25 KB
-and a full season reaches ~960 KB only once every match has been played.
+Size: ~54 scorelines per match, so a full season is ~1.7 MB on disk and ~90 KB gzipped over the
+wire. `staticClient` fetches it lazily — on the first distribution a reader opens — so a visit
+that never opens one never pays for it. It is committed with the rest of the snapshot, so each
+weekly export writes a fresh ~1.7 MB blob into git history.
 
-Grading stays private-mode: a revealed-only subset cannot grade a whole batch, so
-`getAccuracyHistory` still returns an empty series there.
+Grading stays private-mode: it needs the provenance of what was locked when each batch ran
+(`prediction_locked_matches`) and a trend needs every batch, neither of which the snapshot
+carries, so `getAccuracyHistory` still returns an empty series there.
 
 ## Snapshot files
 
 | File | Content |
 |------|---------|
-| `meta.json` | `exportedAt`, `revealPolicy: "next-round"`, active `predictionId` / `predictionName`, `asOfMatchday`, `runs` |
+| `meta.json` | `exportedAt`, `revealPolicy: "full"`, active `predictionId` / `predictionName`, `asOfMatchday`, `runs` |
 | `bootstrap.json` | `teams`, `fixtures`, `actualResults`, `eloHistory` |
-| `league-state.json` | Redacted picked `SeasonState`, or `null` if no prediction |
+| `league-state.json` | The picked `SeasonState` as the private app builds it, or `null` if no prediction |
 | `projections.json` | `{ runs, teams }` or `null` |
-| `distributions.json` | `MatchDistribution[]` for revealed matches only (`[]` with no prediction) |
+| `distributions.json` | `MatchDistribution[]`, one per fixture in match order (`[]` with no prediction) |
 
 The actuals-only table is deliberately not exported: the web client derives it from
 `bootstrap.actualResults` with the same engine code, and no client ever fetched the file.
