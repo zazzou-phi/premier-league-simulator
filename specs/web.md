@@ -17,16 +17,53 @@ Public mutating calls throw or no-op (`"Not available in public mode"`). Base pa
 
 | Id | Label | Private | Public |
 |----|-------|---------|--------|
-| `picks` | Picks | yes | yes |
+| `season` | Season | yes | yes |
 | `projections` | Projections | yes | yes |
-| `results` | Results | yes | yes |
 
-All three views are visible at once in a keyboard-operable tab bar (`ViewSwitcher`, `role="tablist"`,
-arrow keys, roving `tabIndex`).
+Both views are visible at once in a keyboard-operable tab bar (`ViewSwitcher`, `role="tablist"`,
+arrow keys, roving `tabIndex`). `season` is `DEFAULT_APP_VIEW`, the view the app opens on.
 
-### Picks
+Picks and results were separate tabs until they were merged: they showed the same fixture list
+and the same twenty clubs twice, split by whether a score was real or picked — a distinction the
+rows already carry.
 
-- League table + fixture list for the active prediction (`PicksView`, `SeasonLayout`, `LeagueTable`, `FixtureList`)
+### Season
+
+- League table + fixture list over one merged season (`SeasonView`, `SeasonLayout`, `LeagueTable`,
+  `FixtureList`). The matches come from the active prediction's state, which is already the merge:
+  a recorded result where one exists (`locked`), the batch's picked scoreline everywhere else.
+  Without a projection the view falls back to fixtures + `bootstrap.actualResults` and is the
+  read-only record of played matches.
+- **Matchday cutoff** (`MatchdayCutoffControl`, `lib/matchdayCutoff.ts`): the season is read as of
+  a matchday. Every fixture up to it counts towards the table, everything after it is blanked in
+  both panels — one rule, so the table and the fixture list cannot disagree about which matches
+  count. `Now` is the highest matchday holding a real result (**not** `nextMatchday - 1`: a
+  postponement leaves an earlier round open while later rounds are played), `Full season` is the
+  projected finish, and the cutoff lives in `App.tsx` so a trip to Projections and back keeps it.
+- **It opens on `Now`**, so the first thing on screen is the real table, with the projection a
+  drag away. Pre-season there is no such round and it opens on the projected finish instead.
+  The readout tags whichever anchor it is sitting on (`now` / `full season`): `MD 1` beside a
+  header reading `MD2 next` is two true statements that look like a contradiction otherwise.
+- The table is recomputed client-side from the cut via `computeLeagueStandings`, so it ignores the
+  `standings` the snapshot ships. Its tone flips to `actual` and its subtitle to "recorded scores
+  only" when the cut holds no picks.
+- Recorded and picked scorelines are coloured apart in the fixture list (`ScoreDisplay`'s `locked`
+  → green, picks cyan), matching the split in the cutoff control's counts.
+- A played fixture the batch predicted shows **both**: `3 │3 - 0│ 0`, the pick either side of the
+  result it was aiming at, from `ResolvedMatch.pick` (see [domain.md](domain.md)). This is what
+  `ScoreDisplay`'s `actual` branch was built for; it had no caller until picks and results became
+  one view. A fixture the batch was handed carries no pick and renders the result alone.
+  No brackets around the pick — in football those mean a shoot-out. The result is a tinted chip
+  and the picks flank it, which groups the three figures without punctuation that means
+  something else.
+- The distribution modal carries the same pair: `Pick: 0–2 · Recorded result: 2–0`, in the same
+  two colours. It is separate from the **likeliest scoreline** line above it — under `plausible`
+  and `random` the pick is not always the modal scoreline, which is the point of showing both.
+- No UI path writes or clears a result: scores come from the fixturedownload sync
+  (`npm run week`, `npm run fetch:results`), which is authoritative and overwrites local
+  divergence. The `PUT`/`DELETE /api/v1/actual-results/:n` endpoints remain as a `curl` escape
+  hatch with no client.
+- Pre-season the all-zero table is suppressed in favour of the first kickoff date.
 - Per-match outcome/scoreline distribution modal. Its header line is the **likeliest scoreline and
   how often it came up** (`rankScorelineCandidates`), and each outcome bar carries that outcome's
   own modal scoreline, so a near-miss draw is visible rather than implied.
@@ -72,19 +109,12 @@ arrow keys, roving `tabIndex`).
   `ProjectionCardList` (`PROJECTIONS_CARDS_QUERY`), so the distribution is never lost to the gap
   between the column-hide breakpoint and the mobile layout.
 
-### Results
-
-- **Read-only** record of played matches (`ActualResultsView`), derived client-side from
-  `bootstrap.actualResults` via `computeLeagueStandings`. No UI path writes or clears a result:
-  scores come from the fixturedownload sync (`npm run week`, `npm run fetch:results`), which is
-  authoritative and overwrites local divergence. The `PUT`/`DELETE /api/v1/actual-results/:n`
-  endpoints remain as a `curl` escape hatch with no client.
-- Pre-season the all-zero table is suppressed in favour of the first kickoff date.
-
 ## Header controls
 
-- View tab bar, Monte Carlo button (private, projection views), `Run Week` button (private, every
-  view), `More ▾` menu, view help.
+- View tab bar, Monte Carlo button (private), `Run Week` button (private), `More ▾` menu, view
+  help. The header meta names the active batch in both views and adds the recorded-result count
+  in `season`, which is the view that mixes the two.
+- The Monte Carlo button is offered in both views now that picks and odds are both a batch away.
 - The `More` menu holds the same two entries in every view and mode — `Team Ratings` and
   `Manage Projections` — with unavailable entries disabled and explained rather than hidden. It
   also carries the **theme** control (System / Light / Dark), which keeps the menu open while
@@ -150,7 +180,7 @@ when a zero-height panel gains height.
 ## Clients
 
 - `web/src/api/client.ts` — private vs public API façade
-- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`, `distributions.json` (cached; a snapshot exported before the file existed degrades to "not revealed yet")
+- `web/src/api/staticClient.ts` — load `meta.json`, `bootstrap.json`, `league-state.json`, `projections.json`, `distributions.json` (cached, and fetched lazily on the first distribution opened — it carries all 380 fixtures)
 
 ## Simulation UI note
 

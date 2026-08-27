@@ -334,8 +334,8 @@ const publicApi: LeagueApi = {
   getPredictionState: async () => staticApi.getSeasonState(),
   getPredictionProjections: async () => staticApi.getProjections(),
   getPredictionAccuracy: async () => unavailable(),
-  // The snapshot carries distributions only for revealed matches, which is not enough to grade
-  // a whole batch — the trend stays a private-mode view.
+  // Grading needs the provenance of what was locked when each batch ran, and a trend needs
+  // every batch. The snapshot carries one batch and no provenance, so this stays private-mode.
   getAccuracyHistory: async () => [],
   getMatchDistribution: async (_id, matchNumber) => staticApi.getMatchDistribution(matchNumber),
 

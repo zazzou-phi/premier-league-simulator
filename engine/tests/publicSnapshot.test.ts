@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Repository } from '../src/db/repository.js';
-import {
-  buildPublicSnapshot,
-  hasKickedOff,
-  redactUnrevealed,
-  snapshotToFiles,
-} from '../src/export/publicSnapshot.js';
+import { buildPublicSnapshot, snapshotToFiles } from '../src/export/publicSnapshot.js';
 import { runMonteCarlo } from '../src/simulation/monteCarlo.js';
 import { createTestRepository } from './testDb.js';
 import { testRng } from './testRng.js';
@@ -25,86 +20,32 @@ async function seedPrediction(runs = 20) {
   return repo.savePredictionFromMonteCarlo('Public batch', result);
 }
 
-describe('hasKickedOff', () => {
-  it('reveals a fixture once its kickoff has passed', () => {
-    const fixture = repo.getFixtures()[0]!;
-    expect(hasKickedOff(fixture, new Date('2020-01-01T00:00:00Z'))).toBe(false);
-    expect(hasKickedOff(fixture, new Date('2030-01-01T00:00:00Z'))).toBe(true);
-  });
-});
-
-describe('redactUnrevealed', () => {
-  it('publishes the next round before it is played, without moving the table', async () => {
+describe('published season', () => {
+  it('publishes every fixture, whenever it is exported', async () => {
     const prediction = await seedPrediction();
     const full = repo.buildPredictionState(prediction.id);
     expect(full.matchesPlayed).toBe(380);
 
-    // Long before any kickoff: nothing has been played, so the next round is matchday 1.
-    const redacted = redactUnrevealed(full, new Date('2020-01-01T00:00:00Z'));
+    // Long before any kickoff. The snapshot is general interest, not a contest, so the whole
+    // season goes out — nothing is held back for a later export.
+    const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
 
-    const revealed = redacted.matches.filter((m) => m.result.goalsHome != null);
-    expect(revealed).toHaveLength(10);
-    expect(revealed.every((m) => m.fixture.matchday === 1)).toBe(true);
-
-    // Shown as a forecast only — a match nobody has played cannot put points on the board.
-    expect(redacted.matchesPlayed).toBe(0);
-    expect(redacted.standings.every((row) => row.played === 0)).toBe(true);
+    expect(snapshot.leagueState?.matches).toEqual(full.matches);
+    expect(snapshot.leagueState?.matchesPlayed).toBe(380);
+    expect(snapshot.meta.revealPolicy).toBe('full');
   });
 
-  it('moves the reveal on to the round after the one just recorded', async () => {
+  it('publishes recorded results alongside the picks that fill the rest', async () => {
     for (const fixture of repo.getFixtures().filter((f) => f.matchday === 1)) {
       repo.setActualResult(fixture.matchNumber, 1, 0);
     }
-    const prediction = await seedPrediction();
+    await seedPrediction();
 
-    const redacted = redactUnrevealed(
-      repo.buildPredictionState(prediction.id),
-      new Date('2020-01-01T00:00:00Z'),
-    );
+    const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
+    const matches = snapshot.leagueState!.matches;
 
-    const revealedMatchdays = new Set(
-      redacted.matches.filter((m) => m.result.goalsHome != null).map((m) => m.fixture.matchday),
-    );
-    expect([...revealedMatchdays].sort((a, b) => a - b)).toEqual([1, 2]);
-
-    // Matchday 2 is a forecast; only the recorded matchday 1 counts.
-    expect(redacted.matchesPlayed).toBe(10);
-    expect(redacted.standings.every((row) => row.played === 1)).toBe(true);
-  });
-
-  it('keeps everything once the season is over', async () => {
-    const prediction = await seedPrediction();
-    const redacted = redactUnrevealed(
-      repo.buildPredictionState(prediction.id),
-      new Date('2030-01-01T00:00:00Z'),
-    );
-    expect(redacted.matchesPlayed).toBe(380);
-  });
-
-  it('counts a kicked-off round in the table even when no result was recorded', async () => {
-    const prediction = await seedPrediction();
-    const matchdayTwoStart = repo.getFixtures().find((f) => f.matchday === 2)!;
-
-    const redacted = redactUnrevealed(
-      repo.buildPredictionState(prediction.id),
-      new Date(`${matchdayTwoStart.date}T00:00:00Z`),
-    );
-
-    expect(redacted.matchesPlayed).toBe(10);
-    expect(redacted.standings.every((row) => row.played === 1)).toBe(true);
-  });
-
-  it('never hides a recorded real result', async () => {
-    repo.setActualResult(200, 2, 1);
-    const prediction = await seedPrediction();
-    const redacted = redactUnrevealed(
-      repo.buildPredictionState(prediction.id),
-      new Date('2020-01-01T00:00:00Z'),
-    );
-
-    const locked = redacted.matches.find((m) => m.fixture.matchNumber === 200)!;
-    expect(locked.result).toMatchObject({ goalsHome: 2, goalsAway: 1 });
-    expect(redacted.matchesPlayed).toBe(1);
+    expect(matches.filter((m) => m.locked)).toHaveLength(10);
+    expect(matches.every((m) => m.result.goalsHome != null)).toBe(true);
   });
 });
 
@@ -127,43 +68,29 @@ describe('buildPublicSnapshot', () => {
     expect(snapshot.meta.runs).toBe(15);
     expect(snapshot.meta.asOfMatchday).toBe(1);
     expect(snapshot.bootstrap.eloHistory).toEqual([]);
-    expect(snapshot.meta.revealPolicy).toBe('next-round');
+    expect(snapshot.meta.revealPolicy).toBe('full');
     expect(snapshot.leagueState?.matches).toHaveLength(380);
     expect(snapshot.projections?.teams).toHaveLength(20);
   });
 
-  it('redacts the league state at export time', async () => {
-    await seedPrediction();
+  it('exports the state the private app would build, unmodified', async () => {
+    const prediction = await seedPrediction();
     const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
-    expect(snapshot.leagueState?.matchesPlayed).toBe(0);
+    expect(snapshot.leagueState).toEqual(repo.buildPredictionState(prediction.id));
   });
 
-  it('exports a distribution for every revealed match and no others', async () => {
+  it('exports a distribution for every fixture, in match order', async () => {
     await seedPrediction();
     const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
 
-    const revealed = snapshot
-      .leagueState!.matches.filter((m) => m.result.goalsHome != null)
-      .map((m) => m.fixture.matchNumber);
-    expect(snapshot.distributions.map((d) => d.matchNumber).sort((a, b) => a - b)).toEqual(
-      [...revealed].sort((a, b) => a - b),
-    );
-    expect(snapshot.distributions).toHaveLength(10);
+    const numbers = snapshot.distributions.map((d) => d.matchNumber);
+    expect(numbers).toHaveLength(380);
+    expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
 
     // The spread behind a shown pick, not a bare count.
     const first = snapshot.distributions[0]!;
     expect(first.outcomes.homeWin + first.outcomes.draw + first.outcomes.awayWin).toBe(20);
     expect(first.scorelines.length).toBeGreaterThan(0);
-  });
-
-  it('withholds distributions for matches it did not reveal', async () => {
-    await seedPrediction();
-    const snapshot = buildPublicSnapshot(repo, new Date('2020-01-01T00:00:00Z'));
-
-    const hidden = snapshot.leagueState!.matches.filter((m) => m.result.goalsHome == null);
-    const exported = new Set(snapshot.distributions.map((d) => d.matchNumber));
-    expect(hidden).toHaveLength(370);
-    expect(hidden.some((m) => exported.has(m.fixture.matchNumber))).toBe(false);
   });
 
   it('writes the expected file set', async () => {

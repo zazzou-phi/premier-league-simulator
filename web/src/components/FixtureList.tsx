@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ActualMatchResult, ResolvedMatch } from '@shared/engine/types.js';
+import type { ResolvedMatch } from '@shared/engine/types.js';
 import { matchWinnerSide } from '../lib/matchFilters.js';
 import { FixturePrefix } from './FixturePrefix.js';
 import { ScoreDisplay } from './ScoreEditor.js';
@@ -11,7 +11,6 @@ interface Props {
   /** Matchday to scroll to on mount. A 380-row list opened at round 1 is unusable in March. */
   initialMatchday?: number | null;
   filterTeamLabel?: string | null;
-  actualResults?: ActualMatchResult[];
   emptyMessage?: string;
   onSelect: (matchNumber: number | null) => void;
   /** Opens the Monte Carlo distribution for a fixture. Absent in the actual-results record. */
@@ -51,16 +50,11 @@ export function FixtureList({
   selectedMatchNumber,
   initialMatchday = null,
   filterTeamLabel = null,
-  actualResults = [],
   emptyMessage = 'No fixtures to show.',
   onSelect,
   onOpenMatch,
   onClearFilter,
 }: Props) {
-  const actualByMatch = useMemo(
-    () => new Map(actualResults.map((result) => [result.matchNumber, result])),
-    [actualResults],
-  );
   const groups = useMemo(() => groupByMatchday(matches), [matches]);
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -207,10 +201,24 @@ export function FixtureList({
                 const num = match.fixture.matchNumber;
                 const selected = num === selectedMatchNumber;
                 const played = match.result.status === 'played';
-                const actual = actualByMatch.get(num);
-                // A distribution only exists behind a scoreline the batch actually shows. In
-                // the public snapshot the unrevealed rounds are blank, so those rows are inert
-                // rather than a click that fails.
+                // A played fixture the batch predicted shows both: the pick either side of the
+                // result it was aiming at. Where the batch was handed the result there is no
+                // pick, and the row is the result alone.
+                const graded =
+                  match.locked &&
+                  match.pick != null &&
+                  match.result.goalsHome != null &&
+                  match.result.goalsAway != null
+                    ? {
+                        pick: match.pick,
+                        actual: {
+                          goalsHome: match.result.goalsHome,
+                          goalsAway: match.result.goalsAway,
+                        },
+                      }
+                    : null;
+                // A distribution only exists behind a scoreline the batch actually shows, so a
+                // fixture blanked by the matchday cutoff is inert rather than a click that fails.
                 const canOpen = onOpenMatch != null && played;
 
                 return (
@@ -238,10 +246,11 @@ export function FixtureList({
                     </span>
                     <span className="fixture-score">
                       <ScoreDisplay
-                        goalsHome={match.result.goalsHome}
-                        goalsAway={match.result.goalsAway}
+                        goalsHome={graded ? graded.pick.goalsHome : match.result.goalsHome}
+                        goalsAway={graded ? graded.pick.goalsAway : match.result.goalsAway}
                         played={played}
-                        actual={actual}
+                        locked={match.locked}
+                        actual={graded?.actual}
                         actionLabel={
                           canOpen
                             ? `Outcome distribution: ${match.teamHome.name} vs ${match.teamAway.name}`

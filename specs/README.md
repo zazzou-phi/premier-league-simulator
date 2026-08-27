@@ -11,7 +11,7 @@ Engineering specifications for the Premier League season simulator. These descri
 | [persistence.md](persistence.md) | CSV schemas, SQLite tables, seed, sync |
 | [api.md](api.md) | Hono REST surface |
 | [web.md](web.md) | React UI views and private vs public behaviour |
-| [public-export.md](public-export.md) | Static snapshot, next-round reveal, published distributions |
+| [public-export.md](public-export.md) | Static snapshot files, published distributions |
 | [invariants.md](invariants.md) | Rules that must not break |
 | [cli.md](cli.md) | Engine npm scripts and CLI flags |
 

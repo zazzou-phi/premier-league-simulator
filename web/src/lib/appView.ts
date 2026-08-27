@@ -1,20 +1,22 @@
-export type AppView = 'picks' | 'projections' | 'results';
+export type AppView = 'season' | 'projections';
 
 /**
- * All three views exist in both modes. `results` used to be private-only because it was an
- * editor; it is now a read-only record, and the public audience is the one that most wants it.
+ * Two views: the season itself — results, picks and the table they produce — and the
+ * aggregate odds behind it. Picks and results used to be separate tabs showing the same
+ * fixture list twice; they are one view now, split by a matchday cutoff rather than a tab.
  */
-export const APP_VIEWS: AppView[] = ['picks', 'projections', 'results'];
+export const APP_VIEWS: AppView[] = ['season', 'projections'];
+
+/** The view the app opens on: what has happened, and what the model says happens next. */
+export const DEFAULT_APP_VIEW: AppView = 'season';
 
 export const APP_VIEW_LABELS: Record<AppView, string> = {
-  picks: 'Picks',
+  season: 'Season',
   projections: 'Projections',
-  results: 'Results',
 };
 
 /** Narrow-viewport tab text. Full labels do not fit at 375px beside the title and actions. */
 export const APP_VIEW_SHORT_LABELS: Record<AppView, string> = {
-  picks: 'Season',
+  season: 'Season',
   projections: 'Odds',
-  results: 'Results',
 };

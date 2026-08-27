@@ -357,6 +357,34 @@ describe('predictions', () => {
     expect(match.locked).toBe(true);
   });
 
+  it('keeps the pick beside a result the batch predicted blind', async () => {
+    const { prediction } = await seedPrediction(20);
+    // Recorded after the batch ran, so match 1 was forecast rather than handed over.
+    repo.setActualResult(1, 6, 0);
+
+    const match = repo.buildPredictionState(prediction.id).matches.find(
+      (m) => m.fixture.matchNumber === 1,
+    )!;
+    expect(match.locked).toBe(true);
+    expect(match.result).toMatchObject({ goalsHome: 6, goalsAway: 0 });
+    expect(match.pick).not.toBeNull();
+    expect(match.pick).not.toMatchObject({ goalsHome: 6, goalsAway: 0 });
+  });
+
+  it('publishes no pick for a fixture the batch was handed', async () => {
+    repo.setActualResult(1, 6, 0);
+    const { prediction } = await seedPrediction(20);
+
+    const state = repo.buildPredictionState(prediction.id);
+    const banked = state.matches.find((m) => m.fixture.matchNumber === 1)!;
+    const forecast = state.matches.find((m) => m.fixture.matchNumber === 200)!;
+
+    // Replaying a known result is not a forecast — the rule grading applies, applied here too.
+    expect(banked.locked).toBe(true);
+    expect(banked.pick).toBeNull();
+    expect(forecast.pick).not.toBeNull();
+  });
+
   it('records which fixtures were already locked when the batch ran', async () => {
     repo.setActualResult(1, 2, 0);
     repo.setActualResult(2, 0, 1);

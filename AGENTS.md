@@ -19,7 +19,7 @@ Default ports: API `3123`, web `2627`. Keep `API_PORT` in sync if either changes
 - Locked (actual) results are authoritative: never overwrite them in sim, bank them into every MC run's starting table rather than simulating them, and overlay them over stored simulations at read time — recording a result must not rewrite a stored simulation.
 - Because locked results are banked rather than predicted, they carry no predictive content: grading a prediction must exclude the fixtures recorded in `prediction_locked_matches`, never score a batch on results it was handed.
 - `teams.elo` is overwritten by each ratings sync; the dated record lives in `team_elo_history` (and the tracked `data/teams.csv`). Because that sync already prices in every real result, only *simulated* matches drift a rating in-season.
-- Public export uses kickoff reveal: blank unrevealed predictions and recompute the published table from revealed matches only so snapshots cannot leak futures.
+- The public snapshot is the private app's state verbatim — every fixture, pick and distribution. The site is general interest, so nothing is withheld; do not reintroduce redaction without being asked.
 - Prefer real fixtures/ratings pipelines over the circle-method generator except in tests that need a synthetic season.
 
 ## Working rules

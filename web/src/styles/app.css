@@ -363,6 +363,93 @@ select:focus-visible,
 
 /* What the selected strategy actually does. Wraps onto its own full-width line. */
 
+/* How far into the season to read. Governs the table and the fixture list together, so it
+   sits above both rather than inside either. */
+.matchday-cutoff {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+
+.matchday-cutoff-lead {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.matchday-cutoff-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.matchday-cutoff-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Names the anchor the cutoff is sitting on, so "MD 1" is not read as "matchday 1 is next". */
+.matchday-cutoff-anchor {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+/* Same colours the table and the scores use, so the split reads the same everywhere. */
+.matchday-cutoff-counts {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.matchday-cutoff-count-actual {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.matchday-cutoff-count-predicted {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+.matchday-cutoff-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.matchday-cutoff-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.matchday-cutoff-quick {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.matchday-cutoff-quick .btn {
+  font-size: 0.8rem;
+}
+
 /* Segmented control. Sized by content, so all three tabs fit in both modes. */
 .view-switcher {
   display: inline-flex;
@@ -533,6 +620,22 @@ select:focus-visible,
   grid-template-columns: fit-content(47rem) minmax(0, 1fr);
 }
 
+/* Controls governing both panels sit above them, spanning the full width. */
+.season-layout-with-toolbar {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.season-layout-toolbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.season-layout-with-toolbar .season-layout-standings,
+.season-layout-with-toolbar .season-layout-fixtures {
+  grid-row: 2;
+}
+
 .season-layout-tab-bar {
   display: flex;
   gap: 0.35rem;
@@ -563,9 +666,22 @@ select:focus-visible,
   grid-template-rows: auto minmax(0, 1fr) !important;
 }
 
+.season-layout-mobile.season-layout-with-toolbar {
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+}
+
 .season-layout-mobile .season-layout-tab-bar {
   grid-column: 1;
   grid-row: 1;
+}
+
+.season-layout-mobile.season-layout-with-toolbar .season-layout-toolbar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.season-layout-mobile.season-layout-with-toolbar .season-layout-tab-bar {
+  grid-row: 2;
 }
 
 .season-layout-mobile .season-layout-standings,
@@ -573,6 +689,11 @@ select:focus-visible,
   grid-column: 1;
   grid-row: 2;
   min-height: 0;
+}
+
+.season-layout-mobile.season-layout-with-toolbar .season-layout-standings,
+.season-layout-mobile.season-layout-with-toolbar .season-layout-fixtures {
+  grid-row: 3;
 }
 
 .season-layout-mobile:not(.season-layout-show-fixtures) .season-layout-fixtures {
@@ -1059,6 +1180,11 @@ select:focus-visible,
   color: var(--cyan);
 }
 
+/* A recorded result, not a pick. The green matches the actual table's header rule. */
+.score-display.played.locked {
+  color: var(--green);
+}
+
 .score-display.score-with-actual {
   display: inline-flex;
   align-items: center;
@@ -1067,11 +1193,13 @@ select:focus-visible,
   padding: 0.1rem 0.35rem;
 }
 
+/* The pick, either side of the result. Without brackets the rules on the centre carry the
+   separation, so it reads pick | result | pick rather than one four-digit number. */
 .score-predicted-home,
 .score-predicted-away {
   color: var(--cyan);
-  min-width: 1.5rem;
-  font-size: 0.9em;
+  min-width: 1rem;
+  font-size: 0.85em;
   font-weight: 600;
 }
 
@@ -1083,13 +1211,24 @@ select:focus-visible,
   text-align: left;
 }
 
+/* The result reads as a chip with the pick flanking it, which groups the three figures without
+   brackets — in football those mean a shoot-out. */
 .score-actual-center {
-  color: var(--yellow);
+  color: var(--green);
   font-weight: 700;
-  padding: 0 0.2rem;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--green) 16%, transparent);
   white-space: nowrap;
+}
+
+/* The two figures the pick-vs-result line names, coloured as they are in the fixture list. */
+.match-distribution-picked {
+  color: var(--cyan);
+}
+
+.match-distribution-actual {
+  color: var(--green);
 }
 
 .modal-overlay {
@@ -2164,6 +2303,14 @@ select:focus-visible,
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
 
+  .season-layout-with-toolbar:not(.season-layout-mobile) {
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .season-layout-with-toolbar:not(.season-layout-mobile) .season-layout-fixtures {
+    grid-row: 3;
+  }
+
   .fixture-row {
     grid-template-columns: 5.25rem minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 0.15rem 0.25rem;
@@ -2209,6 +2356,29 @@ select:focus-visible,
   .pick-strategy-control {
     width: 100%;
     margin-left: 0;
+  }
+
+  /* Three rows at 375px: readout, slider, then the two shortcuts sharing the width. */
+  .matchday-cutoff {
+    gap: 0.35rem 0.5rem;
+    padding: 0.35rem 0.45rem;
+  }
+
+  .matchday-cutoff-lead {
+    flex: 1 0 100%;
+    justify-content: space-between;
+  }
+
+  .matchday-cutoff-slider {
+    flex: 1 0 100%;
+  }
+
+  .matchday-cutoff-quick {
+    flex: 1 0 100%;
+  }
+
+  .matchday-cutoff-quick .btn {
+    flex: 1;
   }
 
   .pick-strategy-buttons {

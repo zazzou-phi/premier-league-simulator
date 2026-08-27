@@ -20,12 +20,19 @@ export type ViewHelp = {
   howTo: HelpSection[];
 };
 
-function picksHelp(publicMode: boolean): ViewHelp {
+function seasonHelp(publicMode: boolean): ViewHelp {
   const about: HelpSection[] = [
     {
       title: 'What this view shows',
       paragraphs: [
-        'A pick is the single scoreline the app commits to for a fixture, derived from a Monte Carlo batch of simulated seasons.',
+        'One season, from both directions: the real scores played so far and, for every fixture still to come, the single scoreline the app commits to — its pick, derived from a Monte Carlo batch of simulated seasons.',
+        'Recorded scores are synced from fixturedownload, which is authoritative and overwrites any local change. They also lock the matching fixtures in Monte Carlo runs, so the picks stay anchored to what has actually happened.',
+      ],
+    },
+    {
+      title: 'Season through',
+      paragraphs: [
+        'The cutoff reads the season as of a matchday. Every fixture up to it counts towards the table — its real score where one exists, its pick where none does — and everything after it is blank. Set it to Now for the real table, or Full season for the projected finish.',
       ],
     },
     {
@@ -43,29 +50,30 @@ function picksHelp(publicMode: boolean): ViewHelp {
     },
   ];
 
-  const howToBullets: string[] = [];
+  const howToBullets: string[] = [
+    'Drag Season through, or use Now and Full season, to move the table between what has happened and what is projected.',
+    'Click a club in the table to filter the fixture list to its matches.',
+  ];
 
   if (!publicMode) {
     howToBullets.push(
       'Run Monte Carlo to play thousands of seasons and build or refresh a projection.',
       'Manage Projections renames or deletes saved Monte Carlo batches.',
     );
-    about.splice(1, 0, {
+    about.splice(2, 0, {
       title: 'Season form',
       paragraphs: [SEASON_FORM_HINT],
     });
-    about.splice(2, 0, {
+    about.splice(3, 0, {
       title: 'Upset factor',
       paragraphs: [UPSET_FACTOR_HINT],
     });
   }
 
   return {
-    title: APP_VIEW_LABELS.picks,
+    title: APP_VIEW_LABELS.season,
     about,
-    howTo: howToBullets.length
-      ? [{ title: 'Controls and interactions', bullets: howToBullets }]
-      : [],
+    howTo: [{ title: 'Controls and interactions', bullets: howToBullets }],
   };
 }
 
@@ -109,34 +117,11 @@ function projectionsHelp(publicMode: boolean): ViewHelp {
   };
 }
 
-function resultsHelp(): ViewHelp {
-  return {
-    title: APP_VIEW_LABELS.results,
-    about: [
-      {
-        title: 'What this view shows',
-        paragraphs: [
-          'Results is the record of real match scores played so far, with the live league table they produce. It is read-only: scores are synced from fixturedownload, which is authoritative and overwrites any local change.',
-        ],
-      },
-      {
-        title: 'How results affect other views',
-        paragraphs: [
-          'Recorded results lock the matching fixtures in Monte Carlo runs, so the projections and the picks season stay anchored to what has actually happened.',
-        ],
-      },
-    ],
-    howTo: [],
-  };
-}
-
 export function getViewHelp(view: AppView, publicMode: boolean): ViewHelp {
   switch (view) {
-    case 'picks':
-      return picksHelp(publicMode);
+    case 'season':
+      return seasonHelp(publicMode);
     case 'projections':
       return projectionsHelp(publicMode);
-    case 'results':
-      return resultsHelp();
   }
 }
