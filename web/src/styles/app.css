@@ -1968,6 +1968,18 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   margin-bottom: 0.5rem;
 }
 
+.projection-cards-sort label {
+  flex-shrink: 0;
+}
+
+/* Always reads "Jump to…" — it resets after each jump — so it is sized to that rather than to
+   its widest option ("Nottingham Forest"), leaving the row to the sort select, whose longest
+   option does not otherwise fit beside it. */
+.projection-cards-sort .projection-cards-jump {
+  flex: none;
+  width: 7rem;
+}
+
 .projection-cards-sort select {
   flex: 1;
   min-width: 0;
@@ -2003,6 +2015,22 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   align-items: baseline;
   gap: 0.5rem;
   min-width: 0;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+}
+
+.projection-card-team {
+  flex: 1;
+  min-width: 0;
+}
+
+.projection-card-chevron {
+  color: var(--text-muted);
+  font-size: 0.8em;
 }
 
 .projection-card-rank {
@@ -2022,7 +2050,13 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1rem;
+  gap: 0.2rem 1rem;
+}
+
+.projection-card-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
 }
 
 .projection-card-figure dt {
@@ -2040,9 +2074,9 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   color: var(--red);
 }
 
-.projection-card-toggle {
-  align-self: flex-start;
-  font-size: 0.85em;
+/* Stays marked after the jump so the club is still findable once the list is re-sorted. */
+.projection-card-jumped {
+  border-color: var(--cyan);
 }
 
 .projections-table-wrap {
@@ -2475,20 +2509,28 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
     overflow: visible;
   }
 
-  /* Every bar is read against this one scale, so it stays put while the cards move under it.
-     The shadow is a band, not a shade: it fills the panel's own top padding, which cards would
-     otherwise scroll through above the axis. */
-  .projection-cards-axis {
+  /* Every bar is read against this one scale, so it stays put while the cards move under it —
+     and the jump control goes with it, since a way to reach a club is worth most once the list
+     has scrolled. The shadow is a band, not a shade: it fills the panel's own top padding,
+     which cards would otherwise scroll through above the axis. */
+  .projection-cards-controls {
     position: sticky;
     top: 0;
     z-index: 1;
     /* Opaque all the way to the gap below it, and up over the panel's own top padding, so a
-       card passing under the axis is hidden rather than half-drawn either side of it. */
+       card passing under the block is hidden rather than half-drawn either side of it. */
     padding-top: 0.3rem;
     padding-bottom: 0.4rem;
-    margin-bottom: 0;
     background: var(--bg-elevated);
     box-shadow: 0 -0.5rem 0 var(--bg-elevated);
+  }
+
+  .projection-cards-sort {
+    margin-bottom: 0.4rem;
+  }
+
+  .projection-cards-axis {
+    margin-bottom: 0;
   }
 }
 
