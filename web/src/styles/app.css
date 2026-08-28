@@ -2285,14 +2285,27 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   color: var(--text);
 }
 
+/* A button, not a div: the whole bar is the tap target, because at 375px an outcome worth a
+   few percent is a 30px track and its segments are unhittable individually. */
 .outcome-bar-track {
   display: flex;
   height: 2rem;
   min-width: 3px;
+  padding: 0;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: visible;
+  cursor: pointer;
+}
+
+.outcome-bar-track:hover {
+  border-color: var(--text-muted);
+}
+
+.outcome-bar-track:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
 }
 
 .outcome-bar-segment {
@@ -2300,7 +2313,7 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   flex-shrink: 0;
   min-width: 3px;
   height: 100%;
-  cursor: default;
+  cursor: inherit;
   border-right: 2px solid var(--bg-elevated);
   transition: filter 0.15s ease;
 }
@@ -2326,6 +2339,64 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
 .outcome-bar-segment-actual {
   box-shadow: inset 0 0 0 2px var(--segment-actual-ring);
   filter: brightness(1.12);
+}
+
+.outcome-bar-segment-selected {
+  filter: brightness(1.35);
+  z-index: 1;
+}
+
+/* The percentages the old hover-only tooltips carried, opened by tapping the bar. */
+.outcome-bar-breakdown {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.outcome-bar-breakdown th,
+.outcome-bar-breakdown td {
+  padding: 0.3rem 0.5rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.outcome-bar-breakdown th[scope='col'] {
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  /* Four columns share ~340px on a phone; the headings wrap rather than the figures. */
+  white-space: normal;
+}
+
+.outcome-bar-breakdown th:first-child,
+.outcome-bar-breakdown td:first-child {
+  text-align: left;
+}
+
+.outcome-bar-breakdown tbody th {
+  font-weight: 600;
+}
+
+/* The row for the segment that was tapped, in the app's selection colour — `--bg-elevated`
+   is all but invisible against the light theme's white table. */
+.outcome-bar-breakdown tbody tr.selected {
+  background: var(--row-selected-bg);
+}
+
+.outcome-bar-breakdown tbody tr.actual th {
+  color: var(--green);
+}
+
+.outcome-bar-breakdown-flag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .outcome-bar-total {

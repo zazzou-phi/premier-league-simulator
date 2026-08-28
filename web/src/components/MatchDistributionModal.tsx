@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type MouseEvent } from 'react';
 import {
   outcomeFromScoreline,
   rankScorelineCandidates,
@@ -11,6 +11,15 @@ import { Modal } from './Modal.js';
 const TOP_SCORELINES = 3;
 
 type MatchOutcome = 'homeWin' | 'draw' | 'awayWin';
+
+/** Identifies a breakdown row: a scoreline as `home-away`, or the pooled remainder. */
+type ScorelineKey = string;
+
+const OTHER_KEY: ScorelineKey = 'other';
+
+function scorelineKey(scoreline: Pick<ScorelineCount, 'goalsHome' | 'goalsAway'>): ScorelineKey {
+  return `${scoreline.goalsHome}-${scoreline.goalsAway}`;
+}
 
 interface Props {
   match: ResolvedMatch;
@@ -58,6 +67,12 @@ interface OutcomeBarProps {
   candidate: ScorelineCandidate | null;
   /** True when `candidate` is the likeliest scoreline across all three outcomes. */
   best: boolean;
+  /** Whether this outcome's breakdown is the one showing; one opens at a time. */
+  open: boolean;
+  /** Opens this outcome's breakdown, or closes it when `scoreline` is null. */
+  onToggle: (scoreline: ScorelineKey | null) => void;
+  /** Which row of the open breakdown is called out, from the segment that was tapped. */
+  selected: ScorelineKey | null;
 }
 
 function OutcomeBar({
@@ -70,6 +85,9 @@ function OutcomeBar({
   actualScoreline,
   candidate,
   best,
+  open,
+  onToggle,
+  selected,
 }: OutcomeBarProps) {
   const matching = scorelines
     .filter((scoreline) => outcomeFromScoreline(scoreline) === outcome)
@@ -79,6 +97,46 @@ function OutcomeBar({
   const segmentCount = top.length + (otherCount > 0 ? 1 : 0);
 
   if (outcomeTotal === 0 || segmentCount === 0) return null;
+
+  // The track is the button, not the segments inside it. At 375px an outcome worth 4% is a
+  // 30px bar holding four segments — targets too small to hit — so the whole bar takes the
+  // tap and the x-position picks out which segment was under the finger.
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (open) {
+      onToggle(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offset = event.clientX - rect.left;
+    let travelled = 0;
+    for (const scoreline of top) {
+      travelled += (scoreline.n / outcomeTotal) * rect.width;
+      if (offset <= travelled) {
+        onToggle(scorelineKey(scoreline));
+        return;
+      }
+    }
+    onToggle(otherCount > 0 ? OTHER_KEY : (top[0] ? scorelineKey(top[0]) : null));
+  };
+
+  const rows: Array<{ key: ScorelineKey; label: string; n: number; actual: boolean }> = [
+    ...top.map((scoreline) => ({
+      key: scorelineKey(scoreline),
+      label: `${scoreline.goalsHome}–${scoreline.goalsAway}`,
+      n: scoreline.n,
+      actual: actualScoreline != null && sameScoreline(scoreline, actualScoreline),
+    })),
+    ...(otherCount > 0
+      ? [
+          {
+            key: OTHER_KEY,
+            label: `Other (${matching.length - top.length})`,
+            n: otherCount,
+            actual: false,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="outcome-bar">
@@ -96,30 +154,76 @@ function OutcomeBar({
           {outcomeTotal.toLocaleString()} ({formatPct(outcomeTotal, allTotal)})
         </span>
       </div>
-      <div className="outcome-bar-track" style={{ width: `${(outcomeTotal / allTotal) * 100}%` }}>
+      <button
+        type="button"
+        className="outcome-bar-track"
+        style={{ width: `${(outcomeTotal / allTotal) * 100}%` }}
+        aria-expanded={open}
+        aria-label={`${label}: ${formatPct(outcomeTotal, allTotal)} of runs. ${
+          open ? 'Hide' : 'Show'
+        } the scoreline breakdown.`}
+        onClick={handleClick}
+      >
         {top.map((scoreline, index) => {
+          const key = scorelineKey(scoreline);
           const highlighted =
             actualScoreline != null && sameScoreline(scoreline, actualScoreline);
           return (
-            <div
-              key={`${scoreline.goalsHome}-${scoreline.goalsAway}`}
-              className={`outcome-bar-segment${highlighted ? ' outcome-bar-segment-actual' : ''}`}
+            <span
+              key={key}
+              className={`outcome-bar-segment${highlighted ? ' outcome-bar-segment-actual' : ''}${
+                open && selected === key ? ' outcome-bar-segment-selected' : ''
+              }`}
               style={{
                 flexGrow: scoreline.n,
                 backgroundColor: segmentColor(baseColor, index, segmentCount),
               }}
-              title={`${scoreline.goalsHome}–${scoreline.goalsAway}: ${scoreline.n.toLocaleString()} · ${formatPct(scoreline.n, outcomeTotal)} of outcome · ${formatPct(scoreline.n, allTotal)} overall`}
             />
           );
         })}
         {otherCount > 0 && (
-          <div
-            className="outcome-bar-segment"
+          <span
+            className={`outcome-bar-segment${
+              open && selected === OTHER_KEY ? ' outcome-bar-segment-selected' : ''
+            }`}
             style={{ flexGrow: otherCount, backgroundColor: 'var(--border)' }}
-            title={`Other scorelines: ${otherCount.toLocaleString()} · ${formatPct(otherCount, outcomeTotal)} of outcome`}
           />
         )}
-      </div>
+      </button>
+      {open && (
+        <table className="outcome-bar-breakdown">
+          <thead>
+            <tr>
+              <th scope="col">Score</th>
+              <th scope="col">Runs</th>
+              <th scope="col" title={`Share of the seasons ending in ${label}`}>
+                Of outcome
+              </th>
+              <th scope="col" title="Share of every simulated season">
+                Overall
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.key}
+                className={`${row.key === selected ? 'selected' : ''}${
+                  row.actual ? ' actual' : ''
+                }`}
+              >
+                <th scope="row">
+                  {row.label}
+                  {row.actual && <span className="outcome-bar-breakdown-flag"> played</span>}
+                </th>
+                <td>{row.n.toLocaleString()}</td>
+                <td>{formatPct(row.n, outcomeTotal)}</td>
+                <td>{formatPct(row.n, allTotal)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
@@ -133,6 +237,17 @@ export function MatchDistributionModal({
 }: Props) {
   const scorelines = distribution?.scorelines ?? [];
   const total = distribution?.outcomes.total ?? 0;
+
+  // One breakdown at a time: three open at once outgrows a phone screen, and the comparison
+  // that matters — this outcome's scorelines against each other — is within one bar anyway.
+  const [openBar, setOpenBar] = useState<{
+    outcome: MatchOutcome;
+    scoreline: ScorelineKey | null;
+  } | null>(null);
+
+  const toggleBar = (outcome: MatchOutcome) => (scoreline: ScorelineKey | null) => {
+    setOpenBar(scoreline == null ? null : { outcome, scoreline });
+  };
 
   const candidates = useMemo(
     () => (distribution && total > 0 ? rankScorelineCandidates(scorelines) : []),
@@ -206,6 +321,9 @@ export function MatchDistributionModal({
             actualScoreline={actualScoreline}
             candidate={candidateFor('homeWin')}
             best={bestCandidate?.outcome === 'homeWin'}
+            open={openBar?.outcome === 'homeWin'}
+            selected={openBar?.outcome === 'homeWin' ? openBar.scoreline : null}
+            onToggle={toggleBar('homeWin')}
           />
           <OutcomeBar
             label="Draw"
@@ -217,6 +335,9 @@ export function MatchDistributionModal({
             actualScoreline={actualScoreline}
             candidate={candidateFor('draw')}
             best={bestCandidate?.outcome === 'draw'}
+            open={openBar?.outcome === 'draw'}
+            selected={openBar?.outcome === 'draw' ? openBar.scoreline : null}
+            onToggle={toggleBar('draw')}
           />
           <OutcomeBar
             label={`${match.teamAway.name} win`}
@@ -228,11 +349,14 @@ export function MatchDistributionModal({
             actualScoreline={actualScoreline}
             candidate={candidateFor('awayWin')}
             best={bestCandidate?.outcome === 'awayWin'}
+            open={openBar?.outcome === 'awayWin'}
+            selected={openBar?.outcome === 'awayWin' ? openBar.scoreline : null}
+            onToggle={toggleBar('awayWin')}
           />
           <p className="muted outcome-bar-total">
             Top {TOP_SCORELINES} scorelines plus the remainder per outcome ·{' '}
-            {total.toLocaleString()} simulated season{total === 1 ? '' : 's'} · hover a section
-            for details
+            {total.toLocaleString()} simulated season{total === 1 ? '' : 's'} · tap a bar for its
+            scoreline percentages
           </p>
         </div>
       ) : (
