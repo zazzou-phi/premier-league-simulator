@@ -1,7 +1,12 @@
 import type { MatchDistribution } from '@shared/simulation/monteCarlo.js';
 import type { ActualMatchResult, Fixture, SeasonState, Team } from '@shared/engine/types.js';
 import type { TeamEloSnapshot } from '../types.js';
-import type { ProjectionsResponse, PublicBootstrap, PublicMeta } from '../types.js';
+import type {
+  MatchdayProjection,
+  ProjectionsResponse,
+  PublicBootstrap,
+  PublicMeta,
+} from '../types.js';
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data`;
 
@@ -52,6 +57,11 @@ export const staticApi = {
   listFixtures: async (): Promise<Fixture[]> => (await loadBootstrap()).fixtures,
 
   getSeasonState: (): Promise<SeasonState> => loadJson<SeasonState>('league-state.json'),
+
+  // Snapshots exported before matchdays could carry their own projection have no such field;
+  // an empty list reads as "the whole season came from one batch", which is what they are.
+  listMatchdayProjections: async (): Promise<MatchdayProjection[]> =>
+    (await loadPublicMeta()).matchdays ?? [],
 
   getProjections: (): Promise<ProjectionsResponse> =>
     loadJson<ProjectionsResponse>('projections.json'),

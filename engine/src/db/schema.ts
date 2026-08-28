@@ -216,3 +216,18 @@ export const predictionActiveSample = sqliteTable('prediction_active_sample', {
     .references(() => predictions.id),
   sampleIndex: integer('sample_index').notNull(),
 });
+
+/**
+ * Which projection a matchday is read through.
+ *
+ * Only deliberate pins live here. An unpinned matchday resolves to the newest batch that
+ * actually forecast it, so the round a batch was handed keeps the picks of the batch that
+ * faced it blind rather than losing them to whichever batch ran last.
+ */
+export const matchdayProjections = sqliteTable('matchday_projections', {
+  matchday: integer('matchday').primaryKey(),
+  predictionId: integer('prediction_id')
+    .notNull()
+    .references(() => predictions.id),
+  updatedAt: text('updated_at').notNull(),
+});

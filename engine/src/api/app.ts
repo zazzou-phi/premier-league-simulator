@@ -401,6 +401,37 @@ export function createApiApp(repo: Repository): Hono {
     return c.json(repo.buildPredictionState(id));
   });
 
+  // --------------------------------------------------- matchday projections
+
+  /**
+   * The season composed the way the app reads it: every matchday through the projection
+   * attached to it, so a round already played keeps the picks of the batch that faced it.
+   */
+  app.get('/api/v1/season/state', (c) => c.json(repo.buildAssignedSeasonState()));
+
+  app.get('/api/v1/matchday-projections', (c) => c.json(repo.resolveMatchdayProjections()));
+
+  app.get('/api/v1/matchday-projections/:matchday', (c) => {
+    const matchday = intParam(c.req.param('matchday'), 'matchday');
+    return c.json({
+      current: repo.getMatchdayProjection(matchday),
+      candidates: repo.listMatchdayProjectionCandidates(matchday),
+    });
+  });
+
+  app.put('/api/v1/matchday-projections/:matchday', async (c) => {
+    const matchday = intParam(c.req.param('matchday'), 'matchday');
+    const body = await c.req.json<{ predictionId?: number }>();
+    if (!Number.isInteger(body.predictionId)) {
+      throw new ApiError('predictionId must be an integer', 400);
+    }
+    return c.json(repo.pinMatchdayProjection(matchday, body.predictionId!));
+  });
+
+  app.delete('/api/v1/matchday-projections/:matchday', (c) =>
+    c.json(repo.clearMatchdayProjection(intParam(c.req.param('matchday'), 'matchday'))),
+  );
+
   // -------------------------------------------------------------- fixtures
 
   /**

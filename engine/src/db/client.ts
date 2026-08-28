@@ -149,6 +149,12 @@ export function initSchema(sqlite: Database.Database): void {
       prediction_id INTEGER PRIMARY KEY REFERENCES predictions(id),
       sample_index INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS matchday_projections (
+      matchday INTEGER PRIMARY KEY,
+      prediction_id INTEGER NOT NULL REFERENCES predictions(id),
+      updated_at TEXT NOT NULL
+    );
   `);
 
   migrateDropTeamRatingColumns(sqlite);

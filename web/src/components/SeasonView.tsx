@@ -15,8 +15,10 @@ import {
   playedMatchesFor,
   playedThroughMatchday,
 } from '../lib/matchdayCutoff.js';
+import { projectionsByMatchday } from '../lib/matchdayProjections.js';
 import { PICK_STRATEGY_HINT, PICK_STRATEGY_OPTIONS } from '../lib/pickStrategy.js';
 import type { PickStrategy } from '../lib/pickStrategy.js';
+import type { MatchdayProjection } from '../types.js';
 import { FixtureList } from './FixtureList.js';
 import { LeagueTable } from './LeagueTable.js';
 import { MatchdayCutoffControl } from './MatchdayCutoffControl.js';
@@ -26,8 +28,13 @@ interface Props {
   teams: Team[];
   fixtures: Fixture[];
   actualResults: ActualMatchResult[];
-  /** The batch's representative season: real results, with a picked scoreline for the rest. */
+  /**
+   * The representative season: real results, with a picked scoreline for the rest — each round
+   * picked by whichever batch {@link matchdayProjections} attaches to it.
+   */
   picksState: SeasonState | null;
+  /** Which projection each matchday is read through. */
+  matchdayProjections: MatchdayProjection[];
   picksError: string | null;
   loading?: boolean;
   runs: number;
@@ -45,7 +52,10 @@ interface Props {
   cutoffChoice: number | null;
   onCutoffChange: (matchday: number) => void;
   onSelectMatch: (matchNumber: number | null) => void;
-  onOpenMatch: (matchNumber: number) => void;
+  /** Absent until a projection exists, since there is no distribution to open without one. */
+  onOpenMatch?: (matchNumber: number) => void;
+  /** Absent in public mode, where the snapshot fixes what each matchday was published with. */
+  onOpenMatchdayProjection?: (matchday: number) => void;
 }
 
 /**
@@ -61,6 +71,7 @@ export function SeasonView({
   fixtures,
   actualResults,
   picksState,
+  matchdayProjections,
   picksError,
   loading = false,
   runs,
@@ -73,10 +84,16 @@ export function SeasonView({
   onCutoffChange,
   onSelectMatch,
   onOpenMatch,
+  onOpenMatchdayProjection,
 }: Props) {
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
+
+  const projectionByMatchday = useMemo(
+    () => projectionsByMatchday(matchdayProjections),
+    [matchdayProjections],
+  );
 
   const resultsByMatch = useMemo(
     () => new Map(actualResults.map((result) => [result.matchNumber, result])),
@@ -244,6 +261,8 @@ export function SeasonView({
           emptyMessage="No fixtures available."
           onSelect={onSelectMatch}
           onOpenMatch={picksState ? onOpenMatch : undefined}
+          projectionByMatchday={projectionByMatchday}
+          onOpenMatchdayProjection={onOpenMatchdayProjection}
           onClearFilter={() => setSelectedTeamId(null)}
         />
       }

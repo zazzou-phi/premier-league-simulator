@@ -87,6 +87,7 @@ Defined in `engine/src/db/schema.ts` (Drizzle) with DDL also applied in `client.
 | `prediction_team_stats` | Summed points / GF / GA / position |
 | `prediction_sampled_seasons` | Reservoir seasons |
 | `prediction_active_sample` | Active reservoir index for `sample` mode |
+| `matchday_projections` | Matchdays pinned to a batch by hand; unpinned rounds resolve by rule |
 
 Migrations may drop legacy attack/defence columns, rename `consensus_mode` to `pick_strategy`, remap old strategy names
 (`floor` / `rounded` → `scoreline`), and add the prediction provenance columns
@@ -137,6 +138,21 @@ Each point is computed cumulatively from `teams.anchor_elo` rather than by carry
 total forward, so the last one is by construction identical to the live rating. Re-running
 overwrites the rows it wrote before, so it is safe at any time. `--dry-run` reports the points
 it would write without touching anything.
+
+## Matchday projections
+
+Each matchday is read through one projection: the batch that supplies its picked scorelines and
+the spread behind them. Only deliberate pins are stored, in `matchday_projections`; every other
+round resolves at read time to **the newest batch that actually forecast it** — not simply the
+newest batch, which for a round already played was handed the result and kept no pick of its own
+(see `prediction_locked_matches` below).
+
+That default is what keeps a finished round showing the odds it was up against while the rounds
+ahead move to the latest run. `resolveMatchdayProjections` returns the resolved attachment for
+every matchday, flagged `pinned` and `forecast`; `buildAssignedSeasonState` and
+`getAssignedDistributions` compose the season and its spreads from those attachments, and are
+what the app, the API (`/api/v1/season/state`) and the public export all read. Deleting a batch
+releases every pin on it.
 
 ## Prediction provenance
 

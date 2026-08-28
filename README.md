@@ -257,8 +257,14 @@ the same matchday cutoff to read the table at any point of the season. Earlier e
 every round past the next one to be played; that guarded against giving a future away to someone
 reading along, and this is a general-interest site with no such someone.
 
+It also carries what each matchday was read through: the weekly loop runs a batch a round, and
+a batch is handed the results that landed before it rather than forecasting them, so every round
+keeps the picks of the batch that faced it blind. Press a `Matchday n` header in the private app
+to read a round through a different batch and see what an earlier one made of it; whatever is
+attached when the export runs is what goes out.
+
 The public build still has no API, so it omits what needs one: Monte Carlo, `Run Week`, the
-pick-strategy switch and the accuracy trend.
+pick-strategy switch, the matchday projection picker and the accuracy trend.
 
 `distributions.json` carries the outcome and scoreline spread behind all 380 fixtures, which is
 what makes the per-fixture distribution modal work on the public site. It is ~1.7 MB on disk

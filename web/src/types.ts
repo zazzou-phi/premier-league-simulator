@@ -1,5 +1,9 @@
 import type { AccuracyReport } from '@shared/engine/accuracy.js';
-import type { AccuracyHistoryPoint, TeamEloSnapshot } from '@shared/db/repository.js';
+import type {
+  AccuracyHistoryPoint,
+  MatchdayProjection,
+  TeamEloSnapshot,
+} from '@shared/db/repository.js';
 import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { TeamSeasonProjection } from '@shared/simulation/monteCarlo.js';
 
@@ -17,7 +21,7 @@ export type {
   WeekStepResult,
   WeekStepResultEvent,
 } from '@shared/season/weekRun.js';
-export type { AccuracyHistoryPoint, TeamEloSnapshot };
+export type { AccuracyHistoryPoint, MatchdayProjection, TeamEloSnapshot };
 
 export interface ApiErrorBody {
   error: string;
@@ -64,6 +68,13 @@ export interface ListPage<T> {
 }
 
 export type PredictionListPage = ListPage<Prediction>;
+
+/** What a matchday could be read through, and what it currently is. */
+export interface MatchdayProjectionOptions {
+  current: MatchdayProjection;
+  /** Every batch, newest first. `forecast` is false where it was handed the round's results. */
+  candidates: Array<Prediction & { forecast: boolean }>;
+}
 
 export interface MonteCarloRunResult {
   predictionId: number;

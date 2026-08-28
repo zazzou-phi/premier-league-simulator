@@ -43,6 +43,12 @@ function seasonHelp(publicMode: boolean): ViewHelp {
       ),
     },
     {
+      title: 'Which projection a matchday reads',
+      paragraphs: [
+        'Each round is read through one Monte Carlo batch, named in its Matchday header. A batch run after a round was played was handed those results rather than forecasting them, so an unpinned round falls back to the last batch that faced it blind — which is how a settled week keeps the pick it was up against.',
+      ],
+    },
+    {
       title: 'Table zones',
       paragraphs: [
         'Position 1 takes the title, 2–4 join the champion in the Champions League, 5 goes to the Europa League, and 18–20 are relegated. Draws stand — there are no shoot-outs.',
@@ -57,6 +63,7 @@ function seasonHelp(publicMode: boolean): ViewHelp {
 
   if (!publicMode) {
     howToBullets.push(
+      'Press a Matchday header to read that round through a different projection, and compare what an earlier batch made of it.',
       'Run Monte Carlo to play thousands of seasons and build or refresh a projection.',
       'Manage Projections renames or deletes saved Monte Carlo batches.',
     );
