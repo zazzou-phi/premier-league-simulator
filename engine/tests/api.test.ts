@@ -32,6 +32,10 @@ function put(path: string, body: unknown): Promise<Response> {
   });
 }
 
+function del(path: string): Promise<Response> {
+  return app.request(path, { method: 'DELETE' });
+}
+
 describe('health and reference data', () => {
   it('reports healthy', async () => {
     const res = await json('/health');
@@ -463,6 +467,81 @@ describe('week loop', () => {
     const res = await post('/api/v1/week', { skipRatings: true, skipExport: true, runs: 10 });
     expect(res.status).toBe(502);
     expect(await res.json()).toMatchObject({ code: 'REMOTE_UNREACHABLE' });
+  });
+});
+
+describe('matchday projections', () => {
+  /** Project blind, play matchday 1, project again — one turn of the weekly loop. */
+  async function playFirstMatchday(): Promise<{ blind: number; informed: number }> {
+    const blind = (await (await post('/api/v1/simulate/monte-carlo', { runs: 15 })).json())
+      .predictionId as number;
+    for (const fixture of repo.getFixtures().filter((f) => f.matchday === 1)) {
+      repo.setActualResult(fixture.matchNumber, 2, 1);
+    }
+    const informed = (await (await post('/api/v1/simulate/monte-carlo', { runs: 15 })).json())
+      .predictionId as number;
+    return { blind, informed };
+  }
+
+  it('attaches each matchday to the last batch that forecast it', async () => {
+    const { blind, informed } = await playFirstMatchday();
+
+    const resolved = (await (await json('/api/v1/matchday-projections')).json()) as Array<{
+      matchday: number;
+      predictionId: number;
+    }>;
+    expect(resolved).toHaveLength(38);
+    expect(resolved.find((entry) => entry.matchday === 1)?.predictionId).toBe(blind);
+    expect(resolved.find((entry) => entry.matchday === 2)?.predictionId).toBe(informed);
+  });
+
+  it('offers the candidates for one matchday, flagged by whether they forecast it', async () => {
+    const { blind, informed } = await playFirstMatchday();
+
+    const body = (await (await json('/api/v1/matchday-projections/1')).json()) as {
+      current: { predictionId: number };
+      candidates: Array<{ id: number; forecast: boolean }>;
+    };
+    expect(body.current.predictionId).toBe(blind);
+    expect(body.candidates.find((item) => item.id === blind)?.forecast).toBe(true);
+    expect(body.candidates.find((item) => item.id === informed)?.forecast).toBe(false);
+  });
+
+  it('pins a matchday to a batch and releases it again', async () => {
+    const { blind, informed } = await playFirstMatchday();
+
+    const pinned = await (await put('/api/v1/matchday-projections/1', {
+      predictionId: informed,
+    })).json();
+    expect(pinned).toMatchObject({ matchday: 1, predictionId: informed, pinned: true });
+
+    const cleared = await (await del('/api/v1/matchday-projections/1')).json();
+    expect(cleared).toMatchObject({ matchday: 1, predictionId: blind, pinned: false });
+  });
+
+  it('validates the pin', async () => {
+    await playFirstMatchday();
+    expect((await put('/api/v1/matchday-projections/1', {})).status).toBe(400);
+    expect((await put('/api/v1/matchday-projections/99', { predictionId: 1 })).status).toBe(404);
+    expect((await put('/api/v1/matchday-projections/1', { predictionId: 9999 })).status).toBe(404);
+  });
+
+  it('composes the season from whatever each matchday is attached to', async () => {
+    const { blind } = await playFirstMatchday();
+
+    const state = (await (await json('/api/v1/season/state')).json()) as SeasonState;
+    const matchday1 = state.matches.filter((match) => match.fixture.matchday === 1);
+    expect(matchday1).toHaveLength(10);
+    // Read through the newest batch alone these would have no pick: it was handed them.
+    expect(matchday1.every((match) => match.locked && match.pick != null)).toBe(true);
+
+    const flattened = (await (
+      await json(`/api/v1/predictions/${blind}/state`)
+    ).json()) as SeasonState;
+    const picks = new Map(flattened.matches.map((m) => [m.fixture.matchNumber, m.pick]));
+    for (const match of matchday1) {
+      expect(match.pick).toEqual(picks.get(match.fixture.matchNumber));
+    }
   });
 });
 

@@ -1,6 +1,11 @@
 import type { ActualMatchResult, Fixture, SeasonState, Team } from '../engine/types.js';
 import type { MatchDistribution, TeamSeasonProjection } from '../simulation/monteCarlo.js';
-import type { Prediction, Repository, TeamEloSnapshot } from '../db/repository.js';
+import type {
+  MatchdayProjection,
+  Prediction,
+  Repository,
+  TeamEloSnapshot,
+} from '../db/repository.js';
 
 /**
  * What the published snapshot is willing to show: all of it. The site is general interest, not
@@ -20,6 +25,11 @@ export interface PublicMeta {
   /** Lowest matchday still unplayed when the published batch ran. */
   asOfMatchday: number | null;
   runs: number;
+  /**
+   * Which projection each matchday was published through — the same attachment the private app
+   * reads. Absent from snapshots exported before matchdays could carry their own projection.
+   */
+  matchdays: MatchdayProjection[];
 }
 
 export interface PublicBootstrap {
@@ -46,15 +56,16 @@ export interface PublicSnapshot {
 export function buildPublicSnapshot(repo: Repository, exportedAt = new Date()): PublicSnapshot {
   const prediction: Prediction | null = repo.getActivePrediction();
 
-  const leagueState = prediction ? repo.buildPredictionState(prediction.id) : null;
+  // The season goes out as the private app reads it: every matchday through the projection
+  // attached to it, not the newest batch flattened over the whole calendar. The season-wide
+  // finishing odds stay with the active batch, which is the only one that projects a table.
+  const matchdays = repo.resolveMatchdayProjections();
+  const leagueState = prediction ? repo.buildAssignedSeasonState() : null;
   const projections = prediction ? repo.getPredictionProjections(prediction.id) : null;
 
-  // Every match, in fixture order: the spread behind a pick is exactly as public as the pick.
-  const distributions = prediction
-    ? [...repo.getPredictionDistributions(prediction.id).values()].sort(
-        (a, b) => a.matchNumber - b.matchNumber,
-      )
-    : [];
+  // Every match, in fixture order: the spread behind a pick is exactly as public as the pick,
+  // and it comes from whichever batch supplied that pick.
+  const distributions = prediction ? repo.getAssignedDistributions() : [];
 
   return {
     meta: {
@@ -64,6 +75,7 @@ export function buildPublicSnapshot(repo: Repository, exportedAt = new Date()): 
       predictionName: prediction?.name ?? null,
       asOfMatchday: prediction?.asOfMatchday ?? null,
       runs: prediction?.runs ?? 0,
+      matchdays,
     },
     bootstrap: {
       teams: repo.getTeams(),

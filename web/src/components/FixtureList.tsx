@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ResolvedMatch } from '@shared/engine/types.js';
 import { matchWinnerSide } from '../lib/matchFilters.js';
+import type { MatchdayProjection } from '../types.js';
 import { FixturePrefix } from './FixturePrefix.js';
 import { ScoreDisplay } from './ScoreEditor.js';
 import { TeamBadge } from './TeamBadge.js';
@@ -15,6 +16,10 @@ interface Props {
   onSelect: (matchNumber: number | null) => void;
   /** Opens the Monte Carlo distribution for a fixture. Absent in the actual-results record. */
   onOpenMatch?: (matchNumber: number) => void;
+  /** Which projection each matchday is read through, keyed by matchday. */
+  projectionByMatchday?: Map<number, MatchdayProjection>;
+  /** Opens the projection picker for a matchday. Absent in public mode, which cannot move one. */
+  onOpenMatchdayProjection?: (matchday: number) => void;
   onClearFilter?: () => void;
 }
 
@@ -53,6 +58,8 @@ export function FixtureList({
   emptyMessage = 'No fixtures to show.',
   onSelect,
   onOpenMatch,
+  projectionByMatchday,
+  onOpenMatchdayProjection,
   onClearFilter,
 }: Props) {
   const groups = useMemo(() => groupByMatchday(matches), [matches]);
@@ -183,6 +190,26 @@ export function FixtureList({
             (match) => match.result.status === 'played',
           ).length;
 
+          const projection = projectionByMatchday?.get(group.matchday) ?? null;
+          // The round is the click target for choosing its projection, so the label that says
+          // which one it is sits inside the button rather than beside it.
+          const label = (
+            <>
+              <span>Matchday {group.matchday}</span>
+              {projection?.name && (
+                <span className="matchday-header-projection">
+                  {projection.pinned && <span aria-hidden="true">📌 </span>}
+                  {projection.name}
+                </span>
+              )}
+            </>
+          );
+          const projectionTitle = projection?.name
+            ? projection.pinned
+              ? `Matchday ${group.matchday} is pinned to "${projection.name}"`
+              : `Matchday ${group.matchday} is read through "${projection.name}", the last batch that forecast it`
+            : `No projection covers matchday ${group.matchday}`;
+
           return (
             <div key={group.matchday}>
               <div
@@ -192,7 +219,20 @@ export function FixtureList({
                   else headerRefs.current.delete(group.matchday);
                 }}
               >
-                <span>Matchday {group.matchday}</span>
+                {onOpenMatchdayProjection ? (
+                  <button
+                    type="button"
+                    className="matchday-header-pick"
+                    title={`${projectionTitle}. Choose another.`}
+                    onClick={() => onOpenMatchdayProjection(group.matchday)}
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  <span className="matchday-header-pick" title={projectionTitle}>
+                    {label}
+                  </span>
+                )}
                 <span className="matchday-header-meta">
                   {playedInGroup}/{group.matches.length}
                 </span>

@@ -9,6 +9,8 @@ import { staticApi } from './staticClient.js';
 import { ApiRequestError } from '../types.js';
 import type {
   ApiErrorBody,
+  MatchdayProjection,
+  MatchdayProjectionOptions,
   MonteCarloRunResult,
   Prediction,
   PredictionAccuracy,
@@ -68,11 +70,20 @@ export interface LeagueApi {
   runWeek(options?: WeekRunOptions): Promise<WeekRunResult>;
   syncFixtures(dryRun?: boolean): Promise<SyncFixturesResult>;
 
+  /**
+   * The season as the app reads it: every matchday through the projection attached to it,
+   * rather than the newest batch flattened over rounds it was handed rather than forecast.
+   */
+  getSeasonState(): Promise<SeasonState>;
+  listMatchdayProjections(): Promise<MatchdayProjection[]>;
+  getMatchdayProjectionOptions(matchday: number): Promise<MatchdayProjectionOptions>;
+  pinMatchdayProjection(matchday: number, predictionId: number): Promise<MatchdayProjection>;
+  clearMatchdayProjection(matchday: number): Promise<MatchdayProjection>;
+
   listPredictions(page?: number, pageSize?: number): Promise<PredictionListPage>;
   renamePrediction(id: number, name: string): Promise<Prediction>;
   setPredictionPickStrategy(id: number, pickStrategy: PickStrategy): Promise<Prediction>;
   deletePrediction(id: number): Promise<void>;
-  getPredictionState(id: number): Promise<SeasonState>;
   getPredictionProjections(id: number): Promise<ProjectionsResponse>;
   getPredictionAccuracy(id: number): Promise<PredictionAccuracy>;
   getAccuracyHistory(): Promise<AccuracyHistoryPoint[]>;
@@ -262,6 +273,22 @@ const privateApi: LeagueApi = {
     return result;
   },
 
+  getSeasonState: () => request<SeasonState>('/api/v1/season/state'),
+
+  listMatchdayProjections: () => request<MatchdayProjection[]>('/api/v1/matchday-projections'),
+
+  getMatchdayProjectionOptions: (matchday) =>
+    request<MatchdayProjectionOptions>(`/api/v1/matchday-projections/${matchday}`),
+
+  pinMatchdayProjection: (matchday, predictionId) =>
+    request<MatchdayProjection>(`/api/v1/matchday-projections/${matchday}`, {
+      method: 'PUT',
+      body: JSON.stringify({ predictionId }),
+    }),
+
+  clearMatchdayProjection: (matchday) =>
+    request<MatchdayProjection>(`/api/v1/matchday-projections/${matchday}`, { method: 'DELETE' }),
+
   listPredictions: (page = 1, pageSize = 50) =>
     request<PredictionListPage>(`/api/v1/predictions?page=${page}&pageSize=${pageSize}`),
 
@@ -279,8 +306,6 @@ const privateApi: LeagueApi = {
 
 
   deletePrediction: (id) => request<void>(`/api/v1/predictions/${id}`, { method: 'DELETE' }),
-
-  getPredictionState: (id) => request<SeasonState>(`/api/v1/predictions/${id}/state`),
 
   getPredictionProjections: (id) =>
     request<ProjectionsResponse>(`/api/v1/predictions/${id}/projections`),
@@ -327,11 +352,18 @@ const publicApi: LeagueApi = {
   runWeek: async () => unavailable(),
   syncFixtures: async () => unavailable(),
 
+  getSeasonState: () => staticApi.getSeasonState(),
+  // The snapshot publishes what each matchday was attached to, but only the private app can
+  // move one: a static site has one export's worth of picks and no batches to choose between.
+  listMatchdayProjections: () => staticApi.listMatchdayProjections(),
+  getMatchdayProjectionOptions: async () => unavailable(),
+  pinMatchdayProjection: async () => unavailable(),
+  clearMatchdayProjection: async () => unavailable(),
+
   listPredictions: async () => ({ items: [], total: 0 }),
   renamePrediction: async () => unavailable(),
   setPredictionPickStrategy: async () => unavailable(),
   deletePrediction: async () => unavailable(),
-  getPredictionState: async () => staticApi.getSeasonState(),
   getPredictionProjections: async () => staticApi.getProjections(),
   getPredictionAccuracy: async () => unavailable(),
   // Grading needs the provenance of what was locked when each batch ran, and a trend needs

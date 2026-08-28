@@ -30,10 +30,21 @@ rows already carry.
 ### Season
 
 - League table + fixture list over one merged season (`SeasonView`, `SeasonLayout`, `LeagueTable`,
-  `FixtureList`). The matches come from the active prediction's state, which is already the merge:
-  a recorded result where one exists (`locked`), the batch's picked scoreline everywhere else.
+  `FixtureList`). The matches come from `/api/v1/season/state`, which is already the merge:
+  a recorded result where one exists (`locked`), a picked scoreline everywhere else.
   Without a projection the view falls back to fixtures + `bootstrap.actualResults` and is the
   read-only record of played matches.
+- **Each matchday is read through its own projection.** Pressing the `Matchday n` header opens
+  `MatchdayProjectionModal`, which lists every batch — flagged where it was handed that round's
+  results rather than forecasting them — plus an `Auto` row that returns the round to the default
+  rule (the newest batch that forecast it). The header carries the attached batch's name, and a
+  pin marker where the choice was made by hand. This is why a settled round still shows a pick
+  beside its result: the newest batch has no forecast for a week it was handed, so reading the
+  whole season through it lost every pick the season had already settled. The pick's distribution
+  comes from the same batch, so the two can never contradict each other.
+- The pick-strategy switch moves the rule on **every** batch the season is read through, not just
+  the active one: the view composes several at once, and one rule per matchday is not a season
+  anyone picked.
 - **Matchday cutoff** (`MatchdayCutoffControl`, `lib/matchdayCutoff.ts`): the season is read as of
   a matchday. Every fixture up to it counts towards the table, everything after it is blanked in
   both panels — one rule, so the table and the fixture list cannot disagree about which matches
@@ -71,6 +82,8 @@ rows already carry.
   leading, set from the table's own title row (`LeagueTable`'s `titleActions` slot), not from a
   header menu. The per-strategy descriptions (`PICK_STRATEGY_DESCRIPTIONS`) live in the help modal
   rather than under the buttons, so switching between them is not a wall of prose.
+- Public mode shows what each matchday was published through (`meta.matchdays`) but cannot move
+  it: a snapshot carries one export's worth of picks and no batches to choose between.
 - Prediction manager: list / switch / rename / delete, plus **Accuracy** — grades the
   selected projection against results recorded since it ran (`PredictionAccuracy.tsx`).
   Rows show `from MD<n>` when the batch carries provenance. Public mode never reaches it:

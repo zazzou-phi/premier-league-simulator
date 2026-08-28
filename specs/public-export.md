@@ -7,7 +7,8 @@ Default output directory: `web/public/data/` (override with `--out`). DB via `--
 ## Reveal policy
 
 `REVEAL_POLICY = 'full'` (`engine/src/export/publicSnapshot.ts`). The snapshot is the private
-app's state verbatim: `buildPredictionState` for the active prediction, unmodified.
+app's state verbatim: `buildAssignedSeasonState`, unmodified — every matchday through the
+projection attached to it, which is what the private app reads too.
 
 The export used to blank every round past the next one to be played, and to recompute the
 published table from locked or kicked-off matches only. That was protection against giving a
@@ -23,11 +24,25 @@ whichever matchday the reader has the Season view's cutoff set to (see [web.md](
 `eloHistory` is exported unredacted: dated snapshots are a record of past ratings, not a
 future prediction.
 
+## Matchday projections
+
+`meta.matchdays` publishes what each round was exported through: the batch that supplied its
+picks and the spread behind them, flagged `pinned` and `forecast`. Composing rather than
+flattening is what puts a settled round's picks in the snapshot at all — the newest batch was
+handed those results and kept no forecast of its own, so exporting the whole season through it
+published a run of results with nothing to compare them to.
+
+The public site reads the attachments but cannot move one: a static snapshot carries one
+export's worth of picks and no batches to choose between. A snapshot exported before this field
+existed has no `matchdays`, and the client reads that as "one batch for the whole season" and
+falls back to `meta.predictionId`.
+
 ## Per-fixture distributions
 
 `distributions.json` carries the outcome and scoreline spread behind **every** fixture, ordered
-by match number — the spread behind a published pick tells a reader nothing the pick did not
-already. The public client loads the file once and serves `getMatchDistribution` from it, so the
+by match number, each taken from the batch its matchday is attached to — so a published spread
+can never contradict the pick above it. The spread behind a published pick tells a reader
+nothing the pick did not already. The public client loads the file once and serves `getMatchDistribution` from it, so the
 distribution modal works on the static site.
 
 Size: ~54 scorelines per match, so a full season is ~1.7 MB on disk and ~90 KB gzipped over the
@@ -43,16 +58,17 @@ carries, so `getAccuracyHistory` still returns an empty series there.
 
 | File | Content |
 |------|---------|
-| `meta.json` | `exportedAt`, `revealPolicy: "full"`, active `predictionId` / `predictionName`, `asOfMatchday`, `runs` |
+| `meta.json` | `exportedAt`, `revealPolicy: "full"`, active `predictionId` / `predictionName`, `asOfMatchday`, `runs`, `matchdays` |
 | `bootstrap.json` | `teams`, `fixtures`, `actualResults`, `eloHistory` |
-| `league-state.json` | The picked `SeasonState` as the private app builds it, or `null` if no prediction |
+| `league-state.json` | The composed `SeasonState` as the private app builds it, or `null` if no prediction |
 | `projections.json` | `{ runs, teams }` or `null` |
-| `distributions.json` | `MatchDistribution[]`, one per fixture in match order (`[]` with no prediction) |
+| `distributions.json` | `MatchDistribution[]`, one per fixture in match order, from that fixture's matchday's batch (`[]` with no prediction) |
 
 The actuals-only table is deliberately not exported: the web client derives it from
 `bootstrap.actualResults` with the same engine code, and no client ever fetched the file.
 
-Active prediction = most recently updated prediction.
+Active prediction = most recently created prediction. It still names the snapshot and supplies
+`projections.json`, the season-wide finishing odds, which only one batch can project.
 
 ## Public build pipeline
 

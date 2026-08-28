@@ -1071,6 +1071,53 @@ select:focus-visible,
   font-weight: 400;
 }
 
+/* Choosing a round's projection is a button, not a row click: the header is where a reader
+   already looks to see which round they are in, so it is where they change what reads it. */
+.matchday-header-pick {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+span.matchday-header-pick {
+  cursor: default;
+}
+
+.matchday-header-projection {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+button.matchday-header-pick:hover .matchday-header-projection,
+button.matchday-header-pick:focus-visible .matchday-header-projection {
+  color: var(--cyan);
+  text-decoration: underline;
+}
+
+/* Releasing a round back to the default rule is the opposite of picking a batch, so it reads
+   as one row rather than as another batch in the list. */
+.matchday-projection-auto {
+  border-bottom: 1px solid var(--border);
+  font-style: italic;
+}
+
+.matchday-projection-blind {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .fixture-row {
   display: grid;
   grid-template-columns: 6.75rem minmax(0, 1fr) auto minmax(0, 1fr);

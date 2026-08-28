@@ -72,6 +72,23 @@ export interface AccuracyHistoryPoint {
   scorelineHitRate: number;
 }
 
+/**
+ * The projection one matchday is read through, once the pins and the default rule have been
+ * resolved. `predictionId` is null only when no batch has ever been run.
+ */
+export interface MatchdayProjection {
+  matchday: number;
+  predictionId: number | null;
+  name: string | null;
+  runs: number;
+  /** Lowest matchday still unplayed when that batch ran. */
+  asOfMatchday: number | null;
+  /** True when this matchday was pinned to the batch rather than resolved by the default rule. */
+  pinned: boolean;
+  /** True when the batch forecast this round blind rather than being handed its results. */
+  forecast: boolean;
+}
+
 export interface TeamEloSnapshot {
   teamId: number;
   asOf: string;
@@ -589,6 +606,11 @@ export class Repository {
 
   deletePrediction(id: number): void {
     this.db.transaction((tx) => {
+      // Pins first: a matchday pinned to this batch has to release it before the row it
+      // references can go, and it falls back to the default rule from here.
+      tx.delete(schema.matchdayProjections)
+        .where(eq(schema.matchdayProjections.predictionId, id))
+        .run();
       for (const table of [
         schema.predictionSampledSeasons,
         schema.predictionActiveSample,
@@ -1008,6 +1030,195 @@ export class Repository {
     });
 
     return finalizeSeasonState(predictionId, teams, matches);
+  }
+
+  // ---------------------------------------------------- matchday projections
+
+  /** Every matchday in the calendar, ascending. */
+  private getMatchdays(fixtures = this.getFixtures()): number[] {
+    return [...new Set(fixtures.map((fixture) => fixture.matchday))].sort((a, b) => a - b);
+  }
+
+  /**
+   * The matchdays a batch forecast blind: those holding at least one fixture it was not
+   * handed the result of. A batch run after a round was played only replays that round, so it
+   * has nothing to say about it.
+   */
+  private forecastMatchdaysFor(predictionId: number, fixtures: Fixture[]): Set<number> {
+    const banked = this.getPredictionLockedMatches(predictionId);
+    const forecast = new Set<number>();
+    for (const fixture of fixtures) {
+      if (!banked.has(fixture.matchNumber)) forecast.add(fixture.matchday);
+    }
+    return forecast;
+  }
+
+  /** Matchdays pinned to a batch by hand, keyed by matchday. */
+  getPinnedMatchdayProjections(): Map<number, number> {
+    const rows = this.db.select().from(schema.matchdayProjections).all();
+    return new Map(rows.map((row) => [row.matchday, row.predictionId]));
+  }
+
+  /**
+   * Which projection each matchday is read through.
+   *
+   * A pin wins. Otherwise the newest batch that actually forecast the round does — not simply
+   * the newest batch, which for a round already played was handed the result and kept no pick
+   * of its own. That is what lets a finished matchday keep showing the odds it was faced with
+   * while the rounds ahead move to the latest run.
+   */
+  resolveMatchdayProjections(): MatchdayProjection[] {
+    const fixtures = this.getFixtures();
+    const pinned = this.getPinnedMatchdayProjections();
+    // Newest first, which is the order the default rule reads them in.
+    const predictions = this.listPredictions(1, 1000).items;
+    const byId = new Map(predictions.map((prediction) => [prediction.id, prediction]));
+    const forecastBy = new Map(
+      predictions.map((prediction) => [
+        prediction.id,
+        this.forecastMatchdaysFor(prediction.id, fixtures),
+      ]),
+    );
+
+    return this.getMatchdays(fixtures).map((matchday) => {
+      const pin = pinned.get(matchday);
+      const chosen =
+        (pin != null ? byId.get(pin) : undefined) ??
+        predictions.find((prediction) => forecastBy.get(prediction.id)?.has(matchday)) ??
+        // Nothing forecast this round — a fully replayed season. Fall back to the newest batch
+        // so the matchday still names a projection rather than nothing at all.
+        predictions[0] ??
+        null;
+
+      return {
+        matchday,
+        predictionId: chosen?.id ?? null,
+        name: chosen?.name ?? null,
+        runs: chosen?.runs ?? 0,
+        asOfMatchday: chosen?.asOfMatchday ?? null,
+        pinned: pin != null && chosen?.id === pin,
+        forecast: chosen != null && (forecastBy.get(chosen.id)?.has(matchday) ?? false),
+      } satisfies MatchdayProjection;
+    });
+  }
+
+  getMatchdayProjection(matchday: number): MatchdayProjection {
+    const entry = this.resolveMatchdayProjections().find((item) => item.matchday === matchday);
+    if (!entry) throw new NotFoundError(`Matchday ${matchday}`);
+    return entry;
+  }
+
+  /**
+   * Every batch that could be attached to a matchday, newest first, each flagged with whether
+   * it forecast that round — a batch handed the round's results has no picks to show for it.
+   */
+  listMatchdayProjectionCandidates(
+    matchday: number,
+  ): Array<Prediction & { forecast: boolean }> {
+    const fixtures = this.getFixtures();
+    if (!this.getMatchdays(fixtures).includes(matchday)) {
+      throw new NotFoundError(`Matchday ${matchday}`);
+    }
+    return this.listPredictions(1, 1000).items.map((prediction) => ({
+      ...prediction,
+      forecast: this.forecastMatchdaysFor(prediction.id, fixtures).has(matchday),
+    }));
+  }
+
+  /** Read this matchday through a chosen batch instead of the one the default rule picks. */
+  pinMatchdayProjection(matchday: number, predictionId: number): MatchdayProjection {
+    this.getPrediction(predictionId);
+    if (!this.getMatchdays().includes(matchday)) throw new NotFoundError(`Matchday ${matchday}`);
+
+    const updatedAt = nowIso();
+    this.db
+      .insert(schema.matchdayProjections)
+      .values({ matchday, predictionId, updatedAt })
+      .onConflictDoUpdate({
+        target: schema.matchdayProjections.matchday,
+        set: { predictionId, updatedAt },
+      })
+      .run();
+    return this.getMatchdayProjection(matchday);
+  }
+
+  /** Drop a pin, returning the matchday to the default rule. */
+  clearMatchdayProjection(matchday: number): MatchdayProjection {
+    this.db
+      .delete(schema.matchdayProjections)
+      .where(eq(schema.matchdayProjections.matchday, matchday))
+      .run();
+    return this.getMatchdayProjection(matchday);
+  }
+
+  /**
+   * The season as the app reads it: each matchday through the projection attached to it.
+   *
+   * Reading the whole season through one batch loses every pick already settled, because a
+   * batch is handed the results that landed before it ran and replays them rather than
+   * forecasting them. Composing per matchday keeps each round's picks — and the spread behind
+   * them — next to the results that answered them.
+   *
+   * The trade is that `plausible` solves a season-wide assignment per batch, so a composed
+   * season is coherent within each round rather than across all 380 fixtures. That is the right
+   * way round: the settled rounds are settled, and what a reader wants from them is the forecast
+   * they actually faced, not a re-draw that fits the rounds still to come.
+   */
+  buildAssignedSeasonState(): SeasonState {
+    const assignments = this.resolveMatchdayProjections();
+    const predictionByMatchday = new Map(
+      assignments.map((item) => [item.matchday, item.predictionId]),
+    );
+    const ids = [
+      ...new Set(
+        assignments.flatMap((item) => (item.predictionId == null ? [] : [item.predictionId])),
+      ),
+    ];
+    if (ids.length === 0) return this.buildActualResultsState();
+
+    const statesById = new Map(ids.map((id) => [id, this.buildPredictionState(id)] as const));
+    const matchesById = new Map(
+      [...statesById].map(
+        ([id, state]) =>
+          [id, new Map(state.matches.map((match) => [match.fixture.matchNumber, match]))] as const,
+      ),
+    );
+
+    // Every batch resolves the same fixture list, so any of them orders the season.
+    const baseline = statesById.get(ids[0]!)!;
+    const matches = baseline.matches.map((match) => {
+      const id = predictionByMatchday.get(match.fixture.matchday);
+      const assigned = id == null ? undefined : matchesById.get(id)?.get(match.fixture.matchNumber);
+      return assigned ?? match;
+    });
+
+    // The active batch still names the state, so a client reading `simulationId` sees the same
+    // projection the header and the Projections view are showing.
+    return finalizeSeasonState(this.getActivePrediction()?.id ?? 0, this.getTeams(), matches);
+  }
+
+  /**
+   * Each fixture's spread, taken from the projection its matchday is read through — the same
+   * batch that supplied the pick, so a distribution can never contradict the scoreline above it.
+   * In match order, since {@link getFixtures} is.
+   */
+  getAssignedDistributions(): MatchDistribution[] {
+    const predictionByMatchday = new Map(
+      this.resolveMatchdayProjections().map((item) => [item.matchday, item.predictionId]),
+    );
+    const ids = [...new Set([...predictionByMatchday.values()].filter((id) => id != null))];
+    const distributionsById = new Map(
+      ids.map((id) => [id, this.getPredictionDistributions(id)] as const),
+    );
+
+    const distributions: MatchDistribution[] = [];
+    for (const fixture of this.getFixtures()) {
+      const id = predictionByMatchday.get(fixture.matchday);
+      const distribution =
+        id == null ? undefined : distributionsById.get(id)?.get(fixture.matchNumber);
+      if (distribution) distributions.push(distribution);
+    }
+    return distributions;
   }
 
   /**

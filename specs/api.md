@@ -133,6 +133,22 @@ that follows a move, and is null when nothing moved.
 | GET | `/api/v1/predictions/:id/samples` | `{ count }` |
 | PUT | `/api/v1/predictions/:id/active-sample` | `{ sampleIndex }` → updated state |
 
+## Matchday projections
+
+Each matchday is read through one projection. Only pins are stored; every other round resolves
+to the newest batch that actually forecast it — see `specs/persistence.md`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/season/state` | The composed `SeasonState`: every matchday through the projection attached to it |
+| GET | `/api/v1/matchday-projections` | `MatchdayProjection[]`, one per matchday (`predictionId`, `name`, `runs`, `asOfMatchday`, `pinned`, `forecast`) |
+| GET | `/api/v1/matchday-projections/:matchday` | `{ current, candidates }` — every batch, each flagged `forecast` for this round |
+| PUT | `/api/v1/matchday-projections/:matchday` | `{ predictionId }` → the resolved attachment |
+| DELETE | `/api/v1/matchday-projections/:matchday` | Drops the pin, returning the round to the default rule |
+
+`forecast: false` means the batch was handed that round's results rather than forecasting them,
+so it has no picks to show for it. A pin to such a batch is allowed and reported, not blocked.
+
 ## Admin
 
 | Method | Path | Notes |

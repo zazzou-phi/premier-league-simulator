@@ -19,15 +19,16 @@ Rules that must hold across features. Violating these breaks domain correctness 
 7. A Monte Carlo run simulates only the unplayed remainder. Locked fixtures are banked into the starting table once per batch and re-attached afterwards as degenerate distributions, so a persisted batch still covers all 380 fixtures and carries no predictive content for the locked ones.
 8. Recording an actual result writes only `actual_match_results`. Every read path overlays actuals over stored simulation rows; stored simulations are never rewritten.
 9. Picked / prediction state always overlays actuals on top of chosen scorelines.
+10. Each matchday is read through one projection. Unpinned, that is the newest batch that actually forecast the round — never simply the newest batch, which for a played round was handed the result and kept no pick. Picks and the distribution behind them always come from the same batch.
 
 ## Standings
 
-10. Order is points → goal difference → goals for → name. No head-to-head mini-league, no penalties.
+11. Order is points → goal difference → goals for → name. No head-to-head mini-league, no penalties.
 
 ## Public export
 
-11. The snapshot is the private app's state verbatim — every fixture, every pick, every distribution. There is nothing to withhold: the site is general interest, not a contest against a reader. (Superseded the next-round reveal; `revealPolicy` stays in `meta.json` to say which policy wrote a snapshot.)
-12. Public build is static: no API, no SQLite.
+12. The snapshot is the private app's state verbatim — every fixture, every pick, every distribution. There is nothing to withhold: the site is general interest, not a contest against a reader. (Superseded the next-round reveal; `revealPolicy` stays in `meta.json` to say which policy wrote a snapshot.)
+13. Public build is static: no API, no SQLite.
 
 ## Data pipelines
 

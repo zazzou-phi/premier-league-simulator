@@ -11,6 +11,7 @@ import { api, isPublicMode, type WeekRunOptions } from './api/client.js';
 import { loadPublicMeta } from './api/staticClient.js';
 import { Header } from './components/Header.js';
 import { MatchDistributionModal } from './components/MatchDistributionModal.js';
+import { MatchdayProjectionModal } from './components/MatchdayProjectionModal.js';
 import { MonteCarloModal } from './components/MonteCarloModal.js';
 import { WeekRunModal } from './components/WeekRunModal.js';
 import { PredictionManagerModal } from './components/PredictionManagerModal.js';
@@ -19,6 +20,10 @@ import { SeasonView } from './components/SeasonView.js';
 import { TeamRatingsModal } from './components/TeamRatingsModal.js';
 import { DEFAULT_APP_VIEW, type AppView } from './lib/appView.js';
 import {
+  assignedPredictionIds,
+  predictionIdForMatchday,
+} from './lib/matchdayProjections.js';
+import {
   DEFAULT_PICK_STRATEGY,
   formatPickStrategy,
   type PickStrategy,
@@ -26,7 +31,13 @@ import {
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from './lib/seasonForm.js';
 import { DEFAULT_UPSET_VARIANCE } from './lib/upsetVariance.js';
 import { applyWeekEvent, IDLE_WEEK_RUN, STARTED_WEEK_RUN, type WeekRunState } from './lib/weekRunLog.js';
-import { ApiRequestError, type MonteCarloRunResult, type Prediction, type PublicMeta } from './types.js';
+import {
+  ApiRequestError,
+  type MatchdayProjection,
+  type MonteCarloRunResult,
+  type Prediction,
+  type PublicMeta,
+} from './types.js';
 
 type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | 'week' | null;
 
@@ -58,7 +69,6 @@ interface ProjectionState {
   prediction: Prediction | null;
   runs: number;
   teams: TeamSeasonProjection[];
-  picks: SeasonState | null;
   error: string | null;
   loading: boolean;
 }
@@ -67,7 +77,27 @@ const EMPTY_PROJECTIONS: ProjectionState = {
   prediction: null,
   runs: 0,
   teams: [],
-  picks: null,
+  error: null,
+  loading: false,
+};
+
+/**
+ * The season the reader is shown, and what each round of it is read through.
+ *
+ * Not a property of the active batch: every matchday carries its own projection, so a round
+ * already played keeps the picks of the batch that faced it blind rather than the replay the
+ * newest batch was handed.
+ */
+interface SeasonPicksState {
+  state: SeasonState | null;
+  matchdays: MatchdayProjection[];
+  error: string | null;
+  loading: boolean;
+}
+
+const EMPTY_SEASON: SeasonPicksState = {
+  state: null,
+  matchdays: [],
   error: null,
   loading: false,
 };
@@ -92,6 +122,7 @@ export function App() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [actualResults, setActualResults] = useState<ActualMatchResult[]>([]);
   const [projections, setProjections] = useState<ProjectionState>(EMPTY_PROJECTIONS);
+  const [season, setSeason] = useState<SeasonPicksState>(EMPTY_SEASON);
   const [publicMeta, setPublicMeta] = useState<PublicMeta | null>(null);
 
   const [selectedMatchNumber, setSelectedMatchNumber] = useState<number | null>(null);
@@ -109,6 +140,8 @@ export function App() {
 
   const [savingPickStrategy, setSavingPickStrategy] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
+  /** The matchday whose projection picker is open, or null. */
+  const [matchdayPicker, setMatchdayPicker] = useState<number | null>(null);
   const [monteCarlo, setMonteCarlo] = useState<MonteCarloState>({
     running: false,
     progress: null,
@@ -121,15 +154,11 @@ export function App() {
   const loadProjection = useCallback(async (prediction: Prediction) => {
     setProjections((prev) => ({ ...prev, prediction, loading: true, error: null }));
     try {
-      const [projectionData, picks] = await Promise.all([
-        api.getPredictionProjections(prediction.id),
-        api.getPredictionState(prediction.id).catch(() => null),
-      ]);
+      const projectionData = await api.getPredictionProjections(prediction.id);
       setProjections({
         prediction,
         runs: projectionData.runs,
         teams: projectionData.teams,
-        picks,
         error: null,
         loading: false,
       });
@@ -142,6 +171,27 @@ export function App() {
     }
   }, []);
 
+  /**
+   * The composed season and the projection attached to each of its rounds. Reloaded whenever
+   * something moves either — a new batch, a week run, or a matchday attached by hand.
+   */
+  const loadSeason = useCallback(async () => {
+    setSeason((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const [state, matchdays] = await Promise.all([
+        // No projection at all is not an error: the season view still has the recorded results.
+        api.getSeasonState().catch(() => null),
+        api.listMatchdayProjections().catch(() => []),
+      ]);
+      setSeason({ state, matchdays, error: null, loading: false });
+    } catch (err) {
+      setSeason({
+        ...EMPTY_SEASON,
+        error: errorMessage(err, 'Failed to load the season'),
+      });
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -149,6 +199,7 @@ export function App() {
         setTeams(teamList);
         setFixtures(fixtureList);
         setActualResults(await api.listActualResults().catch(() => []));
+        await loadSeason();
 
         if (publicMode) {
           const meta = await loadPublicMeta().catch(() => null);
@@ -187,7 +238,7 @@ export function App() {
         setLoading(false);
       }
     })();
-  }, [publicMode, loadProjection]);
+  }, [publicMode, loadProjection, loadSeason]);
 
   // Success toasts are confirmations, so they time out. Errors persist until dismissed.
   useEffect(() => {
@@ -198,6 +249,12 @@ export function App() {
 
   const pickStrategy = projections.prediction?.pickStrategy ?? DEFAULT_PICK_STRATEGY;
 
+  // With no batch anywhere the season is a bare record of results: no picks to explain, and
+  // no distribution behind a scoreline to open. A snapshot exported before matchdays carried
+  // their own projection lists none, and still has the one batch it was published from.
+  const hasProjection =
+    projections.prediction != null || season.matchdays.some((item) => item.predictionId != null);
+
   // Same rule the engine uses for naming projections, so header and CLI never disagree.
   const nextMatchday = useMemo(
     () => findNextMatchday(fixtures, new Set(actualResults.map((r) => r.matchNumber))),
@@ -205,13 +262,13 @@ export function App() {
   );
 
   const distributionMatch = useMemo(() => {
-    if (!distribution || !projections.picks) return null;
+    if (!distribution || !season.state) return null;
     return (
-      projections.picks.matches.find(
+      season.state.matches.find(
         (match) => match.fixture.matchNumber === distribution.matchNumber,
       ) ?? null
     );
-  }, [distribution, projections.picks]);
+  }, [distribution, season.state]);
 
   const switchPrediction = async (id: number) => {
     setError(null);
@@ -236,6 +293,8 @@ export function App() {
 
   const handleDeletePrediction = async (id: number) => {
     await api.deletePrediction(id);
+    // Whatever matchdays were reading that batch have fallen back to another one.
+    await loadSeason();
     if (projections.prediction?.id !== id) return;
     const page = await api.listPredictions(1, 1);
     const next = page.items[0];
@@ -243,15 +302,26 @@ export function App() {
     else setProjections(EMPTY_PROJECTIONS);
   };
 
+  /**
+   * The rule moves on every batch the season is read through, not just the active one. The
+   * view is composed of several at once — one per matchday — so changing a single batch would
+   * leave two rules picking scorelines in the same table.
+   */
   const handlePickStrategyChange = async (strategy: PickStrategy) => {
-    const prediction = projections.prediction;
-    if (!prediction) return;
+    const active = projections.prediction;
+    const targets = [
+      ...new Set([...assignedPredictionIds(season.matchdays), ...(active ? [active.id] : [])]),
+    ];
+    if (targets.length === 0) return;
     setError(null);
     setSavingPickStrategy(true);
     try {
-      const updated = await api.setPredictionPickStrategy(prediction.id, strategy);
-      const picks = await api.getPredictionState(prediction.id).catch(() => null);
-      setProjections((prev) => ({ ...prev, prediction: updated, picks }));
+      const updated = await Promise.all(
+        targets.map((id) => api.setPredictionPickStrategy(id, strategy)),
+      );
+      const nextActive = updated.find((item) => item.id === active?.id) ?? active;
+      setProjections((prev) => ({ ...prev, prediction: nextActive }));
+      await loadSeason();
       setToast(`Scorelines picked by ${formatPickStrategy(strategy).toLowerCase()}`);
     } catch (err) {
       setError(errorMessage(err, 'Failed to update the pick strategy'));
@@ -305,6 +375,8 @@ export function App() {
       const page = await api.listPredictions(1, 200).catch(() => null);
       const prediction = page?.items.find((item) => item.id === result.predictionId) ?? null;
       if (prediction) await loadProjection(prediction);
+      // The new batch takes over every round it forecast; the rounds already played keep theirs.
+      await loadSeason();
       setToast(`Simulated ${result.runs.toLocaleString()} seasons`);
     } catch (err) {
       setMonteCarlo({
@@ -340,6 +412,7 @@ export function App() {
         const prediction = page?.items.find((item) => item.id === predictionId) ?? null;
         if (prediction) await loadProjection(prediction);
       }
+      await loadSeason();
       setToast(
         `Week advanced — ${result.results.applied} result${result.results.applied === 1 ? '' : 's'} locked`,
       );
@@ -391,8 +464,14 @@ export function App() {
     }
   };
 
+  /** The spread comes from the batch that supplied the pick, which is the matchday's own. */
   const handleOpenMatchDistribution = async (matchNumber: number) => {
-    const predictionId = projections.prediction?.id;
+    const fixture = fixtures.find((item) => item.matchNumber === matchNumber);
+    const predictionId =
+      (fixture == null ? null : predictionIdForMatchday(season.matchdays, fixture.matchday)) ??
+      // An older snapshot attaches nothing, because it was published from a single batch.
+      projections.prediction?.id ??
+      null;
     if (predictionId == null) return;
     setDistribution({ matchNumber, data: null, loading: true, error: null });
     try {
@@ -514,21 +593,29 @@ export function App() {
             teams={teams}
             fixtures={fixtures}
             actualResults={actualResults}
-            picksState={projections.picks}
-            picksError={projections.error}
-            loading={projections.loading}
+            picksState={season.state}
+            matchdayProjections={season.matchdays}
+            picksError={season.error ?? projections.error}
+            loading={season.loading || projections.loading}
             runs={projections.runs}
             nextMatchday={nextMatchday}
             pickStrategy={pickStrategy}
             savingPickStrategy={savingPickStrategy}
             onPickStrategyChange={
-              publicMode ? undefined : (mode) => void handlePickStrategyChange(mode)
+              publicMode || !hasProjection
+                ? undefined
+                : (mode) => void handlePickStrategyChange(mode)
             }
             selectedMatchNumber={selectedMatchNumber}
             cutoffChoice={seasonCutoff}
             onCutoffChange={setSeasonCutoff}
             onSelectMatch={setSelectedMatchNumber}
-            onOpenMatch={(matchNumber) => void handleOpenMatchDistribution(matchNumber)}
+            onOpenMatch={
+              hasProjection
+                ? (matchNumber) => void handleOpenMatchDistribution(matchNumber)
+                : undefined
+            }
+            onOpenMatchdayProjection={publicMode ? undefined : setMatchdayPicker}
           />
         )}
 
@@ -601,6 +688,21 @@ export function App() {
           onOpenProjections={() => {
             setModal(null);
             switchAppView('projections');
+          }}
+        />
+      )}
+
+      {matchdayPicker != null && (
+        <MatchdayProjectionModal
+          matchday={matchdayPicker}
+          onClose={() => setMatchdayPicker(null)}
+          onChanged={(projection) => {
+            void loadSeason();
+            setToast(
+              projection.name
+                ? `Matchday ${projection.matchday} read through "${projection.name}"`
+                : `Matchday ${projection.matchday} has no projection`,
+            );
           }}
         />
       )}
