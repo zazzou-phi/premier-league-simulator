@@ -2388,6 +2388,37 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   .projections-table th.projections-distribution {
     display: none;
   }
+
+  /* The distributions are why this view exists, but the headline above them is three stacked
+     cards tall once it wraps to one column — pinning it left the card list a ~150px slot to
+     scroll 20 clubs in, so the bars were effectively off-screen. Scroll the panel as one column
+     instead: the headline moves out of the way and the cards get the height. */
+  .projections-panel {
+    overflow-y: auto;
+  }
+
+  /* Both axes, or the hidden one alone would make this a scroll container again — and the
+     axis below would stick to it rather than to the panel. */
+  .projection-cards-wrap {
+    flex: none;
+    overflow: visible;
+  }
+
+  /* Every bar is read against this one scale, so it stays put while the cards move under it.
+     The shadow is a band, not a shade: it fills the panel's own top padding, which cards would
+     otherwise scroll through above the axis. */
+  .projection-cards-axis {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    /* Opaque all the way to the gap below it, and up over the panel's own top padding, so a
+       card passing under the axis is hidden rather than half-drawn either side of it. */
+    padding-top: 0.3rem;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0;
+    background: var(--bg-elevated);
+    box-shadow: 0 -0.5rem 0 var(--bg-elevated);
+  }
 }
 
 @media (max-width: 640px) {

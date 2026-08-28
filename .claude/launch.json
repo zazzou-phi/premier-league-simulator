@@ -13,6 +13,12 @@
       "runtimeArgs": ["--prefix", "web", "run", "dev"],
       "port": 2627,
       "autoPort": true
+    },
+    {
+      "name": "web-public",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "VITE_APP_MODE=public PORT=2628 npm --prefix web run dev"],
+      "port": 2628
     }
   ]
 }
