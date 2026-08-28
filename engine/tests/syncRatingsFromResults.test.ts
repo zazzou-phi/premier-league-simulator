@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   ratingsFromRealResults,
   syncTeamRatingsFromResults,
 } from '../src/data/syncRatingsFromResults.js';
+import { getDefaultTeamsCsvPath } from '../src/data/teamsCsv.js';
 import { matchEloDelta } from '../src/engine/seasonElo.js';
 import type { Repository } from '../src/db/repository.js';
 import { createTestRepository } from './testDb.js';
@@ -20,7 +22,7 @@ function play(matchNumber: number, goalsHome: number, goalsAway: number) {
   return fixture;
 }
 
-const sync = (dryRun = false) => syncTeamRatingsFromResults({ repo, writeCsv: false, dryRun });
+const sync = (dryRun = false) => syncTeamRatingsFromResults({ repo, dryRun });
 
 describe('ratingsFromRealResults', () => {
   it('leaves every rating alone when nothing has been played', () => {
@@ -66,6 +68,20 @@ describe('ratingsFromRealResults', () => {
 });
 
 describe('syncTeamRatingsFromResults', () => {
+  it('leaves teams.csv alone, so the anchors survive the season', async () => {
+    // teams.csv is the pre-season anchor set a rebuilt database replays the results from.
+    // Writing the drifted rating back would destroy the only copy of what it drifted from,
+    // and the next sync would then anchor on the drifted number and double-count every result.
+    const before = readFileSync(getDefaultTeamsCsvPath(), 'utf8');
+
+    play(1, 3, 0);
+    const summary = await sync();
+
+    expect(summary.updated).toBeGreaterThan(0);
+    expect(readFileSync(getDefaultTeamsCsvPath(), 'utf8')).toBe(before);
+    expect(summary.csvPath).toBeUndefined();
+  });
+
   it('writes the recomputed ratings and dates a snapshot', async () => {
     const fixture = play(1, 3, 0);
     const summary = await sync();

@@ -223,9 +223,9 @@ if (result.dryRun) {
 } else {
   const today = new Date().toISOString().slice(0, 10);
   console.log(
-    '  The database is gitignored, so commit the CSVs — they are the recoverable record\n' +
-      '  of what was known this week:\n\n' +
-      '    git add data/teams.csv data/fixtures.csv\n' +
+    '  The database is gitignored, so commit the results — with the pre-season teams.csv\n' +
+      '  they are the recoverable record of what was known this week:\n\n' +
+      '    git add data/fixtures.csv\n' +
       `    git commit -m "Results and ratings as of ${today}"\n`,
   );
 }

@@ -209,7 +209,7 @@ export async function runWeek(
     ? null
     : useClubElo
       ? await syncTeamRatingsFromClubElo({ repo, writeCsv, dryRun })
-      : await syncTeamRatingsFromResults({ repo, writeCsv, dryRun });
+      : await syncTeamRatingsFromResults({ repo, dryRun });
   stepResult({ step: 'ratings', ratings });
 
   // ------------------------------------------------------------------ grading
