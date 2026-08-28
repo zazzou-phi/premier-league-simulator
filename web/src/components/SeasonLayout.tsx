@@ -26,6 +26,8 @@ export function SeasonLayout({ toolbar, standings, fixtures }: Props) {
   return (
     <div className={classes}>
       {toolbar && <div className="season-layout-toolbar">{toolbar}</div>}
+      {/* Labelled as the panels themselves are on desktop ("Fixtures", "League table"), so
+          changing viewport does not rename the thing being looked at. */}
       {narrow && (
         <div className="season-layout-tab-bar" role="tablist" aria-label="Season panels">
           <button
@@ -44,7 +46,7 @@ export function SeasonLayout({ toolbar, standings, fixtures }: Props) {
             className={`season-layout-tab${tab === 'table' ? ' active' : ''}`}
             onClick={() => setTab('table')}
           >
-            Table
+            League table
           </button>
         </div>
       )}
