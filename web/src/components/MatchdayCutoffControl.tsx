@@ -4,6 +4,8 @@ interface Props {
   max: number;
   /** Highest matchday holding a real result, or 0 before a ball is kicked. */
   playedThrough: number;
+  /** Where "now" sits: the rounds played, plus the round being played next. */
+  now: number;
   /** Fixtures inside the cut carrying a recorded result. */
   actualCount: number;
   /** Fixtures inside the cut carrying a picked scoreline instead. */
@@ -19,19 +21,21 @@ export function MatchdayCutoffControl({
   value,
   max,
   playedThrough,
+  now,
   actualCount,
   predictedCount,
   onChange,
 }: Props) {
   const clamp = (matchday: number) => Math.min(max, Math.max(1, matchday));
 
-  // "MD 1" beside a header reading "MD2 next" is two true statements that look like a
-  // contradiction, so the anchor names which one the cutoff is sitting on and the title spells
-  // the pair out: the cutoff counts rounds finished, the header names the round coming.
-  const atNow = playedThrough > 0 && value === playedThrough;
+  // Now runs through the round being played next, so the cutoff lands on the same matchday the
+  // header calls next and the title spells out how the two halves of that round are counted.
+  const atNow = playedThrough > 0 && value === now;
   const anchor = atNow ? 'now' : value === max ? 'full season' : null;
   const explanation = atNow
-    ? `Matchday ${value} is the last round played; matchday ${value + 1} is next`
+    ? now > playedThrough
+      ? `Matchday ${playedThrough} is the last round played; matchday ${now} is next, counted from its picks`
+      : `Matchday ${value} is the last round played, and nothing is left to come before it`
     : `The table counts every fixture up to matchday ${value}, played or picked`;
 
   return (
@@ -72,7 +76,7 @@ export function MatchdayCutoffControl({
         />
         {/* Marks where the real season has got to, so the handle has something to aim at. */}
         <datalist id="matchday-cutoff-ticks">
-          {playedThrough > 0 && <option value={playedThrough} label="Now" />}
+          {playedThrough > 0 && <option value={now} label="Now" />}
           <option value={max} />
         </datalist>
         <button
@@ -91,9 +95,9 @@ export function MatchdayCutoffControl({
           <button
             type="button"
             className="btn btn-ghost btn-small"
-            disabled={value === playedThrough}
-            title="Show only the rounds that have actually been played"
-            onClick={() => onChange(playedThrough)}
+            disabled={value === now}
+            title="Show the rounds played, plus the round coming up"
+            onClick={() => onChange(now)}
           >
             Now
           </button>

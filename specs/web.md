@@ -48,13 +48,15 @@ rows already carry.
 - **Matchday cutoff** (`MatchdayCutoffControl`, `lib/matchdayCutoff.ts`): the season is read as of
   a matchday. Every fixture up to it counts towards the table, everything after it is blanked in
   both panels — one rule, so the table and the fixture list cannot disagree about which matches
-  count. `Now` is the highest matchday holding a real result (**not** `nextMatchday - 1`: a
-  postponement leaves an earlier round open while later rounds are played), `Full season` is the
-  projected finish, and the cutoff lives in `App.tsx` so a trip to Projections and back keeps it.
-- **It opens on `Now`**, so the first thing on screen is the real table, with the projection a
-  drag away. Pre-season there is no such round and it opens on the projected finish instead.
-  The readout tags whichever anchor it is sitting on (`now` / `full season`): `MD 1` beside a
-  header reading `MD2 next` is two true statements that look like a contradiction otherwise.
+  count. `Now` reaches through the round being played next: the later of the highest matchday
+  holding a real result and the lowest matchday still missing one (the later of the two because a
+  postponement leaves an earlier round open while later rounds are played), so the cut holds every
+  result plus the coming round's picks. `Full season` is the projected finish, and the cutoff lives
+  in `App.tsx` so a trip to Projections and back keeps it.
+- **It opens on `Now`**, so the first thing on screen is the season as it stands with the round in
+  front of the reader already filled in. Pre-season nothing has been played and it opens on the
+  projected finish instead. The readout tags whichever anchor it is sitting on (`now` /
+  `full season`), and its title splits the round played from the round picked.
 - The table is recomputed client-side from the cut via `computeLeagueStandings`, so it ignores the
   `standings` the snapshot ships. Its tone flips to `actual` and its subtitle to "recorded scores
   only" when the cut holds no picks.
@@ -186,9 +188,11 @@ the footer can show the export timestamp from `meta.json`.
 ## Fixture list
 
 `FixtureList` opens anchored on the next unplayed matchday (`initialMatchday`, from
-`findNextMatchday`) and carries a prev/next/jump control row above the scroller. The mobile layout
-hides the panel with CSS rather than unmounting it, so the anchor retries on a `ResizeObserver`
-when a zero-height panel gains height.
+`findNextMatchday`) and carries a prev/next/jump control row above the scroller. Within a matchday
+the rows run in kickoff order (date, then time, then match number), the order the round is played
+in rather than the order the fixtures are numbered. The mobile layout hides the panel with CSS
+rather than unmounting it, so the anchor retries on a `ResizeObserver` when a zero-height panel
+gains height.
 
 ## Clients
 

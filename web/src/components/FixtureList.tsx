@@ -39,7 +39,14 @@ function groupByMatchday(matches: ResolvedMatch[]): MatchdayGroup[] {
     .sort(([a], [b]) => a - b)
     .map(([matchday, list]) => ({
       matchday,
-      matches: list.sort((a, b) => a.fixture.matchNumber - b.fixture.matchNumber),
+      // A round is played in kickoff order, not fixture-number order, so it reads that way here.
+      // Wall-clock strings sort as they are; match number only breaks a simultaneous kickoff.
+      matches: list.sort(
+        (a, b) =>
+          a.fixture.date.localeCompare(b.fixture.date) ||
+          a.fixture.time.localeCompare(b.fixture.time) ||
+          a.fixture.matchNumber - b.fixture.matchNumber,
+      ),
     }));
 }
 

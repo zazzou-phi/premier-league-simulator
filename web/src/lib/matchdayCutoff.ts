@@ -32,6 +32,31 @@ export function playedThroughMatchday(matches: ResolvedMatch[]): number {
   return last;
 }
 
+/**
+ * Lowest matchday still waiting on a real result — the round being played next, or about to be.
+ * Null once every fixture has one.
+ */
+export function nextOpenMatchday(matches: ResolvedMatch[]): number | null {
+  let next: number | null = null;
+  for (const match of matches) {
+    if (match.locked) continue;
+    if (next == null || match.fixture.matchday < next) next = match.fixture.matchday;
+  }
+  return next;
+}
+
+/**
+ * Where "now" cuts the season: everything played, plus the next round still to be played, which
+ * the cut fills in with its picks. A reader asking for now wants the round in front of them as
+ * well as the ones behind — the results alone are yesterday's table.
+ *
+ * The later of the two rather than `nextOpenMatchday`: a postponement leaves an earlier round
+ * open while later rounds are played, and the cut still has to reach the results that landed.
+ */
+export function nowMatchday(matches: ResolvedMatch[]): number {
+  return Math.max(playedThroughMatchday(matches), nextOpenMatchday(matches) ?? 0);
+}
+
 /** Blank every fixture past `cutoff`, so the rounds beyond it read as not yet played. */
 export function applyMatchdayCutoff(matches: ResolvedMatch[], cutoff: number): ResolvedMatch[] {
   return matches.map((match) => {
