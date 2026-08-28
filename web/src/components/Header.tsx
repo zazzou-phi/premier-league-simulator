@@ -173,8 +173,9 @@ export function Header({
     return (
       <header className="header header-mobile">
         {/* The tab bar takes its own row: the tabs plus the title and two icon buttons do not
-            fit on one line at 375px. */}
-        <ViewSwitcher appView={appView} short onAppViewChange={onAppViewChange} />
+            fit on one line at 375px. Its own row is also what lets the tabs keep their full
+            desktop wording, so the two builds name the same view the same way. */}
+        <ViewSwitcher appView={appView} onAppViewChange={onAppViewChange} />
         <div className="header-row">
           <div className="header-left">
             <h1 className="header-title">PL Sim</h1>

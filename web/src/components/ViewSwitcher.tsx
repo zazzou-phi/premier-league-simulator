@@ -1,19 +1,12 @@
 import { useRef } from 'react';
-import {
-  APP_VIEWS,
-  APP_VIEW_LABELS,
-  APP_VIEW_SHORT_LABELS,
-  type AppView,
-} from '../lib/appView.js';
+import { APP_VIEWS, APP_VIEW_LABELS, type AppView } from '../lib/appView.js';
 
 interface Props {
   appView: AppView;
-  /** Use abbreviated tab text. Full labels stay available to assistive tech. */
-  short?: boolean;
   onAppViewChange: (view: AppView) => void;
 }
 
-export function ViewSwitcher({ appView, short = false, onAppViewChange }: Props) {
+export function ViewSwitcher({ appView, onAppViewChange }: Props) {
   const views = APP_VIEWS;
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -61,13 +54,12 @@ export function ViewSwitcher({ appView, short = false, onAppViewChange }: Props)
             id={`view-tab-${view}`}
             className={`view-switcher-tab ${selected ? 'view-switcher-tab-active' : ''}`}
             aria-selected={selected}
-            aria-label={short ? label : undefined}
             // Roving tabIndex keeps the whole group to a single tab stop.
             tabIndex={selected ? 0 : -1}
             onClick={() => onAppViewChange(view)}
             onKeyDown={(e) => handleKeyDown(e, index)}
           >
-            {short ? APP_VIEW_SHORT_LABELS[view] : label}
+            {label}
           </button>
         );
       })}
