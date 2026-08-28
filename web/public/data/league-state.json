@@ -194,7 +194,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 3,
+        "goalsAway": 0
+      }
     },
     {
       "fixture": {
@@ -227,7 +230,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 0,
+        "goalsAway": 2
+      }
     },
     {
       "fixture": {
@@ -260,7 +266,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 1
+      }
     },
     {
       "fixture": {
@@ -293,7 +302,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 1
+      }
     },
     {
       "fixture": {
@@ -326,7 +338,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 0
+      }
     },
     {
       "fixture": {
@@ -359,7 +374,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 0
+      }
     },
     {
       "fixture": {
@@ -392,7 +410,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 0,
+        "goalsAway": 1
+      }
     },
     {
       "fixture": {
@@ -425,7 +446,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 0
+      }
     },
     {
       "fixture": {
@@ -458,7 +482,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 0,
+        "goalsAway": 1
+      }
     },
     {
       "fixture": {
@@ -491,7 +518,10 @@
         "status": "played"
       },
       "locked": true,
-      "pick": null
+      "pick": {
+        "goalsHome": 1,
+        "goalsAway": 1
+      }
     },
     {
       "fixture": {
