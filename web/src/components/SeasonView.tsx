@@ -12,6 +12,7 @@ import { filterMatchesByTeam } from '../lib/matchFilters.js';
 import {
   applyMatchdayCutoff,
   lastMatchday,
+  nowMatchday,
   playedMatchesFor,
   playedThroughMatchday,
 } from '../lib/matchdayCutoff.js';
@@ -126,9 +127,12 @@ export function SeasonView({
 
   const maxMatchday = useMemo(() => lastMatchday(seasonMatches), [seasonMatches]);
   const playedThrough = useMemo(() => playedThroughMatchday(seasonMatches), [seasonMatches]);
+  // "Now" reaches a round past the results: through the round being played next, whose fixtures
+  // the cut fills in with their picks.
+  const now = useMemo(() => nowMatchday(seasonMatches), [seasonMatches]);
   // Open on where the season actually is. Pre-season there is no such round, so the projected
-  // finish leads instead — an empty table is not an opening view.
-  const defaultCutoff = playedThrough > 0 ? playedThrough : maxMatchday;
+  // finish leads instead — a table of one picked round is not an opening view.
+  const defaultCutoff = playedThrough > 0 ? now : maxMatchday;
   const cutoff = Math.min(cutoffChoice ?? defaultCutoff, maxMatchday);
 
   const cutMatches = useMemo(
@@ -230,6 +234,7 @@ export function SeasonView({
             value={cutoff}
             max={Math.max(1, maxMatchday)}
             playedThrough={playedThrough}
+            now={now}
             actualCount={actualCount}
             predictedCount={predictedCount}
             onChange={handleCutoffChange}
