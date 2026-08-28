@@ -15,7 +15,7 @@ shootouts do not.
 |------|-------------|
 | [`engine/`](engine/) | TypeScript simulation engine, SQLite persistence, REST API, CLI tools |
 | [`web/`](web/) | React + Vite frontend (private dev server or static public build) |
-| [`data/`](data/) | `teams.csv`, `fixtures.csv`, and the SQLite database (gitignored) |
+| [`data/`](data/) | `teams.csv` (pre-season anchors), `fixtures.csv`, and the SQLite database (gitignored) |
 
 ## Quick start
 
@@ -174,9 +174,9 @@ re-run with `--force`.
 | `--no-ratings` / `--no-export` | Skip the Elo refresh / the public snapshot |
 | `--force` | Accept changes to results already recorded |
 
-The database is gitignored, so commit `data/teams.csv` and `data/fixtures.csv` each week —
-between them they are the recoverable record of what was known when. The command prints the
-commands at the end.
+The database is gitignored, so commit `data/fixtures.csv` each week. With `data/teams.csv`,
+which holds the pre-season ratings and does not change, the two are the recoverable record of
+the season: pre-season ratings plus every result. The command prints the commands at the end.
 
 ### The individual steps
 
@@ -194,9 +194,16 @@ override stored simulations wherever a table is built — recording a result wri
 `actual_match_results`, so a stored simulation is never rewritten behind your back.
 
 Results updates `actual_match_results` (and refreshes `data/fixtures.csv`); ratings update
-team Elo in SQLite and `data/teams.csv`, and append a dated row per club to
-`team_elo_history` — `teams.elo` is overwritten in place, so that table is the only record
-of what the model believed in October.
+team Elo in SQLite and append a dated row per club to `team_elo_history` — `teams.elo` is
+overwritten in place, so that table is the record of what the model believed in October.
+
+`data/teams.csv` is **not** touched. It holds the pre-season ratings, which are the anchors
+every later rating is recomputed from; seeding a fresh database from them and replaying the
+results reproduces where the season has got to, so writing the drifted rating back would
+destroy the only copy of what it drifted from.
+
+That is also why nothing needs to persist the dated series itself: `team_elo_history` is a
+cache of what `npm run backfill:elo-history` recomputes from the anchors and the results.
 
 ## Scoring a projection
 

@@ -18,7 +18,8 @@ Default ports: API `3123`, web `2627`. Keep `API_PORT` in sync if either changes
 - Monte Carlo runs are aggregated in memory — never persist per-run fixtures. Batches store outcome/scoreline distributions, finishing histograms, and a small season reservoir (~50) for the `random` strategy.
 - Locked (actual) results are authoritative: never overwrite them in sim, bank them into every MC run's starting table rather than simulating them, and overlay them over stored simulations at read time — recording a result must not rewrite a stored simulation.
 - Because locked results are banked rather than predicted, they carry no predictive content: grading a prediction must exclude the fixtures recorded in `prediction_locked_matches`, never score a batch on results it was handed.
-- `teams.elo` is overwritten by each ratings sync; the dated record lives in `team_elo_history` (and the tracked `data/teams.csv`). Because that sync already prices in every real result, only *simulated* matches drift a rating in-season.
+- `teams.elo` is overwritten by each ratings sync; the dated series lives in `team_elo_history`, which `backfillEloHistory` can rebuild in full. Because that sync already prices in every real result, only *simulated* matches drift a rating in-season.
+- `data/teams.csv` holds the **pre-season** ratings and is never rewritten in-season: it is the anchor set, and with the results in `data/fixtures.csv` it determines every rating on every date. Only `fetch:ratings` (clubelo, currently dead) may rewrite it.
 - The public snapshot is the private app's state verbatim — every fixture, pick and distribution. The site is general interest, so nothing is withheld; do not reintroduce redaction without being asked.
 - Prefer real fixtures/ratings pipelines over the circle-method generator except in tests that need a synthetic season.
 

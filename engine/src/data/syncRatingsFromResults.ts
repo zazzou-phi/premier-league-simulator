@@ -13,28 +13,25 @@
  * than layered on top of the wrong one. Incrementing from the current rating would compound
  * instead, which is the one failure mode worth designing against.
  *
+ * **`teams.csv` holds the pre-season rating, and is never rewritten.** It is the anchor set,
+ * which is what makes a rebuilt database reproduce the season rather than restart it: seed it,
+ * replay the results, and every rating on every date falls out. Writing the drifted rating
+ * back would destroy the only copy of what it drifted *from* — the next sync would then anchor
+ * on the drifted number and price every result in twice. The live rating lives in the database,
+ * derived; `team_elo_history` caches the dated series `backfillEloHistory` can rebuild.
+ *
  * **The simulator must not drift on these results again.** Once a result is in the base, the
  * remainder-only run has to treat it as already priced in — exactly as it did when clubelo
  * owned the base. `SeasonRunner` and `runMonteCarlo` therefore drift only on matches they
  * simulated themselves. Moving that boundary in either direction double-counts.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
 import { computeEloDeltasFromMatches, type EloMatchInput } from '../engine/seasonElo.js';
 import type { Repository } from '../db/repository.js';
 import { computeEloMoves, type SyncRatingsSummary } from './fetchRatings.js';
-import {
-  getDefaultTeamsCsvPath,
-  loadTeamsCsvRecords,
-  teamCsvRecordsToCsv,
-  type TeamCsvRecord,
-} from './teamsCsv.js';
 
 export interface SyncRatingsFromResultsOptions {
   repo: Repository;
   dryRun?: boolean;
-  writeCsv?: boolean;
-  csvPath?: string;
   /** Reporting date when there is nothing to snapshot; defaults to today. */
   date?: Date;
   eloK?: number;
@@ -141,14 +138,7 @@ export function ratingsFromRealResults(
 export async function syncTeamRatingsFromResults(
   options: SyncRatingsFromResultsOptions,
 ): Promise<SyncRatingsSummary> {
-  const {
-    repo,
-    dryRun = false,
-    writeCsv = true,
-    csvPath = getDefaultTeamsCsvPath(),
-    date = new Date(),
-    eloK,
-  } = options;
+  const { repo, dryRun = false, date = new Date(), eloK } = options;
 
   const ratings = ratingsFromRealResults(repo, eloK);
   const teams = repo.getTeams();
@@ -158,9 +148,8 @@ export async function syncTeamRatingsFromResults(
   const snapshotDate = lastResultDate(repo);
   const asOf = snapshotDate ?? date.toISOString().slice(0, 10);
 
-  // The database is the source of truth for the update itself; teams.csv is an output, and is
-  // only read when it is about to be rewritten (it carries `clubelo_name`, which the DB does
-  // not store).
+  // The database is the source of truth for the live rating; teams.csv is an input, and holds
+  // the pre-season anchors this recomputes from.
   const before = new Map(teams.map((team) => [team.id, team.elo]));
   const next = teams.map((team) => ({
     id: team.id,
@@ -197,15 +186,6 @@ export async function syncTeamRatingsFromResults(
         teams.map((team) => ({ teamId: team.id, elo: ratings.get(team.id) ?? team.elo })),
       );
     }
-
-    if (writeCsv) {
-      const records: TeamCsvRecord[] = loadTeamsCsvRecords(csvPath).map((record) => ({
-        ...record,
-        elo: ratings.get(record.id) ?? record.elo,
-      }));
-      await mkdir(dirname(csvPath), { recursive: true });
-      await writeFile(csvPath, teamCsvRecordsToCsv(records), 'utf8');
-    }
   }
 
   return {
@@ -213,7 +193,6 @@ export async function syncTeamRatingsFromResults(
     unchanged,
     dryRun,
     asOf,
-    csvPath: !dryRun && writeCsv ? csvPath : undefined,
     snapshotted,
     movers,
   };
