@@ -4,6 +4,7 @@ import type { Team } from '@shared/engine/types.js';
 import { formatProbability } from '../lib/formatProbability.js';
 import { PROJECTION_COMPARATORS, PROJECTION_SORT_OPTIONS } from '../lib/projectionSort.js';
 import { teamsById } from '../lib/teamsById.js';
+import { MovementArrow } from './MovementArrow.js';
 import { PositionAxis, PositionDistributionBar } from './PositionDistributionBar.js';
 import { TeamBadge } from './TeamBadge.js';
 
@@ -11,6 +12,10 @@ interface Props {
   projections: TeamSeasonProjection[];
   runs: number;
   teams?: Team[];
+  /** Places gained on the previous matchweek's projection; absent when there is no earlier one. */
+  movement?: Map<number, number | null>;
+  /** Names what the movement is measured against, e.g. `since MW2`. */
+  movementSince?: string;
 }
 
 /** The nearest ancestor that actually scrolls, which is the panel below 900px and the wrap above. */
@@ -31,7 +36,13 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
  * scroll below 640px that pushes the finishing-position distribution — the most valuable thing on
  * the screen — off the viewport entirely. One card per club reflows instead.
  */
-export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
+export function ProjectionCardList({
+  projections,
+  runs,
+  teams = [],
+  movement,
+  movementSince = 'since the previous matchweek',
+}: Props) {
   const [optionValue, setOptionValue] = useState(PROJECTION_SORT_OPTIONS[0]!.value);
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
   // The club the reader jumped to, kept marked so it is still findable after a re-sort.
@@ -77,9 +88,13 @@ export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
     if (!card || !scroller) return;
     // The controls stay put above the list, so land the card below them rather than under them.
     // They stick to the scrollport's content edge, so their height alone is not the offset —
-    // the panel's own top padding sits above them, and the card has to clear both.
-    const padding = parseFloat(getComputedStyle(scroller).paddingTop) || 0;
-    const offset = padding + (controlsRef.current?.offsetHeight ?? 0);
+    // the panel's own top padding sits above them, the matchweek picker is pinned above that,
+    // and the card has to clear all three.
+    const scrollerStyle = getComputedStyle(scroller);
+    const padding = parseFloat(scrollerStyle.paddingTop) || 0;
+    const picker =
+      parseFloat(scrollerStyle.getPropertyValue('--matchweek-control-height')) || 0;
+    const offset = padding + picker + (controlsRef.current?.offsetHeight ?? 0);
     const top =
       scroller.scrollTop +
       card.getBoundingClientRect().top -
@@ -154,6 +169,13 @@ export function ProjectionCardList({ projections, runs, teams = [] }: Props) {
                 onClick={() => toggle(row.teamId)}
               >
                 <span className="projection-card-rank">{index + 1}</span>
+                {movement && (
+                  <MovementArrow
+                    places={movement.get(row.teamId)}
+                    since={movementSince}
+                    teamName={row.teamName}
+                  />
+                )}
                 <span className="projection-card-team">
                   <TeamBadge
                     team={byId.get(row.teamId)}

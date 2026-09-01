@@ -4,6 +4,7 @@ import type {
   MatchdayProjection,
   Prediction,
   Repository,
+  SeasonProjection,
   TeamEloSnapshot,
 } from '../db/repository.js';
 
@@ -49,6 +50,12 @@ export interface PublicSnapshot {
   bootstrap: PublicBootstrap;
   leagueState: SeasonState | null;
   projections: { runs: number; teams: TeamSeasonProjection[] } | null;
+  /**
+   * The finishing odds of every batch a matchday is read through, one entry per batch. Without
+   * these a static site could only ever show the newest run's table, so the matchweek picker
+   * and the trend across matchweeks would be private-mode features.
+   */
+  seasonProjections: SeasonProjection[];
   /** Per-fixture distributions, one per fixture, ordered by match number. */
   distributions: MatchDistribution[];
 }
@@ -66,6 +73,7 @@ export function buildPublicSnapshot(repo: Repository, exportedAt = new Date()): 
   // Every match, in fixture order: the spread behind a pick is exactly as public as the pick,
   // and it comes from whichever batch supplied that pick.
   const distributions = prediction ? repo.getAssignedDistributions() : [];
+  const seasonProjections = prediction ? repo.getAssignedProjections() : [];
 
   return {
     meta: {
@@ -85,6 +93,7 @@ export function buildPublicSnapshot(repo: Repository, exportedAt = new Date()): 
     },
     leagueState,
     projections,
+    seasonProjections,
     distributions,
   };
 }
@@ -95,6 +104,7 @@ export function snapshotToFiles(snapshot: PublicSnapshot): Record<string, unknow
     'bootstrap.json': snapshot.bootstrap,
     'league-state.json': snapshot.leagueState,
     'projections.json': snapshot.projections,
+    'season-projections.json': snapshot.seasonProjections,
     'distributions.json': snapshot.distributions,
   };
 }

@@ -1,7 +1,12 @@
 import type { PickStrategy } from '@shared/engine/pickStrategy.js';
 import type { MatchDistribution } from '@shared/simulation/monteCarlo.js';
 import type { ActualMatchResult, Fixture, SeasonState, Team } from '@shared/engine/types.js';
-import type { AccuracyHistoryPoint, SyncFixturesResult, TeamEloSnapshot } from '../types.js';
+import type {
+  AccuracyHistoryPoint,
+  SeasonProjection,
+  SyncFixturesResult,
+  TeamEloSnapshot,
+} from '../types.js';
 import { isPublicMode } from '../config/appMode.js';
 import { DEFAULT_UPSET_VARIANCE } from '../lib/upsetVariance.js';
 import { DEFAULT_SEASON_ELO_DELTA_WEIGHT } from '../lib/seasonForm.js';
@@ -75,6 +80,8 @@ export interface LeagueApi {
    * rather than the newest batch flattened over rounds it was handed rather than forecast.
    */
   getSeasonState(): Promise<SeasonState>;
+  /** The finishing odds of every batch the season is read through, one entry per batch. */
+  listSeasonProjections(): Promise<SeasonProjection[]>;
   listMatchdayProjections(): Promise<MatchdayProjection[]>;
   getMatchdayProjectionOptions(matchday: number): Promise<MatchdayProjectionOptions>;
   pinMatchdayProjection(matchday: number, predictionId: number): Promise<MatchdayProjection>;
@@ -275,6 +282,8 @@ const privateApi: LeagueApi = {
 
   getSeasonState: () => request<SeasonState>('/api/v1/season/state'),
 
+  listSeasonProjections: () => request<SeasonProjection[]>('/api/v1/season/projections'),
+
   listMatchdayProjections: () => request<MatchdayProjection[]>('/api/v1/matchday-projections'),
 
   getMatchdayProjectionOptions: (matchday) =>
@@ -353,6 +362,7 @@ const publicApi: LeagueApi = {
   syncFixtures: async () => unavailable(),
 
   getSeasonState: () => staticApi.getSeasonState(),
+  listSeasonProjections: () => staticApi.listSeasonProjections(),
   // The snapshot publishes what each matchday was attached to, but only the private app can
   // move one: a static site has one export's worth of picks and no batches to choose between.
   listMatchdayProjections: () => staticApi.listMatchdayProjections(),

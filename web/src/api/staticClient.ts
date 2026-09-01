@@ -6,6 +6,7 @@ import type {
   ProjectionsResponse,
   PublicBootstrap,
   PublicMeta,
+  SeasonProjection,
 } from '../types.js';
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data`;
@@ -21,6 +22,7 @@ async function loadJson<T>(filename: string): Promise<T> {
 let cachedBootstrap: PublicBootstrap | null = null;
 let cachedMeta: PublicMeta | null = null;
 let cachedDistributions: Map<number, MatchDistribution> | null = null;
+let cachedSeasonProjections: SeasonProjection[] | null = null;
 
 export async function loadPublicMeta(): Promise<PublicMeta> {
   if (!cachedMeta) {
@@ -51,6 +53,34 @@ export async function loadDistributions(): Promise<Map<number, MatchDistribution
   return cachedDistributions;
 }
 
+/**
+ * The finishing odds of every batch the published season is read through, keyed by batch.
+ *
+ * Snapshots exported before matchweeks could be browsed carry only the active batch, so this
+ * falls back to `projections.json` under the id `meta.json` names — one entry is exactly what
+ * those snapshots have, and the matchweek picker degrades to the single week it covers.
+ */
+export async function loadSeasonProjections(): Promise<SeasonProjection[]> {
+  if (!cachedSeasonProjections) {
+    const published = await loadJson<SeasonProjection[]>('season-projections.json').catch(
+      () => null,
+    );
+    if (published && published.length > 0) {
+      cachedSeasonProjections = published;
+    } else {
+      const [meta, projections] = await Promise.all([
+        loadPublicMeta(),
+        staticApi.getProjections().catch(() => null),
+      ]);
+      cachedSeasonProjections =
+        meta.predictionId == null || projections == null
+          ? []
+          : [{ predictionId: meta.predictionId, ...projections }];
+    }
+  }
+  return cachedSeasonProjections;
+}
+
 export const staticApi = {
   listTeams: async (): Promise<Team[]> => (await loadBootstrap()).teams,
 
@@ -65,6 +95,8 @@ export const staticApi = {
 
   getProjections: (): Promise<ProjectionsResponse> =>
     loadJson<ProjectionsResponse>('projections.json'),
+
+  listSeasonProjections: (): Promise<SeasonProjection[]> => loadSeasonProjections(),
 
   listActualResults: async (): Promise<ActualMatchResult[]> => (await loadBootstrap()).actualResults,
 

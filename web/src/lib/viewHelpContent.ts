@@ -86,7 +86,10 @@ function seasonHelp(publicMode: boolean): ViewHelp {
 
 function projectionsHelp(publicMode: boolean): ViewHelp {
   const howToBullets = [
+    'Step Matchweek back and forward to read the projection each round was actually made under.',
     'Sort the projections table by any column to rank clubs by title odds or relegation risk.',
+    'Switch the measure above the trend chart between projected finish and the four zone probabilities.',
+    'Click a club in a chart legend — or on its line — to hold it forward and push the other nineteen back.',
   ];
 
   if (!publicMode) {
@@ -106,11 +109,27 @@ function projectionsHelp(publicMode: boolean): ViewHelp {
         ],
       },
       {
+        title: 'Matchweek',
+        paragraphs: [
+          'Each round is read through one batch — the last one that faced it blind — so stepping the matchweek back shows the forecast that was current then, not today\'s model re-run against an older table. Rounds past the next one are left out: they all read the newest batch, so they would only repeat this week\'s numbers.',
+          'The ± column and the movers strip are the change since the previous matchweek\'s projection, in places of projected finish.',
+        ],
+      },
+      {
         title: 'Reading the numbers',
         bullets: [
           'Title, Top 4, Europe, and Relegation are the share of seasons ending in each zone.',
           'Avg Pts and Avg Pos are means across the whole batch, not a single season.',
           'The distribution bar stacks all 20 finishing positions left to right, coloured by zone.',
+        ],
+      },
+      {
+        title: 'The charts',
+        bullets: [
+          'Projection by matchweek — one line per club, one point per matchweek, each point from that week\'s own simulation. It gains a point per round played, not per fixture.',
+          'Table against projection — the gap between where a club sits now and where this matchweek projects it to finish. Above the line the table flatters it; below, the model rates it higher than its results do.',
+          'Elo ratings — where every rating has been, on each day football was played. This is history and an input to the projections, not an output of them.',
+          'Twenty lines is more than colour can carry on its own, so each ends in its club code and comes forward when hovered or pinned.',
         ],
       },
       {

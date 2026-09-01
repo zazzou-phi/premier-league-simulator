@@ -3,6 +3,7 @@ import { zoneForPosition } from '@shared/engine/standings.js';
 import type { StandingRow } from '@shared/engine/types.js';
 import { ZONE_LABELS } from '../lib/leagueZones.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
+import { MovementArrow } from './MovementArrow.js';
 import { SortableTh } from './SortableTh.js';
 import { TeamBadge } from './TeamBadge.js';
 import { ZoneLegend } from './ZoneLegend.js';
@@ -32,6 +33,13 @@ interface Props {
   titleActions?: ReactNode;
   /** Rendered instead of the table and legend — an all-zero table is not worth showing. */
   emptyState?: ReactNode;
+  /**
+   * Places gained since the previous matchday's table, keyed by club. Absent on the opening
+   * round, and wherever a table has no earlier one to be compared with.
+   */
+  movement?: Map<number, number | null>;
+  /** Names what the movement is measured against, e.g. `since MD2`. */
+  movementSince?: string;
   selectedTeamId?: number | null;
   onSelectTeam?: (teamId: number) => void;
 }
@@ -55,6 +63,8 @@ export function LeagueTable({
   matchesTotal,
   titleActions,
   emptyState,
+  movement,
+  movementSince = 'since the previous matchday',
   selectedTeamId = null,
   onSelectTeam,
 }: Props) {
@@ -120,6 +130,12 @@ export function LeagueTable({
               direction={sort.direction}
               onSort={toggleSort}
             />
+            {movement && (
+              <th className="league-table-movement" title={`Places gained ${movementSince}`}>
+                <span aria-hidden="true">±</span>
+                <span className="visually-hidden">Movement</span>
+              </th>
+            )}
             <SortableTh
               label="Team"
               sortKey="team"
@@ -220,6 +236,15 @@ export function LeagueTable({
             return (
               <tr key={row.teamId} className={classes} title={`${row.team.name} · ${ZONE_LABELS[zone]}`}>
                 <td className="league-table-position">{row.position}</td>
+                {movement && (
+                  <td className="league-table-movement">
+                    <MovementArrow
+                      places={movement.get(row.teamId)}
+                      since={movementSince}
+                      teamName={row.team.name}
+                    />
+                  </td>
+                )}
                 <td className="league-table-team">
                   {onSelectTeam ? (
                     // A button, not a row click handler: filtering has to work from the keyboard.
