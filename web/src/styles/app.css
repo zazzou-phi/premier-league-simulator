@@ -27,6 +27,34 @@
   --row-selected-bg: rgba(255, 200, 50, 0.15);
   --btn-simulate-fg: #0d1117;
   --segment-actual-ring: rgba(255, 255, 255, 0.75);
+
+  /* Twenty categorical slots for the club charts, generated in OKLCH and checked with the
+     data-viz palette validator against this theme's chart surface: every slot inside the
+     dark lightness band, above the chroma floor, and clear of the colour-vision (ΔE 13.8)
+     and normal-vision (ΔE 26.2) separation floors on adjacent slots. Twenty hues is past
+     what colour alone can carry, so the charts pair them with direct end labels and a dash
+     pattern — see `seriesPalette.ts`. The light theme re-steps the same twenty hues, so a
+     club keeps its colour across both. */
+  --series-1: #05a5b3;
+  --series-2: #e3645e;
+  --series-3: #2b68c6;
+  --series-4: #aa9100;
+  --series-5: #b471d7;
+  --series-6: #6a7300;
+  --series-7: #d764a2;
+  --series-8: #02823e;
+  --series-9: #7553bd;
+  --series-10: #01ab84;
+  --series-11: #9d4195;
+  --series-12: #69a631;
+  --series-13: #b3385c;
+  --series-14: #009be7;
+  --series-15: #8d6300;
+  --series-16: #7b85f2;
+  --series-17: #d37806;
+  --series-18: #0184a5;
+  --series-19: #b24402;
+  --series-20: #03978e;
   --fixture-row-max-width: 41rem;
   /* Prose, labels and buttons read in the UI face; only figures keep the mono stack, so
      columns of numbers stay comparable without setting the whole app in monospace. */
@@ -73,6 +101,26 @@
     --row-selected-bg: rgba(154, 103, 0, 0.12);
     --btn-simulate-fg: #ffffff;
     --segment-actual-ring: rgba(0, 0, 0, 0.55);
+    --series-1: #0098a5;
+    --series-2: #9b0f1b;
+    --series-3: #4183ea;
+    --series-4: #796700;
+    --series-5: #a962ce;
+    --series-6: #586000;
+    --series-7: #cd5396;
+    --series-8: #00642e;
+    --series-9: #906ce0;
+    --series-10: #007f61;
+    --series-11: #be59b4;
+    --series-12: #356001;
+    --series-13: #d65075;
+    --series-14: #005b8a;
+    --series-15: #ae7c02;
+    --series-16: #4040ad;
+    --series-17: #c36e01;
+    --series-18: #0384a5;
+    --series-19: #d65b1d;
+    --series-20: #02978e;
   }
 }
 
@@ -103,6 +151,26 @@
   --row-selected-bg: rgba(154, 103, 0, 0.12);
   --btn-simulate-fg: #ffffff;
   --segment-actual-ring: rgba(0, 0, 0, 0.55);
+  --series-1: #0098a5;
+  --series-2: #9b0f1b;
+  --series-3: #4183ea;
+  --series-4: #796700;
+  --series-5: #a962ce;
+  --series-6: #586000;
+  --series-7: #cd5396;
+  --series-8: #00642e;
+  --series-9: #906ce0;
+  --series-10: #007f61;
+  --series-11: #be59b4;
+  --series-12: #356001;
+  --series-13: #d65075;
+  --series-14: #005b8a;
+  --series-15: #ae7c02;
+  --series-16: #4040ad;
+  --series-17: #c36e01;
+  --series-18: #0384a5;
+  --series-19: #d65b1d;
+  --series-20: #02978e;
 }
 
 /* Figures only. Every rule here pairs the mono face with tabular figures — a proportional
@@ -1860,12 +1928,15 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   min-height: 0;
 }
 
+/* Scrolls as one column at every width. The table used to be the only scroller, which was
+   right while it was the only thing here; with the trend charts stacked below it a scroller
+   inside a fixed panel would leave them unreachable. */
 .projections-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.5rem;
@@ -2079,10 +2150,11 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
   border-color: var(--cyan);
 }
 
+/* Sideways only: the panel above scrolls the page, and a vertical scroller here would trap
+   the table's own rows inside a box while the charts below it moved. */
 .projections-table-wrap {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  flex: none;
+  overflow-x: auto;
 }
 
 .projections-table {
@@ -2494,16 +2566,8 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
     display: none;
   }
 
-  /* The distributions are why this view exists, but the headline above them is three stacked
-     cards tall once it wraps to one column — pinning it left the card list a ~150px slot to
-     scroll 20 clubs in, so the bars were effectively off-screen. Scroll the panel as one column
-     instead: the headline moves out of the way and the cards get the height. */
-  .projections-panel {
-    overflow-y: auto;
-  }
-
   /* Both axes, or the hidden one alone would make this a scroll container again — and the
-     axis below would stick to it rather than to the panel. */
+     axis below would stick to it rather than to the panel, which is what scrolls. */
   .projection-cards-wrap {
     flex: none;
     overflow: visible;
@@ -2515,7 +2579,9 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
      which cards would otherwise scroll through above the axis. */
   .projection-cards-controls {
     position: sticky;
-    top: 0;
+    /* Below the matchweek picker, not under it. The picker publishes its own measured height,
+       since it wraps to two or three rows at this width. */
+    top: calc(var(--matchweek-control-height, 0px) + 0.5rem);
     z-index: 1;
     /* Opaque all the way to the gap below it, and up over the panel's own top padding, so a
        card passing under the block is hidden rather than half-drawn either side of it. */
@@ -2926,4 +2992,427 @@ button.matchday-header-pick:focus-visible .matchday-header-projection {
 
 .accuracy-row-outcome td {
   color: var(--yellow);
+}
+
+/* ---------------------------------------------------------------------------
+   Matchweek projections: the week picker, movement arrows, movers strip, and
+   the club line charts the Projections view stacks below its table.
+   --------------------------------------------------------------------------- */
+
+/* Pinned to the top of the scrolling panel: it sets what every table and chart below it reads,
+   and the page is long enough that a picker only reachable at the top would be a scroll away
+   from anything it changes. The shadow is a band, not a shade — it fills the panel's own top
+   padding, which rows would otherwise scroll through above the control. */
+.matchweek-control {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow:
+    0 -0.5rem 0 var(--bg-elevated),
+    0 0.5rem 0 var(--bg-elevated);
+}
+
+.matchweek-control-lead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.matchweek-control-label {
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.matchweek-control-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Same badge the season cutoff uses for "now", so the two controls read as one idea. */
+.matchweek-control-anchor {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.matchweek-control-source {
+  font-size: 0.88em;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchweek-control-name {
+  color: var(--text);
+}
+
+.matchweek-control-replay {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.matchweek-control-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 11rem;
+}
+
+.matchweek-control-range {
+  flex: 1;
+  min-width: 6rem;
+  accent-color: var(--accent);
+}
+
+/* Movement ------------------------------------------------------------------ */
+
+/* The glyph carries the sign; the colour only repeats what the arrow already says. */
+.movement {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.movement-up {
+  color: var(--green);
+}
+
+.movement-down {
+  color: var(--red);
+}
+
+.movement-flat,
+.movement-none {
+  color: var(--text-muted);
+}
+
+.league-table-movement,
+.projections-movement {
+  width: 2.6rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Movers -------------------------------------------------------------------- */
+
+.movers {
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.movers-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.movers-heading .muted {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.movers-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.35rem 1rem;
+}
+
+.movers-group {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+}
+
+.movers-group-label {
+  font-size: 0.85em;
+  min-width: 3.5rem;
+}
+
+.movers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.movers-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.movers-team {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movers-empty {
+  font-size: 0.9em;
+}
+
+/* Chart panels -------------------------------------------------------------- */
+
+.chart-panel {
+  flex-shrink: 0;
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.chart-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.chart-panel-title {
+  margin: 0;
+  font-size: 1em;
+}
+
+.chart-panel-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85em;
+  max-width: 46rem;
+}
+
+/* Filters sit in one row above the plot, never scattered around it. */
+.chart-metric-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.chart-metric-toggle .btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The diverging bars were sized for the accuracy modal, where a handful of matchdays sit in a
+   narrow panel. Twenty clubs across the full width of this view left the chart a thin ribbon
+   floating in the middle of its box, so the thickness cap is raised here alone — the modal
+   keeps the cap it was drawn for. */
+.chart-panel .diverging-slot,
+.chart-panel .diverging-axis span {
+  max-width: 48px;
+}
+
+.chart-panel .diverging-axis {
+  font-size: 0.85em;
+}
+
+/* Club line chart ----------------------------------------------------------- */
+
+.club-chart {
+  position: relative;
+  width: 100%;
+}
+
+.club-chart-plot {
+  display: block;
+  max-width: 100%;
+  touch-action: pan-y;
+}
+
+.club-chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.club-chart-crosshair {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.club-chart-tick {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.club-chart-tick-y {
+  text-anchor: end;
+}
+
+.club-chart-tick-x {
+  text-anchor: middle;
+}
+
+/* Thin marks: the line is the data, the dots only mark where a reading actually exists. */
+.club-chart-series path {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.club-chart-dot {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.club-chart-leader {
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.club-chart-end-label {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* One club forward, nineteen back — the only thing that makes twenty lines readable. */
+.club-chart-series-dim {
+  opacity: 0.16;
+}
+
+.club-chart-series-lead path {
+  stroke-width: 3;
+}
+
+.club-chart-series-lead .club-chart-end-label {
+  fill: var(--text);
+}
+
+.club-chart-tooltip {
+  position: absolute;
+  top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  box-shadow: 0 2px 8px var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 0.85em;
+}
+
+.club-chart-tooltip-title {
+  font-weight: 600;
+}
+
+.club-chart-tooltip-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.club-chart-axis-title {
+  margin: 0.15rem 0 0;
+  text-align: center;
+  font-size: 0.8em;
+}
+
+/* Legend, which is also the filter ------------------------------------------ */
+
+.club-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.club-chart-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.club-chart-chip:hover,
+.club-chart-chip-hovered {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.club-chart-chip-active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.club-chart-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.club-chart-clear {
+  margin-left: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .matchweek-control-stepper {
+    order: 3;
+    width: 100%;
+  }
+
+  .chart-panel-head {
+    flex-direction: column;
+  }
 }

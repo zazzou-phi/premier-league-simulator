@@ -89,6 +89,13 @@ export interface MatchdayProjection {
   forecast: boolean;
 }
 
+/** One batch's season projection, tagged with the batch it came from. */
+export interface SeasonProjection {
+  predictionId: number;
+  runs: number;
+  teams: TeamSeasonProjection[];
+}
+
 export interface TeamEloSnapshot {
   teamId: number;
   asOf: string;
@@ -1219,6 +1226,28 @@ export class Repository {
       if (distribution) distributions.push(distribution);
     }
     return distributions;
+  }
+
+  /**
+   * The finishing odds of every batch the season is read through, one entry per distinct batch.
+   *
+   * A matchday names its batch but not what that batch made of the table, so a reader wanting
+   * the projection behind matchday 2 would otherwise have to fetch each batch by hand. Keyed by
+   * prediction rather than by matchday because consecutive rounds nearly always share a batch —
+   * thirty-six rounds reading the newest run would repeat the same twenty rows thirty-six times.
+   */
+  getAssignedProjections(): SeasonProjection[] {
+    const ids = [
+      ...new Set(
+        this.resolveMatchdayProjections().flatMap((item) =>
+          item.predictionId == null ? [] : [item.predictionId],
+        ),
+      ),
+    ];
+    return ids.map((predictionId) => ({
+      predictionId,
+      ...this.getPredictionProjections(predictionId),
+    }));
   }
 
   /**

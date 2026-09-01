@@ -409,6 +409,12 @@ export function createApiApp(repo: Repository): Hono {
    */
   app.get('/api/v1/season/state', (c) => c.json(repo.buildAssignedSeasonState()));
 
+  /**
+   * The finishing odds of every batch the season is read through, so a client can follow one
+   * club across matchweeks without a request per batch.
+   */
+  app.get('/api/v1/season/projections', (c) => c.json(repo.getAssignedProjections()));
+
   app.get('/api/v1/matchday-projections', (c) => c.json(repo.resolveMatchdayProjections()));
 
   app.get('/api/v1/matchday-projections/:matchday', (c) => {

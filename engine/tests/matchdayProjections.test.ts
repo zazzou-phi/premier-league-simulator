@@ -214,6 +214,36 @@ describe('assigned distributions', () => {
   });
 });
 
+describe('assigned projections', () => {
+  it('carries one entry per batch the season is read through', async () => {
+    const { blind, informed } = await playFirstMatchday();
+    const assigned = repo.getAssignedProjections();
+
+    // Two batches, thirty-eight rounds: keyed by batch, so the newest is not repeated
+    // thirty-seven times over the rounds still to come.
+    expect(assigned.map((entry) => entry.predictionId).sort((a, b) => a - b)).toEqual(
+      [blind.id, informed.id].sort((a, b) => a - b),
+    );
+    for (const entry of assigned) {
+      expect(entry).toEqual({
+        predictionId: entry.predictionId,
+        ...repo.getPredictionProjections(entry.predictionId),
+      });
+    }
+  });
+
+  it('names only the one batch when the whole season reads it', async () => {
+    const only = await project('Pre-season');
+    expect(repo.getAssignedProjections()).toEqual([
+      { predictionId: only.id, ...repo.getPredictionProjections(only.id) },
+    ]);
+  });
+
+  it('has nothing to project before any batch has run', () => {
+    expect(repo.getAssignedProjections()).toEqual([]);
+  });
+});
+
 describe('public snapshot', () => {
   it('publishes what each matchday is attached to', async () => {
     const { blind, informed } = await playFirstMatchday();
@@ -236,5 +266,15 @@ describe('public snapshot', () => {
     expect(snapshot.leagueState).toEqual(repo.buildAssignedSeasonState());
     expect(snapshot.distributions).toEqual(repo.getAssignedDistributions());
     expect(snapshot.distributions).toHaveLength(380);
+  });
+
+  it('publishes the odds of every batch, so a matchweek can be read statically', async () => {
+    const { blind, informed } = await playFirstMatchday();
+    const snapshot = buildPublicSnapshot(repo, new Date('2026-01-01T00:00:00Z'));
+
+    expect(snapshot.seasonProjections).toEqual(repo.getAssignedProjections());
+    expect(snapshot.seasonProjections.map((entry) => entry.predictionId).sort()).toEqual(
+      [blind.id, informed.id].sort(),
+    );
   });
 });

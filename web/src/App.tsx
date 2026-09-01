@@ -37,6 +37,7 @@ import {
   type MonteCarloRunResult,
   type Prediction,
   type PublicMeta,
+  type SeasonProjection,
 } from './types.js';
 
 type ModalKind = 'predictions' | 'ratings' | 'monteCarlo' | 'week' | null;
@@ -91,6 +92,8 @@ const EMPTY_PROJECTIONS: ProjectionState = {
 interface SeasonPicksState {
   state: SeasonState | null;
   matchdays: MatchdayProjection[];
+  /** The finishing odds of each batch above, so a matchweek can be read without a fetch. */
+  projectionsByPrediction: SeasonProjection[];
   error: string | null;
   loading: boolean;
 }
@@ -98,6 +101,7 @@ interface SeasonPicksState {
 const EMPTY_SEASON: SeasonPicksState = {
   state: null,
   matchdays: [],
+  projectionsByPrediction: [],
   error: null,
   loading: false,
 };
@@ -178,12 +182,13 @@ export function App() {
   const loadSeason = useCallback(async () => {
     setSeason((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const [state, matchdays] = await Promise.all([
+      const [state, matchdays, projectionsByPrediction] = await Promise.all([
         // No projection at all is not an error: the season view still has the recorded results.
         api.getSeasonState().catch(() => null),
         api.listMatchdayProjections().catch(() => []),
+        api.listSeasonProjections().catch(() => []),
       ]);
-      setSeason({ state, matchdays, error: null, loading: false });
+      setSeason({ state, matchdays, projectionsByPrediction, error: null, loading: false });
     } catch (err) {
       setSeason({
         ...EMPTY_SEASON,
@@ -627,8 +632,12 @@ export function App() {
               projections={projections.teams}
               runs={projections.runs}
               teams={teams}
+              fixtures={fixtures}
+              actualResults={actualResults}
+              matchdayProjections={season.matchdays}
+              seasonProjections={season.projectionsByPrediction}
               nextMatchday={nextMatchday}
-              loading={projections.loading}
+              loading={projections.loading || season.loading}
             />
           ))}
       </main>

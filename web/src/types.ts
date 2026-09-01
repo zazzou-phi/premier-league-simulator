@@ -2,6 +2,7 @@ import type { AccuracyReport } from '@shared/engine/accuracy.js';
 import type {
   AccuracyHistoryPoint,
   MatchdayProjection,
+  SeasonProjection,
   TeamEloSnapshot,
 } from '@shared/db/repository.js';
 import type { PickStrategy } from '@shared/engine/pickStrategy.js';
@@ -21,7 +22,7 @@ export type {
   WeekStepResult,
   WeekStepResultEvent,
 } from '@shared/season/weekRun.js';
-export type { AccuracyHistoryPoint, MatchdayProjection, TeamEloSnapshot };
+export type { AccuracyHistoryPoint, MatchdayProjection, SeasonProjection, TeamEloSnapshot };
 
 export interface ApiErrorBody {
   error: string;

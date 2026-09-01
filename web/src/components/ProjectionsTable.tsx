@@ -9,6 +9,7 @@ import {
 } from '../lib/projectionSort.js';
 import { teamsById } from '../lib/teamsById.js';
 import { useSortableTable } from '../lib/useSortableTable.js';
+import { MovementArrow } from './MovementArrow.js';
 import { PositionAxis, PositionDistributionBar } from './PositionDistributionBar.js';
 import { SortableTh } from './SortableTh.js';
 import { TeamBadge } from './TeamBadge.js';
@@ -18,6 +19,13 @@ interface Props {
   runs: number;
   teams?: Team[];
   showDistribution?: boolean;
+  /**
+   * Places gained on the previous matchweek's projection, keyed by club. Absent wherever there
+   * is no earlier projection to move from — a single batch shown on its own has no movement.
+   */
+  movement?: Map<number, number | null>;
+  /** Names what the movement is measured against, e.g. `since MW2`. */
+  movementSince?: string;
 }
 
 function probabilityClass(value: number, danger = false): string {
@@ -31,6 +39,8 @@ export function ProjectionsTable({
   runs,
   teams = [],
   showDistribution = true,
+  movement,
+  movementSince = 'since the previous matchweek',
 }: Props) {
   const byId = useMemo(() => teamsById(teams), [teams]);
 
@@ -45,6 +55,12 @@ export function ProjectionsTable({
         <thead>
           <tr>
             <th>#</th>
+            {movement && (
+              <th className="projections-movement" title={`Places gained ${movementSince}`}>
+                <span aria-hidden="true">±</span>
+                <span className="visually-hidden">Movement</span>
+              </th>
+            )}
             <SortableTh
               label="Team"
               sortKey="team"
@@ -131,6 +147,15 @@ export function ProjectionsTable({
           {sortedItems.map((row, index) => (
             <tr key={row.teamId}>
               <td>{index + 1}</td>
+              {movement && (
+                <td className="projections-movement">
+                  <MovementArrow
+                    places={movement.get(row.teamId)}
+                    since={movementSince}
+                    teamName={row.teamName}
+                  />
+                </td>
+              )}
               <td className="projections-team">
                 <TeamBadge
                   team={byId.get(row.teamId)}

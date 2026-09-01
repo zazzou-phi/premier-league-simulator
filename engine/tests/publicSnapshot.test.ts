@@ -102,6 +102,7 @@ describe('buildPublicSnapshot', () => {
       'league-state.json',
       'meta.json',
       'projections.json',
+      'season-projections.json',
     ]);
     for (const contents of Object.values(files)) {
       expect(() => JSON.stringify(contents)).not.toThrow();

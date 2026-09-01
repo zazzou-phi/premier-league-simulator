@@ -17,6 +17,7 @@ import {
   playedThroughMatchday,
 } from '../lib/matchdayCutoff.js';
 import { projectionsByMatchday } from '../lib/matchdayProjections.js';
+import { rankMovement } from '../lib/matchweekSeries.js';
 import { PICK_STRATEGY_HINT, PICK_STRATEGY_OPTIONS } from '../lib/pickStrategy.js';
 import type { PickStrategy } from '../lib/pickStrategy.js';
 import type { MatchdayProjection } from '../types.js';
@@ -145,6 +146,25 @@ export function SeasonView({
     [teams, cutMatches],
   );
 
+  /**
+   * Where each club was a round earlier, so the table can show what this round moved.
+   *
+   * The comparison is the same table cut one matchday shorter — not the previous round's
+   * standings as anyone recorded them at the time — because that is the only reading that stays
+   * consistent when the cutoff is dragged backwards through the season.
+   */
+  const movement = useMemo(() => {
+    if (cutoff <= 1) return undefined;
+    const previous = computeLeagueStandings(
+      teams,
+      playedMatchesFor(applyMatchdayCutoff(seasonMatches, cutoff - 1)),
+    );
+    return rankMovement(
+      new Map(standings.map((row) => [row.teamId, row.position])),
+      new Map(previous.map((row) => [row.teamId, row.position])),
+    );
+  }, [teams, seasonMatches, cutoff, standings]);
+
   const { actualCount, predictedCount } = useMemo(() => {
     let actual = 0;
     let predicted = 0;
@@ -252,6 +272,8 @@ export function SeasonView({
             matchesTotal={cutMatches.length}
             titleActions={strategyControl}
             emptyState={emptyState}
+            movement={movement}
+            movementSince={`since matchday ${cutoff - 1}`}
             selectedTeamId={selectedTeamId}
             onSelectTeam={handleSelectTeam}
           />
