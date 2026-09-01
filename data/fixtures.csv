@@ -9,16 +9,16 @@ Match Number,Round Number,Date,Location,Home Team,Away Team,Result
 8,1,23/08/2026 14:00,Etihad Stadium,Man City,Bournemouth,2 - 1
 9,1,23/08/2026 16:30,St. James' Park,Newcastle,Liverpool,2 - 2
 10,1,24/08/2026 20:00,Craven Cottage,Fulham,Chelsea,2 - 3
-15,2,28/08/2026 20:00,Selhurst Park,Crystal Palace,Man City,
-17,2,29/08/2026 12:30,Anfield,Liverpool,Nott'm Forest,
-11,2,29/08/2026 15:00,Vitality Stadium,Bournemouth,Everton,
-14,2,29/08/2026 15:00,Coventry Building Society Arena,Coventry,Hull,
-20,2,29/08/2026 17:30,Tottenham Hotspur Stadium,Spurs,Newcastle,
-13,2,30/08/2026 14:00,Stamford Bridge,Chelsea,Brighton,
-16,2,30/08/2026 14:00,Elland Road,Leeds,Brentford,
-19,2,30/08/2026 14:00,Stadium of Light,Sunderland,Fulham,
-18,2,30/08/2026 16:30,Old Trafford,Man Utd,Ipswich,
-12,2,31/08/2026 20:00,Villa Park,Aston Villa,Arsenal,
+15,2,28/08/2026 20:00,Selhurst Park,Crystal Palace,Man City,1 - 4
+17,2,29/08/2026 12:30,Anfield,Liverpool,Nott'm Forest,2 - 2
+11,2,29/08/2026 15:00,Vitality Stadium,Bournemouth,Everton,1 - 1
+14,2,29/08/2026 15:00,Coventry Building Society Arena,Coventry,Hull,0 - 1
+20,2,29/08/2026 17:30,Tottenham Hotspur Stadium,Spurs,Newcastle,0 - 2
+13,2,30/08/2026 14:00,Stamford Bridge,Chelsea,Brighton,4 - 3
+16,2,30/08/2026 14:00,Elland Road,Leeds,Brentford,1 - 1
+19,2,30/08/2026 14:00,Stadium of Light,Sunderland,Fulham,1 - 0
+18,2,30/08/2026 16:30,Old Trafford,Man Utd,Ipswich,5 - 2
+12,2,31/08/2026 20:00,Villa Park,Aston Villa,Arsenal,0 - 1
 27,3,04/09/2026 20:00,Portman Road,Ipswich,Liverpool,
 29,3,05/09/2026 12:30,St. James' Park,Newcastle,Bournemouth,
 22,3,05/09/2026 15:00,Gtech Community Stadium,Brentford,Sunderland,
@@ -44,10 +44,10 @@ Match Number,Round Number,Date,Location,Home Team,Away Team,Result
 43,5,19/09/2026 15:00,American Express Stadium,Brighton,Arsenal,
 44,5,19/09/2026 15:00,Hill Dickinson Stadium,Everton,Ipswich,
 46,5,19/09/2026 15:00,Elland Road,Leeds,Crystal Palace,
-47,5,19/09/2026 15:00,Etihad Stadium,Man City,Sunderland,
 48,5,19/09/2026 15:00,St. James' Park,Newcastle,Hull,
 49,5,19/09/2026 17:30,The City Ground,Nott'm Forest,Coventry,
 41,5,20/09/2026 14:00,Vitality Stadium,Bournemouth,Liverpool,
+47,5,20/09/2026 14:00,Etihad Stadium,Man City,Sunderland,
 45,5,20/09/2026 16:30,Craven Cottage,Fulham,Man Utd,
 51,6,10/10/2026 12:30,Emirates Stadium,Arsenal,Leeds,
 52,6,10/10/2026 15:00,Villa Park,Aston Villa,Brentford,
